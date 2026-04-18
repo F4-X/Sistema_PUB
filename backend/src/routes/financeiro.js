@@ -44,6 +44,12 @@ function getRange(req) {
   return { inicio: i, fim: f };
 }
 
+function escCsv(v) {
+  if (v == null) return "";
+  const s = String(v).replace(/"/g, '""');
+  return `"${s}"`;
+}
+
 router.get("/resumo", async (req, res) => {
   try {
     const { inicio, fim } = getRange(req);
@@ -169,6 +175,76 @@ router.get("/top-produtos", async (req, res) => {
     res.json(r.rows.map((x) => ({ ...x, faturamento: Number(x.faturamento) })));
   } catch (e) {
     res.status(500).json({ error: e?.message || "Erro ao carregar top produtos" });
+  }
+});
+
+router.get("/exportar-vendas", async (req, res) => {
+  try {
+    const { inicio, fim } = getRange(req);
+
+    const r = await db.query(
+      `
+      SELECT
+        v.id,
+        v.criado_em,
+        v.caixa_numero,
+        v.total_bruto,
+        v.desconto,
+        v.acrescimo,
+        v.total_final,
+        v.troco,
+        v.nfce_status,
+        v.nfce_chave,
+        v.nfce_numero
+      FROM vendas v
+      WHERE v.criado_em >= $1 AND v.criado_em < $2
+      ORDER BY v.criado_em DESC, v.id DESC
+      `,
+      [inicio, fim]
+    );
+
+    const linhas = [
+      [
+        "id",
+        "criado_em",
+        "caixa_numero",
+        "total_bruto",
+        "desconto",
+        "acrescimo",
+        "total_final",
+        "troco",
+        "nfce_status",
+        "nfce_chave",
+        "nfce_numero",
+      ].join(";"),
+    ];
+
+    for (const v of r.rows) {
+      linhas.push(
+        [
+          escCsv(v.id),
+          escCsv(v.criado_em),
+          escCsv(v.caixa_numero),
+          escCsv(Number(v.total_bruto || 0).toFixed(2)),
+          escCsv(Number(v.desconto || 0).toFixed(2)),
+          escCsv(Number(v.acrescimo || 0).toFixed(2)),
+          escCsv(Number(v.total_final || 0).toFixed(2)),
+          escCsv(Number(v.troco || 0).toFixed(2)),
+          escCsv(v.nfce_status || ""),
+          escCsv(v.nfce_chave || ""),
+          escCsv(v.nfce_numero || ""),
+        ].join(";")
+      );
+    }
+
+    const csv = "\uFEFF" + linhas.join("\n");
+    const nome = `vendas_${String(inicio).slice(0, 10)}_a_${String(fim).slice(0, 10)}.csv`;
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${nome}"`);
+    res.send(csv);
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao exportar vendas" });
   }
 });
 

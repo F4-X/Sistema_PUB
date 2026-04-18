@@ -121,6 +121,33 @@ export default function Financeiro({ setTela }) {
     }
   }
 
+  async function exportarVendas() {
+    try {
+      const response = await api.get(`/financeiro/exportar-vendas?${queryParams}`, {
+        responseType: "blob",
+      });
+
+      const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+
+      const hoje = new Date().toISOString().slice(0, 10);
+      a.download =
+        modo === "periodo"
+          ? `vendas_${inicio}_a_${fim}.csv`
+          : `vendas_${data || hoje}.csv`;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(e?.response?.data?.error || "Erro ao exportar vendas");
+    }
+  }
+
   if (page === "xmls") {
     return (
       <>
@@ -222,6 +249,14 @@ export default function Financeiro({ setTela }) {
                 disabled={loading}
               >
                 Período
+              </button>
+
+              <button
+                className="btn-primary"
+                onClick={exportarVendas}
+                disabled={loading}
+              >
+                Exportar CSV
               </button>
             </div>
           </div>
