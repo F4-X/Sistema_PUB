@@ -406,7 +406,7 @@ export default function Financeiro({ setTela }) {
           </div>
 
           <div className="panel-head" style={{ marginTop: 8 }}>
-            <h2>Por Caixa2</h2>
+            <h2>Por Caixa</h2>
             <span className="badge">Caixa 1</span>
           </div>
 
