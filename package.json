@@ -1,0 +1,37 @@
+{
+  "name": "pub-1005-desktop",
+  "version": "1.0.2",
+  "main": "electron/main.js",
+  "scripts": {
+    "desktop": "electron .",
+    "build-frontend": "cd frontend && npm run build",
+    "build-desktop": "npm run build-frontend && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^37.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.pub1005.desktop",
+    "productName": "PUB 1005",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "backend/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.3.15",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3"
+  }
+}

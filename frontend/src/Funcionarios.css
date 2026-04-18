@@ -1,0 +1,402 @@
+/* =========================================================
+   Funcionarios.css
+   - Tela de Funcionários / Marcados
+   - Lista de funcionários
+   - Formulário de lançamentos
+   - Lançamentos pendentes / registrados
+   - Toggle da taxa
+   - Menu inicial do sistema
+========================================================= */
+
+/* =========================================================
+   1. MARCADOS / FUNCIONÁRIOS - ESTRUTURA DA TELA
+========================================================= */
+.mk-page{min-height:100vh}
+
+.mk-topbar{
+  padding:18px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:18px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(20,20,27,.85),rgba(10,10,14,.55));
+  backdrop-filter:blur(10px);
+  box-shadow:0 10px 40px rgba(0,0,0,.45);
+}
+
+.mk-tabs{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  margin-top:18px;
+}
+
+.mk-tabs button{
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(180deg,rgba(20,20,27,.9),rgba(12,12,18,.9));
+  color:var(--text);
+  cursor:pointer;
+  transition:.2s;
+  box-shadow:0 10px 25px rgba(0,0,0,.28);
+  font-weight:900;
+}
+
+.mk-tabs button:hover{
+  transform:translateY(-1px);
+  border-color:rgba(123,108,255,.45);
+}
+
+.mk-tabs .active{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-color:transparent;
+  box-shadow:0 0 0 4px var(--glow),0 12px 30px rgba(0,0,0,.35);
+}
+
+.mk-wrap{
+  width:min(1700px,96vw);
+  margin:18px auto 26px;
+  display:grid;
+  grid-template-columns:1.15fr .85fr;
+  gap:18px;
+  align-items:start;
+}
+
+/* =========================================================
+   2. MARCADOS - BUSCA E LISTA DE FUNCIONÁRIOS
+========================================================= */
+.mk-search{display:flex;gap:10px;margin:10px 0}
+
+.mk-search input{
+  flex:1;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.25);
+  color:#fff;
+  outline:none;
+}
+
+.mk-search input::placeholder{color:rgba(255,255,255,.5)}
+
+.mk-list{display:flex;flex-direction:column;gap:10px}
+
+.mk-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:12px;
+  background:rgba(17,17,24,.65);
+  transition:.18s;
+  cursor:pointer;
+  text-align:left;
+  color:var(--text);
+}
+
+.mk-row:hover{
+  transform:translateY(-1px);
+  border-color:rgba(123,108,255,.35);
+}
+
+.mk-row.active{
+  border-color:rgba(123,108,255,.60);
+  box-shadow:0 0 0 4px rgba(123,108,255,.14);
+}
+
+.mk-left{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mk-name{font-weight:900}
+.mk-sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52ch}
+.mk-right{display:flex;gap:10px;align-items:center;white-space:nowrap}
+.mk-pill{font-size:12px;font-weight:900;border:1px solid rgba(255,255,255,.10);padding:7px 10px;border-radius:999px;background:rgba(10,10,16,.45)}
+.mk-pill.warn{border-color:rgba(255,196,60,.35);box-shadow:0 0 0 4px rgba(255,196,60,.10)}
+
+/* =========================================================
+   3. MARCADOS - FORMULÁRIO DE LANÇAMENTO
+========================================================= */
+.mk-form{display:grid;gap:10px}
+.mk-formrow{display:grid;grid-template-columns:1fr 180px;gap:10px}
+.mk-field .mk-label{font-size:12px;color:var(--muted);font-weight:900;margin:0 0 6px}
+.mk-actions{display:flex;gap:10px;flex-wrap:wrap}
+.mk-hint{font-size:12px;color:var(--muted);padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(10,10,16,.35)}
+.mk-divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
+
+/* =========================================================
+   4. MARCADOS - CABEÇALHO DOS LANÇAMENTOS
+========================================================= */
+.mk-lanc-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.mk-lanc-title{font-weight:900}
+
+.mk-lanc-controls{display:flex;gap:10px;flex-wrap:wrap}
+
+.mk-lanc-controls button{
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(10,10,16,.45);
+  color:var(--text);
+  cursor:pointer;
+  font-weight:900;
+  transition:.2s;
+}
+
+.mk-lanc-controls button:hover{
+  transform:translateY(-1px);
+  border-color:rgba(123,108,255,.45);
+}
+
+.mk-lanc-controls .active{
+  background:linear-gradient(135deg,rgba(123,108,255,.25),rgba(75,43,191,.15));
+  border-color:rgba(123,108,255,.55);
+  box-shadow:0 0 0 4px rgba(123,108,255,.14);
+}
+
+/* =========================================================
+   5. MARCADOS - LISTA DE LANÇAMENTOS
+========================================================= */
+.mk-lanc-list{display:flex;flex-direction:column;gap:10px}
+
+.mk-lanc-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:10px;
+  background:rgba(17,17,24,.65);
+}
+
+.mk-lanc-left{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mk-lanc-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55ch}
+.mk-lanc-sub{font-size:12px;color:var(--muted)}
+.mk-lanc-right{text-align:right;white-space:nowrap}
+.mk-lanc-val{font-weight:900;color:#fff}
+.mk-lanc-mini{font-size:12px;color:rgba(255,255,255,.82)}
+.mk-lanc-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:8px}
+
+/* =========================================================
+   6. TOGGLE DA TAXA DE 15%
+========================================================= */
+.taxa-label{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-weight:800;
+  cursor:pointer;
+  user-select:none;
+}
+
+.taxa-label input{display:none}
+
+.taxa-switch{
+  width:44px;
+  height:24px;
+  border-radius:999px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.12);
+  position:relative;
+  transition:.2s;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.25);
+}
+
+.taxa-switch:after{
+  content:"";
+  position:absolute;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#fff;
+  top:2px;
+  left:3px;
+  transition:.2s;
+  box-shadow:0 4px 10px rgba(0,0,0,.25);
+}
+
+.taxa-label input:checked + .taxa-switch{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-color:transparent;
+  box-shadow:0 0 0 4px var(--glow), inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+.taxa-label input:checked + .taxa-switch:after{left:21px}
+
+/* =========================================================
+   7. MENU INICIAL
+========================================================= */
+.menu-page{
+  min-height:100vh;
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(90,70,255,.10), transparent 30%),
+    radial-gradient(circle at 85% 18%, rgba(75,43,191,.12), transparent 28%),
+    linear-gradient(180deg,#07070d 0%, #05060d 100%);
+}
+
+.menu-main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:34px;
+  padding:40px 24px 56px;
+  position:relative;
+  z-index:2;
+}
+
+.menu-hero{text-align:center;max-width:700px}
+
+.menu-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 15px;
+  border-radius:999px;
+  border:1px solid rgba(123,108,255,.25);
+  background:rgba(123,108,255,.10);
+  color:#ddd6ff;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.3px;
+  margin-bottom:14px;
+}
+
+.menu-heading{
+  margin:0;
+  font-size:clamp(28px,3.2vw,44px);
+  line-height:1.08;
+  font-weight:900;
+  color:#fff;
+  letter-spacing:-.6px;
+}
+
+.menu-text{
+  margin:12px auto 0;
+  max-width:560px;
+  color:rgba(255,255,255,.70);
+  font-size:14px;
+  line-height:1.65;
+}
+
+.menu-grid{
+  width:100%;
+  max-width:980px;
+  display:grid;
+  grid-template-columns:repeat(3, minmax(220px, 250px));
+  justify-content:center;
+  gap:22px;
+}
+
+.menu-box{
+  position:relative;
+  min-height:220px;
+  padding:22px;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(180deg, rgba(20,22,35,.92) 0%, rgba(11,13,24,.96) 100%);
+  box-shadow:
+    0 14px 35px rgba(0,0,0,.38),
+    inset 0 1px 0 rgba(255,255,255,.04);
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  text-align:left;
+  cursor:pointer;
+  transition:transform .20s ease,border-color .20s ease,box-shadow .20s ease;
+  overflow:hidden;
+}
+
+.menu-box::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle at top left, rgba(123,108,255,.12), transparent 36%);
+  pointer-events:none;
+}
+
+.menu-box:hover{
+  transform:translateY(-4px);
+  border-color:rgba(123,108,255,.28);
+  box-shadow:
+    0 20px 42px rgba(0,0,0,.45),
+    0 0 0 3px rgba(123,108,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.menu-box-top{display:flex;align-items:flex-start;justify-content:flex-start}
+
+.menu-icon-wrap{
+  width:58px;
+  height:58px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg, rgba(123,108,255,.28), rgba(75,43,191,.16));
+  border:1px solid rgba(123,108,255,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.menu-icon{
+  font-size:26px;
+  line-height:1;
+  filter:drop-shadow(0 6px 12px rgba(123,108,255,.20));
+  margin:0;
+}
+
+.menu-content{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.menu-label{font-size:17px;font-weight:900;color:#fff;line-height:1.2}
+.menu-desc{font-size:13px;color:rgba(255,255,255,.68);line-height:1.5;max-width:100%}
+.menu-arrow{margin-top:16px;font-size:13px;font-weight:800;color:#c9beff;letter-spacing:.2px}
+
+.menu-glow{
+  position:absolute;
+  border-radius:999px;
+  filter:blur(80px);
+  pointer-events:none;
+  opacity:.45;
+}
+
+.menu-glow-a{
+  width:280px;
+  height:280px;
+  background:rgba(123,108,255,.12);
+  top:90px;
+  left:-40px;
+}
+
+.menu-glow-b{
+  width:260px;
+  height:260px;
+  background:rgba(75,43,191,.12);
+  right:20px;
+  top:140px;
+}
+
+/* =========================================================
+   8. RESPONSIVO DE FUNCIONÁRIOS / MENU
+========================================================= */
+@media(max-width:1100px){
+  .mk-topbar{flex-direction:column;align-items:flex-start}
+  .mk-tabs{justify-content:flex-start}
+  .mk-wrap{grid-template-columns:1fr}
+  .mk-formrow{grid-template-columns:1fr}
+}
+
+@media (max-width:980px){
+  .menu-grid{grid-template-columns:repeat(2, minmax(220px, 250px))}
+}
+
+@media (max-width:720px){
+  .menu-main{padding:30px 18px 46px}
+  .menu-grid{grid-template-columns:1fr;max-width:260px}
+  .menu-heading{font-size:32px}
+  .menu-box{min-height:200px}
+}

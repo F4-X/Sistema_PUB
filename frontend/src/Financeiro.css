@@ -1,0 +1,248 @@
+/* =========================================================
+   Financeiro.css
+   - Financeiro
+   - XMLs / contas a pagar / contas pagas usam base deste arquivo
+   - Histórico em grid e tabela financeira
+========================================================= */
+
+/* =========================================================
+   1. FINANCEIRO - ESTRUTURA
+========================================================= */
+.fin-wrap{
+  width:min(1700px,96vw);
+  margin:18px auto 26px;
+  display:grid;
+  grid-template-columns:2.2fr 1fr;
+  gap:18px;
+  align-items:start;
+}
+
+.fin-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin:0 0 10px;
+}
+
+.fin-subtitle{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:6px;
+}
+
+/* =========================================================
+   2. FINANCEIRO - FILTRO DE DATAS
+========================================================= */
+.fin-date{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:10px 0 14px;
+}
+
+.fin-datebox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:16px;
+  background:linear-gradient(180deg,rgba(20,20,27,.90),rgba(10,10,16,.55));
+  box-shadow:0 12px 35px rgba(0,0,0,.35);
+}
+
+.fin-datebox .tag{
+  font-size:12px;
+  font-weight:900;
+  color:var(--muted);
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(10,10,16,.45);
+}
+
+.fin-datebox input[type="date"]{
+  appearance:none;
+  -webkit-appearance:none;
+  background:transparent;
+  border:0;
+  color:var(--text);
+  font-weight:900;
+  padding:6px 8px;
+  border-radius:12px;
+  outline:none;
+}
+
+.fin-datebox input[type="date"]::-webkit-calendar-picker-indicator{
+  filter:invert(1);
+  opacity:.85;
+  cursor:pointer;
+}
+
+.fin-datebox:focus-within{
+  border-color:rgba(123,108,255,.65);
+  box-shadow:0 0 0 4px var(--glow),0 18px 45px rgba(0,0,0,.35);
+}
+
+.fin-date .btn-secondary{padding:10px 12px;border-radius:14px}
+.fin-date .btn-primary{padding:10px 14px;border-radius:14px}
+
+/* =========================================================
+   3. FINANCEIRO - KPIs
+========================================================= */
+.fin-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.fin-kpis-2{grid-template-columns:repeat(2,1fr)}
+
+.fin-kpi{
+  background:linear-gradient(180deg,rgba(30,30,50,.90),rgba(20,20,35,.90));
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:14px;
+  box-shadow:0 12px 35px rgba(0,0,0,.45);
+}
+
+.fin-k{font-size:12px;color:var(--muted);font-weight:900}
+
+.fin-v{
+  font-size:22px;
+  font-weight:900;
+  margin-top:4px;
+  background:linear-gradient(90deg,#fff,var(--accent));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+}
+
+.fin-s{font-size:12px;color:var(--muted);margin-top:6px}
+.fin-dim{opacity:.65}
+
+/* =========================================================
+   4. FINANCEIRO - LISTA
+========================================================= */
+.fin-list{display:flex;flex-direction:column;gap:10px}
+
+.fin-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:10px;
+  background:rgba(17,17,24,.65);
+  transition:.18s;
+}
+
+.fin-row:hover{
+  transform:translateY(-1px);
+  border-color:rgba(123,108,255,.35);
+}
+
+.fin-left{display:flex;flex-direction:column}
+.fin-name{font-weight:900}
+.fin-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.fin-right{white-space:nowrap;font-weight:900;color:#fff}
+.fin-empty{opacity:.9}
+.fin-side{display:flex;flex-direction:column;gap:18px}
+
+/* =========================================================
+   5. FINANCEIRO - FECHAMENTO / SELECTS
+========================================================= */
+.fin-close{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.fin-close select{
+  flex:1;
+  min-width:160px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(10,10,16,.55);
+  color:var(--text);
+  outline:none;
+}
+
+.fin-close select:focus{
+  border-color:rgba(123,108,255,.65);
+  box-shadow:0 0 0 4px var(--glow);
+}
+
+.fin-close-msg{
+  margin-top:10px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(10,10,16,.45);
+  padding:10px 12px;
+  border-radius:14px;
+  color:var(--text);
+}
+
+/* =========================================================
+   6. HISTÓRICO EM GRID
+========================================================= */
+.hist-grid{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+
+.hist-row{
+  display:grid;
+  grid-template-columns:90px 140px 140px 90px 200px 1fr;
+  gap:12px;
+  align-items:center;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  background:rgba(10,10,16,.35);
+}
+
+.hist-head{font-weight:900;opacity:.9;background:rgba(20,20,28,.45)}
+.hist-row > div{min-width:0}
+.hist-row .mono{font-variant-numeric:tabular-nums}
+
+.badge-warn{
+  border-color:rgba(255,190,80,.35);
+  background:rgba(255,190,80,.12);
+  color:#ffd7a6;
+}
+
+/* =========================================================
+   7. TABELA FINANCEIRA
+========================================================= */
+.table-fin{width:100%;border-collapse:collapse;margin-top:10px}
+.table-fin th{background:#121429;color:#aaa;padding:10px;text-align:left;font-size:13px}
+.table-fin td{padding:10px;border-top:1px solid #1f2238}
+
+/* =========================================================
+   8. HISTÓRICO / FORÇAR TEXTO CLARO
+========================================================= */
+.fin-main,.fin-main *{color:#fff!important}
+.fin-sub,.fin-sub *{color:rgba(255,255,255,.88)!important}
+.fin-row{color:#fff!important}
+.fin-row .fin-name{color:#fff!important}
+.fin-row .fin-right{color:#fff!important}
+
+/* =========================================================
+   9. RESPONSIVO DO FINANCEIRO
+========================================================= */
+@media(max-width:1100px){
+  .fin-wrap{grid-template-columns:1fr}
+  .fin-kpis{grid-template-columns:1fr}
+  .fin-kpis-2{grid-template-columns:1fr}
+}
+
+@media (max-width:980px){
+  .hist-row{
+    grid-template-columns:80px 120px 120px 80px 1fr;
+    grid-auto-rows:auto;
+  }
+
+  .hist-row > div:last-child{
+    grid-column:1 / -1;
+    justify-content:flex-start;
+  }
+}
+
+@media (max-width:560px){
+  .hist-row{grid-template-columns:1fr 1fr;gap:10px}
+  .hist-head{display:none}
+  .hist-row > div:nth-child(1){grid-column:1/3;font-weight:900}
+  .hist-row > div:nth-child(6){grid-column:1/3}
+}

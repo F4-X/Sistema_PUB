@@ -1,0 +1,520 @@
+/* =========================================================
+   PDV.css
+   - Base geral do sistema
+   - Topo / cabeçalho
+   - Botões gerais
+   - Painéis / modais
+   - Busca superior do PDV
+   - Layout, produtos e carrinho do PDV
+   - Utilitários gerais, toast, contexto, paginação, impressão
+========================================================= */
+
+/* =========================================================
+   1. BASE GERAL DO SISTEMA
+========================================================= */
+:root{
+  --bg:#07070d;
+  --panel:rgba(18,18,26,.78);
+  --panel2:rgba(12,12,18,.72);
+  --border:rgba(255,255,255,.08);
+  --text:#f4f4ff;
+  --muted:rgba(230,230,255,.68);
+  --accent:#7b6cff;
+  --accent2:#4b2bbf;
+  --glow:rgba(123,108,255,.26);
+  --danger:#ff4d4d;
+  --shadow:0 18px 60px rgba(0,0,0,.55);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+
+body{
+  margin:0;
+  font-family:system-ui,Arial;
+  color:var(--text);
+  background:
+    radial-gradient(900px 520px at 20% 0%,rgba(123,108,255,.18),transparent 60%),
+    radial-gradient(800px 480px at 85% 10%,rgba(75,43,191,.16),transparent 55%),
+    radial-gradient(1200px 700px at 25% 0%,#121225,var(--bg));
+}
+
+/* =========================================================
+   2. TOPO / CABEÇALHO DO SISTEMA
+========================================================= */
+.pdv-page{min-height:100vh;display:flex;flex-direction:column}
+
+.pdv-topbar{
+  padding:18px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:18px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(20,20,27,.85),rgba(10,10,14,.55));
+  backdrop-filter:blur(10px);
+  box-shadow:0 10px 40px rgba(0,0,0,.45);
+}
+
+.pdv-brand{display:flex;flex-direction:column;gap:6px}
+
+.pdv-title{
+  font-size:34px;
+  font-weight:900;
+  letter-spacing:.2px;
+  background:linear-gradient(90deg,#fff,var(--accent));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+
+.pdv-sub{font-size:13px;color:var(--muted)}
+.pdv-controls{flex:1;display:grid;gap:12px}
+
+.pdv-toggle{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+
+.pdv-toggle button{
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(180deg,rgba(20,20,27,.9),rgba(12,12,18,.9));
+  color:var(--text);
+  cursor:pointer;
+  transition:.2s;
+  box-shadow:0 10px 25px rgba(0,0,0,.28);
+}
+
+.pdv-toggle button:hover{
+  transform:translateY(-1px);
+  border-color:rgba(123,108,255,.45);
+}
+
+.pdv-toggle .active{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-color:transparent;
+  box-shadow:0 0 0 4px var(--glow),0 12px 30px rgba(0,0,0,.35);
+}
+
+/* =========================================================
+   3. CAMPO DE BUSCA SUPERIOR DO PDV
+========================================================= */
+.pdv-search{
+  display:flex;
+  justify-content:center;
+  width:100%;
+}
+
+.pdv-search input{
+  width:560px;
+  max-width:92vw;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(10,10,16,.55);
+  color:var(--text);
+  outline:none;
+}
+
+.pdv-search input::placeholder{color:#9c9cc0}
+
+.pdv-search input:focus{
+  border-color:rgba(123,108,255,.65);
+  box-shadow:0 0 0 4px var(--glow);
+}
+
+/* =========================================================
+   4. LAYOUT GERAL DE TELAS COM 2 COLUNAS
+========================================================= */
+.pdv-grid{
+  width:min(1700px,96vw);
+  margin:18px auto 26px;
+  display:grid;
+  grid-template-columns:1.7fr .9fr;
+  gap:18px;
+  align-items:start;
+}
+
+/* =========================================================
+   5. PAINÉIS / CAIXAS PADRÃO
+========================================================= */
+.panel,
+.modal{
+  border:1px solid var(--border);
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border-radius:18px;
+  padding:16px;
+  box-shadow:var(--shadow);
+}
+
+.panel-sticky{position:sticky;top:18px}
+
+.panel-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:0 0 12px;
+}
+
+.panel-head h2{margin:0;font-size:18px}
+
+.badge{
+  font-size:12px;
+  color:#ddd;
+  border:1px solid rgba(255,255,255,.10);
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(10,10,16,.45);
+}
+
+.panel-actions{display:flex;align-items:center;gap:10px}
+
+/* =========================================================
+   6. BOTÕES GERAIS
+========================================================= */
+.btn-mini{
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(10,10,16,.45);
+  color:var(--text);
+  cursor:pointer;
+  font-weight:900;
+  transition:.2s;
+}
+
+.btn-mini:hover{
+  transform:translateY(-1px);
+  border-color:rgba(123,108,255,.45);
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger{
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid transparent;
+  font-weight:900;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;
+  box-shadow:0 18px 45px rgba(75,43,191,.28);
+}
+
+.btn-primary:hover{transform:translateY(-1px)}
+
+.btn-secondary{
+  background:transparent;
+  border-color:rgba(255,255,255,.10);
+  color:var(--text);
+}
+
+.btn-danger{
+  background:transparent;
+  border-color:rgba(255,77,77,.8);
+  color:#ffb3b3;
+}
+
+.btn-danger:hover{box-shadow:0 0 0 4px rgba(255,77,77,.14)}
+
+button:disabled{opacity:.55;cursor:not-allowed}
+
+.btn-mini-danger{
+  border-color:rgba(255,77,77,.65)!important;
+  color:#ffb3b3!important;
+}
+
+.btn-mini-danger:hover{box-shadow:0 0 0 4px rgba(255,77,77,.14)}
+
+/* =========================================================
+   7. CHIPS / FILTROS EM PILLS
+========================================================= */
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+
+.chip{
+  padding:9px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(20,20,27,.75);
+  color:var(--text);
+  cursor:pointer;
+  transition:.2s;
+}
+
+.chip:hover{transform:translateY(-1px)}
+
+.chip.active{
+  background:linear-gradient(135deg,rgba(123,108,255,.25),rgba(75,43,191,.15));
+  border-color:rgba(123,108,255,.55);
+  box-shadow:0 0 0 4px rgba(123,108,255,.14);
+}
+
+/* =========================================================
+   8. GRID DE PRODUTOS DO PDV
+========================================================= */
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+
+.product-card{
+  text-align:left;
+  cursor:pointer;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(180deg,rgba(18,18,24,.95),rgba(12,12,16,.95));
+  border-radius:16px;
+  padding:14px;
+  transition:.15s;
+  color:var(--text);
+  box-shadow:0 14px 35px rgba(0,0,0,.35);
+}
+
+.product-card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(123,108,255,.50);
+  box-shadow:0 22px 55px rgba(0,0,0,.52);
+}
+
+.product-card.added{
+  transform:scale(.97);
+  box-shadow:0 0 0 4px rgba(123,108,255,.14);
+}
+
+.product-name{font-weight:900;margin-bottom:10px;font-size:15px;color:var(--text)}
+.product-foot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.product-cat{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.product-price{font-weight:900;color:#fff;text-shadow:0 0 18px rgba(123,108,255,.18)}
+
+/* =========================================================
+   9. ESTADOS VAZIOS
+========================================================= */
+.empty{
+  border:1px dashed rgba(255,255,255,.14);
+  border-radius:14px;
+  padding:14px;
+  color:var(--muted);
+  background:rgba(17,17,24,.45);
+  margin:10px 0 14px;
+}
+
+.empty-title{font-weight:900;color:var(--text);margin-bottom:6px}
+.empty-sub{font-size:13px}
+
+/* =========================================================
+   10. CARRINHO DO PDV
+========================================================= */
+.cart-list{display:flex;flex-direction:column;gap:10px;margin:10px 0 14px}
+
+.cart-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:10px;
+  background:rgba(17,17,24,.65);
+}
+
+.cart-left{display:flex;flex-direction:column;gap:8px}
+.cart-name{font-weight:900;font-size:14px}
+.cart-right{white-space:nowrap;font-weight:900;color:#fff}
+.qty{display:flex;gap:8px;align-items:center}
+.qty-btn{width:30px;height:30px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(20,20,27,.85);color:var(--text);cursor:pointer}
+.qty-n{min-width:18px;text-align:center;color:var(--muted);font-weight:900}
+.total-box{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:6px;font-size:18px}
+.actions{display:grid;gap:10px;margin-top:14px}
+
+/* =========================================================
+   11. MODAIS
+========================================================= */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  z-index:50;
+}
+
+.modal{width:min(520px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal h3{margin:0 0 12px}
+
+.modal input,
+.modal select{
+  width:100%;
+  margin-bottom:10px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(10,10,16,.55);
+  color:var(--text);
+  outline:none;
+}
+
+.modal input:focus,
+.modal select:focus{
+  border-color:rgba(123,108,255,.65);
+  box-shadow:0 0 0 4px var(--glow);
+}
+
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+
+/* =========================================================
+   12. TOASTS / AVISOS
+========================================================= */
+.toast{
+  position:fixed;
+  top:16px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:9999;
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(15,15,22,.92);
+  backdrop-filter:blur(10px);
+  box-shadow:0 18px 60px rgba(0,0,0,.55);
+  font-weight:900;
+}
+
+.toast.ok{box-shadow:0 0 0 4px rgba(123,108,255,.14),0 18px 60px rgba(0,0,0,.55)}
+.toast.err{box-shadow:0 0 0 4px rgba(255,77,77,.14),0 18px 60px rgba(0,0,0,.55)}
+
+/* =========================================================
+   13. MENU DE CONTEXTO
+========================================================= */
+.ctx{
+  position:fixed;
+  z-index:99999;
+  background:rgba(15,15,22,.95);
+  border:1px solid rgba(255,255,255,.12);
+  backdrop-filter:blur(10px);
+  border-radius:14px;
+  padding:6px;
+  min-width:210px;
+  box-shadow:0 18px 60px rgba(0,0,0,.55);
+}
+
+.ctx button{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#fff;
+  padding:10px 12px;
+  text-align:left;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:900;
+}
+
+.ctx button:hover{background:rgba(255,255,255,.06)}
+.ctx .danger{color:var(--danger)}
+
+/* =========================================================
+   14. PAGINAÇÃO GERAL
+========================================================= */
+.pager{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px}
+.pager-info{font-size:13px;color:var(--muted)}
+
+/* =========================================================
+   15. CAMPOS GERAIS (INPUT / SELECT / TEXTAREA)
+========================================================= */
+select,
+input,
+textarea{
+  appearance:none;
+  background:rgba(10,10,16,.55);
+  color:#fff;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;
+  padding:10px 12px;
+  outline:0;
+}
+
+select{
+  padding-right:34px;
+  background-image:
+    linear-gradient(45deg,transparent 50%,#cfcfff 50%),
+    linear-gradient(135deg,#cfcfff 50%,transparent 50%);
+  background-position:calc(100% - 18px) 16px,calc(100% - 12px) 16px;
+  background-size:6px 6px;
+  background-repeat:no-repeat;
+}
+
+option{background:#0b0b13;color:#fff}
+
+select:focus,
+input:focus,
+textarea:focus{
+  border-color:rgba(123,108,255,.7);
+  box-shadow:0 0 0 4px rgba(123,108,255,.18);
+}
+
+/* =========================================================
+   16. IMPRESSÃO 58mm
+========================================================= */
+@media screen{.print-area{display:none}}
+
+@media print{
+  .r-sign{height:18px;margin:14px 0 6px;border-bottom:1px solid #000}
+  .no-print{display:none!important}
+  .print-area{display:block}
+  .recibo{width:58mm;font:12px/1.2 monospace;color:#000}
+  .r-row{display:flex;justify-content:space-between;gap:8px}
+  .r-hr{border-top:1px dashed #000;margin:8px 0}
+  .r-center{text-align:center}
+  .r-bold{font-weight:700}
+  .r-title{font-size:14px}
+  .r-muted{opacity:.8}
+  .r-cut{max-width:40mm;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .r-mb{margin-bottom:6px}
+}
+
+/* =========================================================
+   17. BADGES DE STATUS E PILLS
+========================================================= */
+.badge-ok{
+  border-color:rgba(90,255,170,.35)!important;
+  box-shadow:0 0 0 4px rgba(90,255,170,.10);
+  color:#d7ffe9!important;
+}
+
+.badge-err{
+  border-color:rgba(255,77,77,.55)!important;
+  box-shadow:0 0 0 4px rgba(255,77,77,.10);
+  color:#ffd0d0!important;
+}
+
+.pill-row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 8px}
+.pill{min-width:180px;flex:1;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(10,10,16,.35)}
+.pill-label{opacity:.85;font-weight:800;font-size:12px}
+.pill-value{font-weight:900;font-size:16px;margin-top:4px}
+
+/* =========================================================
+   18. ANTI-AUTOFILL DO CHROME
+========================================================= */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill{
+  -webkit-text-fill-color:inherit;
+  transition:background-color 9999s ease-out 0s;
+  box-shadow:0 0 0px 1000px rgba(255,255,255,0) inset;
+}
+
+/* =========================================================
+   19. RESPONSIVO GERAL DO PDV / BASE
+========================================================= */
+@media(max-width:1100px){
+  .pdv-topbar{flex-direction:column;align-items:flex-start}
+  .pdv-toggle{justify-content:flex-start}
+  .pdv-grid{grid-template-columns:1fr}
+}
