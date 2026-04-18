@@ -5,6 +5,8 @@ import XMLs from "./XMLs.jsx";
 import ContasPagar from "./ContasPagar.jsx";
 import ContasPagas from "./ContasPagas.jsx";
 
+<h1 style={{ color: "red" }}>ATUALIZOU</h1>
+
 const isoDate = (d) => d.toISOString().slice(0, 10);
 const startOfDay = (dateStr) => `${dateStr}T00:00:00`;
 const nextDayStart = (dateStr) => {
