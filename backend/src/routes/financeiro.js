@@ -185,66 +185,74 @@ router.get("/exportar-vendas", async (req, res) => {
     const r = await db.query(
       `
       SELECT
-        v.id,
-        v.criado_em,
-        v.caixa_numero,
-        v.total_bruto,
-        v.desconto,
-        v.acrescimo,
-        v.total_final,
-        v.troco,
-        v.nfce_status,
-        v.nfce_chave,
-        v.nfce_numero
-      FROM vendas v
+        vi.produto_id,
+        COALESCE(p.nome, 'Produto removido') AS produto,
+        COALESCE(c.nome, 'Sem categoria') AS categoria,
+        COALESCE(SUM(vi.qtd),0)::numeric(10,2) AS qtde,
+        COALESCE(SUM(vi.qtd * vi.preco_unit),0)::numeric(10,2) AS valor_total
+      FROM venda_itens vi
+      JOIN vendas v ON v.id = vi.venda_id
+      LEFT JOIN produtos p ON p.id = vi.produto_id
+      LEFT JOIN categorias c ON c.id = p.categoria_id
       WHERE v.criado_em >= $1 AND v.criado_em < $2
-      ORDER BY v.criado_em DESC, v.id DESC
+      GROUP BY vi.produto_id, COALESCE(p.nome, 'Produto removido'), COALESCE(c.nome, 'Sem categoria')
+      ORDER BY produto ASC
       `,
       [inicio, fim]
     );
 
+    const fmt = (v) =>
+      Number(v || 0).toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
     const linhas = [
-      [
-        "id",
-        "criado_em",
-        "caixa_numero",
-        "total_bruto",
-        "desconto",
-        "acrescimo",
-        "total_final",
-        "troco",
-        "nfce_status",
-        "nfce_chave",
-        "nfce_numero",
-      ].join(";"),
+      escCsv("1005 PUB"),
+      escCsv("Vendas Sintético"),
+      escCsv(`Filtro Data: abertura caixa, Data: de ${String(inicio).slice(0, 10)} até ${String(fim).slice(0, 10)}`),
+      "",
+      ["Qtde", "Produto", "Valor Médio", "Valor Total", "SubGrupo", "Grupo", "Id Prod", "Combo"]
+        .map(escCsv)
+        .join(";"),
     ];
 
-    for (const v of r.rows) {
+    let totalQtde = 0;
+    let totalValor = 0;
+
+    for (const item of r.rows) {
+      const qtde = Number(item.qtde || 0);
+      const valorTotal = Number(item.valor_total || 0);
+      const valorMedio = qtde > 0 ? valorTotal / qtde : 0;
+
+      totalQtde += qtde;
+      totalValor += valorTotal;
+
       linhas.push(
         [
-          escCsv(v.id),
-          escCsv(v.criado_em),
-          escCsv(v.caixa_numero),
-          escCsv(Number(v.total_bruto || 0).toFixed(2)),
-          escCsv(Number(v.desconto || 0).toFixed(2)),
-          escCsv(Number(v.acrescimo || 0).toFixed(2)),
-          escCsv(Number(v.total_final || 0).toFixed(2)),
-          escCsv(Number(v.troco || 0).toFixed(2)),
-          escCsv(v.nfce_status || ""),
-          escCsv(v.nfce_chave || ""),
-          escCsv(v.nfce_numero || ""),
+          escCsv(fmt(qtde)),
+          escCsv(item.produto),
+          escCsv(fmt(valorMedio)),
+          escCsv(fmt(valorTotal)),
+          escCsv(item.categoria),
+          escCsv(item.categoria),
+          escCsv(item.produto_id || ""),
+          escCsv(""),
         ].join(";")
       );
     }
 
+    linhas.push("");
+    linhas.push(escCsv(`Quantidade: ${fmt(totalQtde)} - Valor Total: R$ ${fmt(totalValor)}`));
+
     const csv = "\uFEFF" + linhas.join("\n");
-    const nome = `vendas_${String(inicio).slice(0, 10)}_a_${String(fim).slice(0, 10)}.csv`;
+    const nome = `vendas_sintetico_${String(inicio).slice(0, 10)}_a_${String(fim).slice(0, 10)}.csv`;
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="${nome}"`);
     res.send(csv);
   } catch (e) {
-    res.status(500).json({ error: e?.message || "Erro ao exportar vendas" });
+    res.status(500).json({ error: e?.message || "Erro ao exportar vendas sintético" });
   }
 });
 
