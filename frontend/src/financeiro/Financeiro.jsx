@@ -121,30 +121,54 @@ export default function Financeiro({ setTela }) {
     }
   }
 
+  function baixarBlob(response, type, fallbackName) {
+    const blob = new Blob([response.data], { type });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fallbackName;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+  }
+
   async function exportarVendas() {
     try {
       const response = await api.get(`/financeiro/exportar-vendas?${queryParams}`, {
         responseType: "blob",
       });
 
-      const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
-      const url = window.URL.createObjectURL(blob);
+      const hoje = new Date().toISOString().slice(0, 10);
+      const nome =
+        modo === "periodo"
+          ? `vendas_sintetico_${inicio}_a_${fim}.csv`
+          : `vendas_sintetico_${data || hoje}.csv`;
 
-      const a = document.createElement("a");
-      a.href = url;
+      baixarBlob(response, "text/csv;charset=utf-8;", nome);
+    } catch (e) {
+      alert(e?.response?.data?.error || "Erro ao exportar CSV");
+    }
+  }
+
+  async function exportarPDF() {
+    try {
+      const response = await api.get(`/financeiro/exportar-vendas-pdf?${queryParams}`, {
+        responseType: "blob",
+      });
 
       const hoje = new Date().toISOString().slice(0, 10);
-      a.download =
+      const nome =
         modo === "periodo"
-          ? `vendas_${inicio}_a_${fim}.csv`
-          : `vendas_${data || hoje}.csv`;
+          ? `vendas_sintetico_${inicio}_a_${fim}.pdf`
+          : `vendas_sintetico_${data || hoje}.pdf`;
 
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      baixarBlob(response, "application/pdf", nome);
     } catch (e) {
-      alert(e?.response?.data?.error || "Erro ao exportar vendas");
+      alert(e?.response?.data?.error || "Erro ao exportar PDF");
     }
   }
 
@@ -257,6 +281,14 @@ export default function Financeiro({ setTela }) {
                 disabled={loading}
               >
                 Exportar CSV
+              </button>
+
+              <button
+                className="btn-secondary"
+                onClick={exportarPDF}
+                disabled={loading}
+              >
+                Exportar PDF
               </button>
             </div>
           </div>
@@ -406,7 +438,7 @@ export default function Financeiro({ setTela }) {
           </div>
 
           <div className="panel-head" style={{ marginTop: 8 }}>
-            <h2>Por Caixa2</h2>
+            <h2>Por Caixa</h2>
             <span className="badge">Caixa 1</span>
           </div>
 

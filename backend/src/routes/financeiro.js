@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const PDFDocument = require("pdfkit");
 const db = require("../db");
 const xmlsRoutes = require("./xmls");
 const contasPagarRoutes = require("./contas_pagar");
@@ -48,6 +49,36 @@ function escCsv(v) {
   if (v == null) return "";
   const s = String(v).replace(/"/g, '""');
   return `"${s}"`;
+}
+
+function fmtBR(v) {
+  return Number(v || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+async function buscarVendasSintetico(inicio, fim) {
+  const r = await db.query(
+    `
+    SELECT
+      vi.produto_id,
+      COALESCE(p.nome, 'Produto removido') AS produto,
+      COALESCE(c.nome, 'Sem categoria') AS categoria,
+      COALESCE(SUM(vi.qtd),0)::numeric(10,2) AS qtde,
+      COALESCE(SUM(vi.qtd * vi.preco_unit),0)::numeric(10,2) AS valor_total
+    FROM venda_itens vi
+    JOIN vendas v ON v.id = vi.venda_id
+    LEFT JOIN produtos p ON p.id = vi.produto_id
+    LEFT JOIN categorias c ON c.id = p.categoria_id
+    WHERE v.criado_em >= $1 AND v.criado_em < $2
+    GROUP BY vi.produto_id, COALESCE(p.nome, 'Produto removido'), COALESCE(c.nome, 'Sem categoria')
+    ORDER BY produto ASC
+    `,
+    [inicio, fim]
+  );
+
+  return r.rows || [];
 }
 
 router.get("/resumo", async (req, res) => {
@@ -181,31 +212,7 @@ router.get("/top-produtos", async (req, res) => {
 router.get("/exportar-vendas", async (req, res) => {
   try {
     const { inicio, fim } = getRange(req);
-
-    const r = await db.query(
-      `
-      SELECT
-        vi.produto_id,
-        COALESCE(p.nome, 'Produto removido') AS produto,
-        COALESCE(c.nome, 'Sem categoria') AS categoria,
-        COALESCE(SUM(vi.qtd),0)::numeric(10,2) AS qtde,
-        COALESCE(SUM(vi.qtd * vi.preco_unit),0)::numeric(10,2) AS valor_total
-      FROM venda_itens vi
-      JOIN vendas v ON v.id = vi.venda_id
-      LEFT JOIN produtos p ON p.id = vi.produto_id
-      LEFT JOIN categorias c ON c.id = p.categoria_id
-      WHERE v.criado_em >= $1 AND v.criado_em < $2
-      GROUP BY vi.produto_id, COALESCE(p.nome, 'Produto removido'), COALESCE(c.nome, 'Sem categoria')
-      ORDER BY produto ASC
-      `,
-      [inicio, fim]
-    );
-
-    const fmt = (v) =>
-      Number(v || 0).toLocaleString("pt-BR", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
+    const rows = await buscarVendasSintetico(inicio, fim);
 
     const linhas = [
       escCsv("1005 PUB"),
@@ -220,7 +227,7 @@ router.get("/exportar-vendas", async (req, res) => {
     let totalQtde = 0;
     let totalValor = 0;
 
-    for (const item of r.rows) {
+    for (const item of rows) {
       const qtde = Number(item.qtde || 0);
       const valorTotal = Number(item.valor_total || 0);
       const valorMedio = qtde > 0 ? valorTotal / qtde : 0;
@@ -230,10 +237,10 @@ router.get("/exportar-vendas", async (req, res) => {
 
       linhas.push(
         [
-          escCsv(fmt(qtde)),
+          escCsv(fmtBR(qtde)),
           escCsv(item.produto),
-          escCsv(fmt(valorMedio)),
-          escCsv(fmt(valorTotal)),
+          escCsv(fmtBR(valorMedio)),
+          escCsv(fmtBR(valorTotal)),
           escCsv(item.categoria),
           escCsv(item.categoria),
           escCsv(item.produto_id || ""),
@@ -243,7 +250,7 @@ router.get("/exportar-vendas", async (req, res) => {
     }
 
     linhas.push("");
-    linhas.push(escCsv(`Quantidade: ${fmt(totalQtde)} - Valor Total: R$ ${fmt(totalValor)}`));
+    linhas.push(escCsv(`Quantidade: ${fmtBR(totalQtde)} - Valor Total: R$ ${fmtBR(totalValor)}`));
 
     const csv = "\uFEFF" + linhas.join("\n");
     const nome = `vendas_sintetico_${String(inicio).slice(0, 10)}_a_${String(fim).slice(0, 10)}.csv`;
@@ -253,6 +260,102 @@ router.get("/exportar-vendas", async (req, res) => {
     res.send(csv);
   } catch (e) {
     res.status(500).json({ error: e?.message || "Erro ao exportar vendas sintético" });
+  }
+});
+
+router.get("/exportar-vendas-pdf", async (req, res) => {
+  try {
+    const { inicio, fim } = getRange(req);
+    const rows = await buscarVendasSintetico(inicio, fim);
+
+    const nome = `vendas_sintetico_${String(inicio).slice(0, 10)}_a_${String(fim).slice(0, 10)}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${nome}"`);
+
+    const doc = new PDFDocument({
+      size: "A4",
+      margin: 30,
+      bufferPages: true,
+    });
+
+    doc.pipe(res);
+
+    function header() {
+      doc.font("Helvetica-Bold").fontSize(15).text("1005 PUB", { align: "center" });
+      doc.font("Helvetica").fontSize(9).text("Av Getulio Vargas, 734, Cidade Nova, Porto União", { align: "center" });
+      doc.font("Helvetica").fontSize(9).text("CNPJ: 50.371.767/0001-03", { align: "center" });
+      doc.moveDown(0.5);
+      doc.font("Helvetica-Bold").fontSize(13).text("Vendas Sintético", { align: "center" });
+      doc.font("Helvetica").fontSize(9).text(
+        `Filtro Data: abertura caixa, Data: de ${String(inicio).slice(0, 10)} até ${String(fim).slice(0, 10)}`,
+        { align: "center" }
+      );
+      doc.moveDown(1);
+    }
+
+    function tableHeader(y) {
+      doc.font("Helvetica-Bold").fontSize(8);
+      doc.text("Qtde", 30, y, { width: 45 });
+      doc.text("Produto", 75, y, { width: 185 });
+      doc.text("V. Médio", 260, y, { width: 60, align: "right" });
+      doc.text("V. Total", 325, y, { width: 65, align: "right" });
+      doc.text("SubGrupo", 400, y, { width: 75 });
+      doc.text("Grupo", 475, y, { width: 55 });
+      doc.text("Id", 535, y, { width: 30, align: "right" });
+      doc.moveTo(30, y + 13).lineTo(565, y + 13).stroke();
+      return y + 18;
+    }
+
+    header();
+    let y = tableHeader(doc.y);
+
+    let totalQtde = 0;
+    let totalValor = 0;
+
+    doc.font("Helvetica").fontSize(8);
+
+    for (const item of rows) {
+      const qtde = Number(item.qtde || 0);
+      const valorTotal = Number(item.valor_total || 0);
+      const valorMedio = qtde > 0 ? valorTotal / qtde : 0;
+
+      totalQtde += qtde;
+      totalValor += valorTotal;
+
+      if (y > 780) {
+        doc.addPage();
+        header();
+        y = tableHeader(doc.y);
+        doc.font("Helvetica").fontSize(8);
+      }
+
+      const produto = String(item.produto || "");
+      const categoria = String(item.categoria || "Sem categoria");
+
+      doc.text(fmtBR(qtde), 30, y, { width: 45 });
+      doc.text(produto, 75, y, { width: 185, lineBreak: false });
+      doc.text(fmtBR(valorMedio), 260, y, { width: 60, align: "right" });
+      doc.text(fmtBR(valorTotal), 325, y, { width: 65, align: "right" });
+      doc.text(categoria, 400, y, { width: 75, lineBreak: false });
+      doc.text(categoria, 475, y, { width: 55, lineBreak: false });
+      doc.text(String(item.produto_id || ""), 535, y, { width: 30, align: "right" });
+
+      y += 16;
+    }
+
+    doc.moveTo(30, y + 4).lineTo(565, y + 4).stroke();
+    y += 14;
+
+    doc.font("Helvetica-Bold").fontSize(10);
+    doc.text(`Quantidade: ${fmtBR(totalQtde)}    Valor Total: R$ ${fmtBR(totalValor)}`, 30, y, {
+      width: 535,
+      align: "right",
+    });
+
+    doc.end();
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao gerar PDF" });
   }
 });
 
