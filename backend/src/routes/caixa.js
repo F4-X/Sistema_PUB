@@ -180,4 +180,53 @@ router.post("/fechar", async (req, res) => {
   }
 });
 
+router.get("/fechamento-preview", async (req, res) => {
+  try {
+    const aberto = await db.query(`
+      SELECT *
+      FROM caixa_sessoes
+      WHERE status='aberto'
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+
+    const sessao = aberto.rows[0];
+    if (!sessao) {
+      return res.status(400).json({ error: "Nenhum caixa aberto" });
+    }
+
+    // 💰 movimentos dentro do período
+    const mov = await db.query(`
+      SELECT
+        COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0) AS entradas,
+        COALESCE(SUM(CASE WHEN tipo='saida' THEN valor ELSE 0 END),0) AS saidas,
+        COALESCE(SUM(CASE WHEN tipo='entrada' AND motivo='venda' THEN valor ELSE 0 END),0) AS dinheiro,
+        COALESCE(SUM(CASE WHEN tipo='saida' AND motivo='troco' THEN valor ELSE 0 END),0) AS troco
+      FROM caixa_movimentos
+      WHERE criado_em >= $1
+    `, [sessao.aberto_em]);
+
+    const entradas = Number(mov.rows[0].entradas || 0);
+    const saidas = Number(mov.rows[0].saidas || 0);
+    const dinheiro = Number(mov.rows[0].dinheiro || 0);
+    const troco = Number(mov.rows[0].troco || 0);
+
+    const saldo = entradas - saidas;
+
+    res.json({
+      abertura: sessao.valor_abertura,
+      aberto_em: sessao.aberto_em,
+      dinheiro,
+      troco,
+      entradas,
+      saidas,
+      saldo,
+      total: saldo + Number(sessao.valor_abertura || 0),
+    });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
