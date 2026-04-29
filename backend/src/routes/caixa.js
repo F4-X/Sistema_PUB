@@ -84,4 +84,100 @@ router.post("/movimentos", async (req, res) => {
   res.json({ ok: true });
 });
 
+function moneyNumber(v) {
+  const n = Number(v || 0);
+  return Number.isFinite(n) ? Number(n.toFixed(2)) : 0;
+}
+
+// ✅ Ver caixa aberto atual
+router.get("/sessao-atual", async (req, res) => {
+  try {
+    const r = await db.query(`
+      SELECT *
+      FROM caixa_sessoes
+      WHERE status = 'aberto'
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+
+    res.json({ aberto: !!r.rows[0], sessao: r.rows[0] || null });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao buscar sessão do caixa" });
+  }
+});
+
+// ✅ Abrir caixa
+router.post("/abrir", async (req, res) => {
+  try {
+    const valor_abertura = moneyNumber(req.body?.valor_abertura);
+
+    const aberto = await db.query(`
+      SELECT id
+      FROM caixa_sessoes
+      WHERE status = 'aberto'
+      LIMIT 1
+    `);
+
+    if (aberto.rows.length) {
+      return res.status(400).json({ error: "Já existe um caixa aberto" });
+    }
+
+    const r = await db.query(
+      `
+      INSERT INTO caixa_sessoes
+      (caixa_numero, valor_abertura, usuario_id, usuario_email)
+      VALUES ($1,$2,$3,$4)
+      RETURNING *
+      `,
+      [
+        Number(req.body?.caixa_numero || 1),
+        valor_abertura,
+        req.user?.id || null,
+        req.user?.email || null,
+      ]
+    );
+
+    res.json({ ok: true, sessao: r.rows[0] });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao abrir caixa" });
+  }
+});
+
+// ✅ Fechar caixa
+router.post("/fechar", async (req, res) => {
+  try {
+    const valor_fechamento = moneyNumber(req.body?.valor_fechamento);
+
+    const aberto = await db.query(`
+      SELECT *
+      FROM caixa_sessoes
+      WHERE status = 'aberto'
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+
+    const sessao = aberto.rows[0];
+
+    if (!sessao) {
+      return res.status(400).json({ error: "Nenhum caixa aberto" });
+    }
+
+    const r = await db.query(
+      `
+      UPDATE caixa_sessoes
+      SET valor_fechamento=$1,
+          fechado_em=NOW(),
+          status='fechado'
+      WHERE id=$2
+      RETURNING *
+      `,
+      [valor_fechamento, sessao.id]
+    );
+
+    res.json({ ok: true, sessao: r.rows[0] });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao fechar caixa" });
+  }
+});
+
 module.exports = router;
