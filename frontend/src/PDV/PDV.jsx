@@ -5,6 +5,7 @@ import { api } from "../api";
 import Historico from "./Historico";
 import Recibo from "./Recibo";
 import Caixa from "./Caixa";
+import FechamentoCaixa from "./FechamentoCaixa";
 import {
   TopbarPDV,
   Toast,
@@ -184,6 +185,8 @@ export default function PDV({ setTela, onLogout }) {
           />
         ) : page === "caixa" ? (
           <Caixa />
+        ) : page === "fechamento" ? (
+          <FechamentoCaixa />
         ) : (
           <>
             <main className="pdv-grid">
