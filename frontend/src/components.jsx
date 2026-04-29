@@ -2,13 +2,15 @@ import React from "react";
 
 export function TopbarPDV({ page, setPage, search, setSearch, onLogout, onBack }) {
   const subtitle =
-    page === "pdv"
-      ? "PDV • Pesquisa"
-      : page === "hist"
-      ? "Histórico • Vendas"
-      : page === "caixa"
-      ? "Caixa • Sangria"
-      : "";
+  page === "pdv"
+    ? "PDV • Pesquisa"
+    : page === "hist"
+    ? "Histórico • Vendas"
+    : page === "caixa"
+    ? "Caixa • Sangria"
+    : page === "fechamento"
+    ? "Fechamento de Caixa"
+    : "";
 
   return (
     <header className="pdv-topbar">
@@ -51,6 +53,13 @@ export function TopbarPDV({ page, setPage, search, setSearch, onLogout, onBack }
           >
             Caixa
           </button>
+
+          <button
+  className={page === "fechamento" ? "active" : ""}
+  onClick={() => setPage("fechamento")}
+>
+  Fechamento
+</button>
 
           <button onClick={onLogout}>Sair</button>
         </div>
