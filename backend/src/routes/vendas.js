@@ -16,7 +16,6 @@ function normTipo(t) {
   return s || "outros";
 }
 
-// 01 dinheiro | 03 crédito | 04 débito | 17 pix | 99 outros
 function mapTPag(tipo) {
   const t = normTipo(tipo);
   if (t === "dinheiro") return "01";
@@ -91,7 +90,19 @@ router.get("/:id", async (req, res) => {
 
   const itens = await db.query(
     `
-    SELECT vi.id, vi.produto_id, p.nome, vi.qtd, vi.preco_unit
+    SELECT
+      vi.id,
+      vi.produto_id,
+      p.nome,
+      p.ncm,
+      p.cfop,
+      p.csosn,
+      p.pis_cst,
+      p.cofins_cst,
+      p.cest,
+      p.unidade,
+      vi.qtd,
+      vi.preco_unit
     FROM venda_itens vi
     LEFT JOIN produtos p ON p.id = vi.produto_id
     WHERE vi.venda_id = $1
@@ -230,7 +241,19 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
 
   const itensR = await db.query(
     `
-    SELECT vi.id, vi.produto_id, p.nome, vi.qtd, vi.preco_unit
+    SELECT
+      vi.id,
+      vi.produto_id,
+      p.nome,
+      p.ncm,
+      p.cfop,
+      p.csosn,
+      p.pis_cst,
+      p.cofins_cst,
+      p.cest,
+      p.unidade,
+      vi.qtd,
+      vi.preco_unit
     FROM venda_itens vi
     LEFT JOIN produtos p ON p.id = vi.produto_id
     WHERE vi.venda_id = $1
@@ -257,28 +280,35 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
     const vUn = Number(it.preco_unit || 0);
     const vProd = round2(qtd * vUn);
 
+    const ncm = String(it.ncm || "").trim() || "21069090";
+    const cfop = String(it.cfop || "").trim() || "5102";
+    const csosn = String(it.csosn || "").trim() || "102";
+    const pisCst = String(it.pis_cst || "").trim() || "07";
+    const cofinsCst = String(it.cofins_cst || "").trim() || "07";
+    const unidade = String(it.unidade || "").trim() || "UN";
+
     return {
       nItem: idx + 1,
       prod: {
         cProd: String(it.produto_id),
         xProd: it.nome || `Produto ${it.produto_id}`,
-        NCM: "21069090",
-        CFOP: "5102",
-        uCom: "UN",
+        NCM: ncm,
+        CFOP: cfop,
+        uCom: unidade,
         qCom: qtd,
         vUnCom: vUn,
         vProd,
         cEAN: "SEM GTIN",
         cEANTrib: "SEM GTIN",
-        uTrib: "UN",
+        uTrib: unidade,
         qTrib: qtd,
         vUnTrib: vUn,
         indTot: 1,
       },
       imposto: {
-        ICMS: { ICMSSN102: { orig: 0, CSOSN: "102" } },
-        PIS: { PISNT: { CST: "07" } },
-        COFINS: { COFINSNT: { CST: "07" } },
+        ICMS: { ICMSSN102: { orig: 0, CSOSN: csosn } },
+        PIS: { PISNT: { CST: pisCst } },
+        COFINS: { COFINSNT: { CST: cofinsCst } },
       },
     };
   });
