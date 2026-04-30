@@ -325,12 +325,7 @@ export default function FechamentoCaixa() {
                 <input value={cartaoDecl} onChange={(e) => setCartaoDecl(e.target.value)} placeholder="Cartão conferido" inputMode="decimal" />
               </div>
 
-              <p><b>Dinheiro sistema:</b> {money(preview?.dinheiro)}</p>
-              <p><b>PIX sistema:</b> {money(preview?.pix)}</p>
-              <p><b>Cartão sistema:</b> {money(calculadoCartao)}</p>
-              <p><b>Total sistema:</b> {money(totalSistema)}</p>
-              <p><b>Total declarado:</b> {money(totalDeclarado)}</p>
-              <p><b>Diferença:</b> {money(totalDeclarado - totalSistema)}</p>
+              
             </div>
 
             <button
