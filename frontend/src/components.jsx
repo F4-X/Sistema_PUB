@@ -383,9 +383,65 @@ export function ModalProduto({
   setNome,
   setPreco,
   setCategoriaId,
+
+  // NOVOS CAMPOS
+  ncm,
+  cfop,
+  csosn,
+  pis,
+  cofins,
+  unidade,
+
+  setNcm,
+  setCfop,
+  setCsosn,
+  setPis,
+  setCofins,
+  setUnidade,
+
   titulo = "Cadastrar Produto",
   textoBotao = "Salvar",
 }) {
+  if (!open) return null;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h3>{titulo}</h3>
+
+        <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do produto" />
+        <input value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="Preço" />
+
+        <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
+          <option value="">Sem categoria</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>{c.nome}</option>
+          ))}
+        </select>
+
+        <hr />
+
+        <h4>Fiscal</h4>
+
+        <input value={ncm || ""} onChange={(e) => setNcm(e.target.value)} placeholder="NCM" />
+        <input value={cfop || ""} onChange={(e) => setCfop(e.target.value)} placeholder="CFOP" />
+        <input value={csosn || ""} onChange={(e) => setCsosn(e.target.value)} placeholder="CSOSN (ICMS)" />
+        <input value={pis || ""} onChange={(e) => setPis(e.target.value)} placeholder="PIS CST" />
+        <input value={cofins || ""} onChange={(e) => setCofins(e.target.value)} placeholder="COFINS CST" />
+        <input value={unidade || ""} onChange={(e) => setUnidade(e.target.value)} placeholder="Unidade (UN)" />
+
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onClose}>
+            Cancelar
+          </button>
+          <button className="btn-primary" onClick={onSave}>
+            {textoBotao}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+} {
   if (!open) return null;
   return (
     <div className="modal-backdrop" onClick={onClose}>
