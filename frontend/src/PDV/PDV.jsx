@@ -296,12 +296,12 @@ export default function PDV({ setTela, onLogout }) {
               />
             </main>
 
-            <ContextMenu
-              menu={s.menu}
-              onEditarProduto={abrirEditarProduto}
-              onExcluirProduto={s.excluirProduto}
-              onExcluirCategoria={s.excluirCategoria}
-            />
+           <ContextMenu
+  menu={s.openProd ? null : s.menu}
+  onEditarProduto={abrirEditarProduto}
+  onExcluirProduto={s.excluirProduto}
+  onExcluirCategoria={s.excluirCategoria}
+/>
 
             <ModalCategoria
               open={s.openCat}
