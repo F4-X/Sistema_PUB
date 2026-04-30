@@ -42,7 +42,7 @@ function imprimirFechamento({ sessao, preview, fechamento, declarado }) {
   const entradas = n(preview?.entradas);
   const saidas = n(preview?.saidas);
 
-  const declaradoDinheiro = n(declarado.dinheiro);
+  const declaradoDinheiro = n(declarado.dinheiro) - abertura;
   const declaradoPix = n(declarado.pix);
   const declaradoCartao = n(declarado.cartao);
 
