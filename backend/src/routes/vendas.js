@@ -26,6 +26,34 @@ function mapTPag(tipo) {
   return "99";
 }
 
+function montarICMS(csosnRaw) {
+  const csosn = String(csosnRaw || "").trim() || "102";
+
+  if (csosn === "500") {
+    return {
+      ICMSSN500: {
+        orig: 0,
+        CSOSN: "500",
+        vBCSTRet: 0,
+        pST: 0,
+        vICMSSubstituto: 0,
+        vICMSSTRet: 0,
+        vBCFCPSTRet: 0,
+        pFCPSTRet: 0,
+        vFCPSTRet: 0,
+      },
+    };
+  }
+
+  const validos102 = ["102", "103", "300", "400"];
+  return {
+    ICMSSN102: {
+      orig: 0,
+      CSOSN: validos102.includes(csosn) ? csosn : "102",
+    },
+  };
+}
+
 async function nextNfceNumero() {
   const r = await db.query(`
     UPDATE nfce_numero
@@ -286,6 +314,7 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
     const pisCst = String(it.pis_cst || "").trim() || "07";
     const cofinsCst = String(it.cofins_cst || "").trim() || "07";
     const unidade = String(it.unidade || "").trim() || "UN";
+    const icms = montarICMS(csosn);
 
     return {
       nItem: idx + 1,
@@ -306,7 +335,7 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
         indTot: 1,
       },
       imposto: {
-        ICMS: { ICMSSN102: { orig: 0, CSOSN: csosn } },
+        ICMS: icms,
         PIS: { PISNT: { CST: pisCst } },
         COFINS: { COFINSNT: { CST: cofinsCst } },
       },
@@ -336,9 +365,6 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
 
     return base;
   });
-
-  console.log("PAGS DO BANCO:", JSON.stringify(pagsR.rows, null, 2));
-  console.log("DET PAG GERADO:", JSON.stringify(detPag, null, 2));
 
   const dest = buildDest({
     cpf: req.body?.cliente?.cpf,
@@ -424,8 +450,6 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
     await db.query("UPDATE vendas SET nfce_status=$1 WHERE id=$2", ["EMITINDO", id]);
 
     const resp = await emitirNfce(payload);
-
-    console.log("📄 NFC-e RESP:", JSON.stringify(resp, null, 2));
 
     const nfce_id = resp?.id || resp?.nfce?.id || null;
     const chave = resp?.chave || resp?.nfce?.chave || null;
