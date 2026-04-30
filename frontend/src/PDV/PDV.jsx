@@ -53,6 +53,13 @@ export default function PDV({ setTela, onLogout }) {
   const [page, setPage] = useState("pdv");
   const [editandoProduto, setEditandoProduto] = useState(null);
 
+  const [ncm, setNcm] = useState("");
+  const [cfop, setCfop] = useState("");
+  const [csosn, setCsosn] = useState("");
+  const [pis, setPis] = useState("");
+  const [cofins, setCofins] = useState("");
+  const [unidade, setUnidade] = useState("UN");
+
   useEffect(() => {
     const onWindowBlur = () => {
       try {
@@ -64,29 +71,56 @@ export default function PDV({ setTela, onLogout }) {
     return () => window.removeEventListener("blur", onWindowBlur);
   }, []);
 
+  function limparFiscal() {
+    setNcm("");
+    setCfop("");
+    setCsosn("");
+    setPis("");
+    setCofins("");
+    setUnidade("UN");
+  }
+
   function abrirNovoProduto() {
     setEditandoProduto(null);
     s.setProdNome("");
     s.setProdPreco("");
     s.setProdCategoriaId("");
+    limparFiscal();
     s.setOpenProd(true);
   }
 
   function abrirEditarProduto(produto) {
     setEditandoProduto(produto);
+
     s.setProdNome(produto.nome || "");
     s.setProdPreco(String(produto.preco || ""));
     s.setProdCategoriaId(produto.categoria_id || "");
+
+    setNcm(produto.ncm || "");
+    setCfop(produto.cfop || "");
+    setCsosn(produto.csosn || "");
+    setPis(produto.pis_cst || "");
+    setCofins(produto.cofins_cst || "");
+    setUnidade(produto.unidade || "UN");
+
     s.setOpenProd(true);
   }
 
   async function salvarProduto() {
+    const payload = {
+      nome: s.prodNome,
+      preco: String(s.prodPreco).replace(",", "."),
+      categoria_id: s.prodCategoriaId || null,
+      ncm,
+      cfop,
+      csosn,
+      pis_cst: pis,
+      cofins_cst: cofins,
+      unidade: unidade || "UN",
+    };
+
     if (editandoProduto?.id) {
-      await api.put(`/produtos/${editandoProduto.id}`, {
-        nome: s.prodNome,
-        preco: String(s.prodPreco).replace(",", "."),
-        categoria_id: s.prodCategoriaId || null,
-      });
+      await api.put(`/produtos/${editandoProduto.id}`, payload);
 
       setEditandoProduto(null);
       s.setOpenProd(false);
@@ -94,7 +128,11 @@ export default function PDV({ setTela, onLogout }) {
       return;
     }
 
-    await s.criarProduto();
+    await api.post("/produtos", payload);
+
+    setEditandoProduto(null);
+    s.setOpenProd(false);
+    location.reload();
   }
 
   async function printReceipt(venda) {
@@ -285,12 +323,25 @@ export default function PDV({ setTela, onLogout }) {
               onClose={() => {
                 blurActiveElement();
                 setEditandoProduto(null);
+                limparFiscal();
                 s.setOpenProd(false);
               }}
               onSave={salvarProduto}
               setNome={s.setProdNome}
               setPreco={s.setProdPreco}
               setCategoriaId={s.setProdCategoriaId}
+              ncm={ncm}
+              cfop={cfop}
+              csosn={csosn}
+              pis={pis}
+              cofins={cofins}
+              unidade={unidade}
+              setNcm={setNcm}
+              setCfop={setCfop}
+              setCsosn={setCsosn}
+              setPis={setPis}
+              setCofins={setCofins}
+              setUnidade={setUnidade}
               titulo={editandoProduto ? "Editar Produto" : "Cadastrar Produto"}
               textoBotao={editandoProduto ? "Salvar alterações" : "Salvar"}
             />
