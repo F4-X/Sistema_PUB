@@ -9,7 +9,7 @@ function money(v) {
 }
 
 function n(v) {
-  return Number(v || 0);
+  return Number(String(v || "0").replace(",", ".")) || 0;
 }
 
 function brDate(v) {
@@ -17,34 +17,40 @@ function brDate(v) {
   return new Date(v).toLocaleString("pt-BR");
 }
 
-function linha(nome, calculado, declarado = null) {
-  const calc = n(calculado);
-  const decl = declarado == null ? calc : n(declarado);
-  const dif = decl - calc;
-
-  return `
-${nome.padEnd(14, " ")} ${calc.toFixed(2).padStart(9, " ")} ${decl
-    .toFixed(2)
-    .padStart(9, " ")} ${dif.toFixed(2).padStart(9, " ")}
-`;
+function fmt(v) {
+  return n(v).toFixed(2).replace(".", ",");
 }
 
-function imprimirFechamento({ sessao, preview, fechamento }) {
+function linha(nome, calculado, declarado) {
+  const calc = n(calculado);
+  const decl = n(declarado);
+  const dif = decl - calc;
+
+  return `${nome.padEnd(12, " ")} ${fmt(calc).padStart(9, " ")} ${fmt(
+    decl
+  ).padStart(9, " ")} ${fmt(dif).padStart(9, " ")}\n`;
+}
+
+function imprimirFechamento({ sessao, preview, fechamento, declarado }) {
   const abertoEm = sessao?.aberto_em;
   const fechadoEm = fechamento?.fechado_em || new Date().toISOString();
 
+  const abertura = n(preview?.abertura ?? sessao?.valor_abertura);
   const dinheiro = n(preview?.dinheiro);
   const pix = n(preview?.pix);
-  const cartao = n(preview?.cartao);
-  const credito = n(preview?.credito);
-  const debito = n(preview?.debito);
+  const cartao = n(preview?.cartao) + n(preview?.credito) + n(preview?.debito);
   const entradas = n(preview?.entradas);
   const saidas = n(preview?.saidas);
-  const abertura = n(preview?.abertura ?? sessao?.valor_abertura);
 
-  const totalCalculado =
-    n(preview?.total) ||
-    abertura + dinheiro + pix + cartao + credito + debito + entradas - saidas;
+  const declaradoDinheiro = n(declarado.dinheiro);
+  const declaradoPix = n(declarado.pix);
+  const declaradoCartao = n(declarado.cartao);
+
+  const totalCalculado = abertura + dinheiro + pix + cartao + entradas - saidas;
+  const totalDeclarado =
+    abertura + declaradoDinheiro + declaradoPix + declaradoCartao + entradas - saidas;
+
+  const diferenca = totalDeclarado - totalCalculado;
 
   const html = `
 <!DOCTYPE html>
@@ -66,9 +72,9 @@ html,body{
 .center{text-align:center;}
 .bold{font-weight:700;}
 .hr{border-top:1px dashed #000;margin:8px 0;}
-pre{font-family:monospace;font-size:11px;white-space:pre-wrap;margin:0;}
+pre{font-family:monospace;font-size:11px;white-space:pre;margin:0;}
 .row{display:flex;justify-content:space-between;gap:8px;}
-.sign{height:26px;border-bottom:1px solid #000;margin:22px 0 5px;}
+.sign{height:28px;border-bottom:1px solid #000;margin:22px 0 5px;}
 </style>
 </head>
 <body>
@@ -87,28 +93,28 @@ pre{font-family:monospace;font-size:11px;white-space:pre-wrap;margin:0;}
   <div class="hr"></div>
 
 <pre>
-${"".padEnd(15, " ")}Calculado Declarado Diferença
-${linha("Abertura", abertura)}
-${linha("Dinheiro", dinheiro)}
-${linha("PIX", pix)}
-${linha("Cartão", cartao)}
-${linha("Crédito", credito)}
-${linha("Débito", debito)}
-${linha("Entradas", entradas)}
-${linha("Saídas", saidas)}
+${"".padEnd(13, " ")}Calculado Declarado Diferença
+${linha("Abertura", abertura, abertura)}
+${linha("Dinheiro", dinheiro, declaradoDinheiro)}
+${linha("PIX", pix, declaradoPix)}
+${linha("Cartão", cartao, declaradoCartao)}
+${linha("Entradas", entradas, entradas)}
+${linha("Saídas", saidas, saidas)}
 </pre>
 
   <div class="hr"></div>
 
 <pre>
-${"Total".padEnd(14, " ")} ${totalCalculado.toFixed(2).padStart(9, " ")}
+${"Total sistema".padEnd(15, " ")} ${fmt(totalCalculado).padStart(9, " ")}
+${"Total declarado".padEnd(15, " ")} ${fmt(totalDeclarado).padStart(9, " ")}
+${"Diferença".padEnd(15, " ")} ${fmt(diferenca).padStart(9, " ")}
 </pre>
 
   <div class="hr"></div>
 
   <div class="row bold">
-    <span>Valor final</span>
-    <span>${money(totalCalculado)}</span>
+    <span>${diferenca < 0 ? "Quebra / Faltou" : diferenca > 0 ? "Sobra" : "Sem diferença"}</span>
+    <span>${money(diferenca)}</span>
   </div>
 
   <div class="hr"></div>
@@ -145,6 +151,11 @@ export default function FechamentoCaixa() {
   const [sessao, setSessao] = useState(null);
   const [preview, setPreview] = useState(null);
   const [valorAbertura, setValorAbertura] = useState("");
+
+  const [dinheiroDecl, setDinheiroDecl] = useState("");
+  const [pixDecl, setPixDecl] = useState("");
+  const [cartaoDecl, setCartaoDecl] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -179,10 +190,8 @@ export default function FechamentoCaixa() {
       setLoading(true);
       setMsg("");
 
-      const valor = Number(String(valorAbertura).replace(",", "."));
-
       await api.post("/caixa/abrir", {
-        valor_abertura: valor,
+        valor_abertura: n(valorAbertura),
         caixa_numero: 1,
       });
 
@@ -205,7 +214,21 @@ export default function FechamentoCaixa() {
 
       const p = await api.get("/caixa/fechamento-preview");
       const dados = p.data || preview || {};
-      const valorFinal = n(dados.total);
+
+      const abertura = n(dados.abertura ?? sessao?.valor_abertura);
+      const declarado = {
+        dinheiro: n(dinheiroDecl),
+        pix: n(pixDecl),
+        cartao: n(cartaoDecl),
+      };
+
+      const valorFinal =
+        abertura +
+        declarado.dinheiro +
+        declarado.pix +
+        declarado.cartao +
+        n(dados.entradas) -
+        n(dados.saidas);
 
       const r = await api.post("/caixa/fechar", {
         valor_fechamento: valorFinal,
@@ -215,9 +238,13 @@ export default function FechamentoCaixa() {
         sessao,
         preview: dados,
         fechamento: r.data?.sessao,
+        declarado,
       });
 
       setMsg("Caixa fechado com sucesso");
+      setDinheiroDecl("");
+      setPixDecl("");
+      setCartaoDecl("");
       await carregar();
     } catch (e) {
       setMsg(e?.response?.data?.error || "Erro ao fechar caixa");
@@ -225,6 +252,25 @@ export default function FechamentoCaixa() {
       setLoading(false);
     }
   }
+
+  const calculadoCartao =
+    n(preview?.cartao) + n(preview?.credito) + n(preview?.debito);
+
+  const totalSistema =
+    n(preview?.abertura ?? sessao?.valor_abertura) +
+    n(preview?.dinheiro) +
+    n(preview?.pix) +
+    calculadoCartao +
+    n(preview?.entradas) -
+    n(preview?.saidas);
+
+  const totalDeclarado =
+    n(preview?.abertura ?? sessao?.valor_abertura) +
+    n(dinheiroDecl) +
+    n(pixDecl) +
+    n(cartaoDecl) +
+    n(preview?.entradas) -
+    n(preview?.saidas);
 
   return (
     <div style={{ padding: 16, display: "grid", gap: 14 }}>
@@ -259,41 +305,32 @@ export default function FechamentoCaixa() {
           </div>
         ) : (
           <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
-            <h3 style={{ margin: 0 }}>Caixa aberto</h3>
-
             <div className="panel">
-              <p>
-                <b>Valor de abertura:</b>{" "}
-                {money(preview?.abertura ?? sessao.valor_abertura)}
-              </p>
-              <p>
-                <b>Aberto em:</b> {brDate(sessao.aberto_em)}
-              </p>
-              <p>
-                <b>Usuário:</b> {sessao.usuario_email || "—"}
-              </p>
+              <p><b>Valor de abertura:</b> {money(preview?.abertura ?? sessao.valor_abertura)}</p>
+              <p><b>Aberto em:</b> {brDate(sessao.aberto_em)}</p>
+              <p><b>Usuário:</b> {sessao.usuario_email || "—"}</p>
             </div>
 
             <div className="panel">
               <div className="panel-head">
-                <h2>Prévia automática</h2>
+                <h2>Conferência manual</h2>
                 <button className="btn-secondary" onClick={carregar}>
                   Atualizar
                 </button>
               </div>
 
-              <p>
-                <b>Dinheiro:</b> {money(preview?.dinheiro)}
-              </p>
-              <p>
-                <b>Entradas:</b> {money(preview?.entradas)}
-              </p>
-              <p>
-                <b>Saídas:</b> {money(preview?.saidas)}
-              </p>
-              <p>
-                <b>Total final:</b> {money(preview?.total)}
-              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+                <input value={dinheiroDecl} onChange={(e) => setDinheiroDecl(e.target.value)} placeholder="Dinheiro contado" inputMode="decimal" />
+                <input value={pixDecl} onChange={(e) => setPixDecl(e.target.value)} placeholder="PIX conferido" inputMode="decimal" />
+                <input value={cartaoDecl} onChange={(e) => setCartaoDecl(e.target.value)} placeholder="Cartão conferido" inputMode="decimal" />
+              </div>
+
+              <p><b>Dinheiro sistema:</b> {money(preview?.dinheiro)}</p>
+              <p><b>PIX sistema:</b> {money(preview?.pix)}</p>
+              <p><b>Cartão sistema:</b> {money(calculadoCartao)}</p>
+              <p><b>Total sistema:</b> {money(totalSistema)}</p>
+              <p><b>Total declarado:</b> {money(totalDeclarado)}</p>
+              <p><b>Diferença:</b> {money(totalDeclarado - totalSistema)}</p>
             </div>
 
             <button
