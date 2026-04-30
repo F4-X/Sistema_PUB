@@ -84,6 +84,44 @@ router.post("/", async (req, res) => {
   res.json(r.rows[0]);
 });
 
+router.put("/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const nome = String(req.body?.nome || "").trim().replace(/\s+/g, " ");
+  const preco = Number(req.body?.preco);
+  const categoria_id =
+    req.body?.categoria_id == null || req.body?.categoria_id === ""
+      ? null
+      : Number(req.body.categoria_id);
+
+  if (!id) return res.status(400).json({ error: "ID inválido" });
+  if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
+  if (!Number.isFinite(preco)) {
+    return res.status(400).json({ error: "Preço inválido" });
+  }
+
+  try {
+    const r = await db.query(
+      `
+      UPDATE produtos
+      SET nome = $1,
+          preco = $2,
+          categoria_id = $3
+      WHERE id = $4
+      RETURNING id, nome, preco, categoria_id
+      `,
+      [nome, preco, categoria_id, id]
+    );
+
+    if (!r.rows[0]) {
+      return res.status(404).json({ error: "Produto não encontrado" });
+    }
+
+    res.json(r.rows[0]);
+  } catch (e) {
+    res.status(500).json({ error: "Erro ao editar produto" });
+  }
+});
+
 router.delete("/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: "ID inválido" });

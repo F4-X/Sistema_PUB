@@ -320,7 +320,7 @@ export function Carrinho({ caixa, cart, total, onDec, onInc, onClear, onFinish }
   );
 }
 
-export function ContextMenu({ menu, onExcluirProduto, onExcluirCategoria }) {
+export function ContextMenu({ menu, onEditarProduto, onExcluirProduto, onExcluirCategoria }) {
   if (!menu) return null;
 
   return (
@@ -330,9 +330,15 @@ export function ContextMenu({ menu, onExcluirProduto, onExcluirCategoria }) {
       onClick={(e) => e.stopPropagation()}
     >
       {menu.type === "produto" ? (
-        <button className="danger" onClick={() => onExcluirProduto(menu.item)}>
-          🗑️ Excluir produto
-        </button>
+        <>
+          <button onClick={() => onEditarProduto(menu.item)}>
+            ✏️ Editar produto
+          </button>
+
+          <button className="danger" onClick={() => onExcluirProduto(menu.item)}>
+            🗑️ Excluir produto
+          </button>
+        </>
       ) : (
         <button className="danger" onClick={() => onExcluirCategoria(menu.item)}>
           🗑️ Excluir categoria
@@ -377,12 +383,14 @@ export function ModalProduto({
   setNome,
   setPreco,
   setCategoriaId,
+  titulo = "Cadastrar Produto",
+  textoBotao = "Salvar",
 }) {
   if (!open) return null;
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Cadastrar Produto</h3>
+        <h3>{titulo}</h3>
 
         <input
           value={nome}
@@ -409,7 +417,7 @@ export function ModalProduto({
             Cancelar
           </button>
           <button className="btn-primary" onClick={onSave}>
-            Salvar
+            {textoBotao}
           </button>
         </div>
       </div>

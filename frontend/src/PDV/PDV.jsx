@@ -43,12 +43,7 @@ function errMsg(e, fallback) {
 function blurActiveElement() {
   setTimeout(() => {
     try {
-      if (
-        document?.activeElement &&
-        typeof document.activeElement.blur === "function"
-      ) {
-        document.activeElement.blur();
-      }
+      document?.activeElement?.blur?.();
     } catch {}
   }, 0);
 }
@@ -56,6 +51,7 @@ function blurActiveElement() {
 export default function PDV({ setTela, onLogout }) {
   const s = usePDV();
   const [page, setPage] = useState("pdv");
+  const [editandoProduto, setEditandoProduto] = useState(null);
 
   useEffect(() => {
     const onWindowBlur = () => {
@@ -67,6 +63,39 @@ export default function PDV({ setTela, onLogout }) {
     window.addEventListener("blur", onWindowBlur);
     return () => window.removeEventListener("blur", onWindowBlur);
   }, []);
+
+  function abrirNovoProduto() {
+    setEditandoProduto(null);
+    s.setProdNome("");
+    s.setProdPreco("");
+    s.setProdCategoriaId("");
+    s.setOpenProd(true);
+  }
+
+  function abrirEditarProduto(produto) {
+    setEditandoProduto(produto);
+    s.setProdNome(produto.nome || "");
+    s.setProdPreco(String(produto.preco || ""));
+    s.setProdCategoriaId(produto.categoria_id || "");
+    s.setOpenProd(true);
+  }
+
+  async function salvarProduto() {
+    if (editandoProduto?.id) {
+      await api.put(`/produtos/${editandoProduto.id}`, {
+        nome: s.prodNome,
+        preco: String(s.prodPreco).replace(",", "."),
+        categoria_id: s.prodCategoriaId || null,
+      });
+
+      setEditandoProduto(null);
+      s.setOpenProd(false);
+      location.reload();
+      return;
+    }
+
+    await s.criarProduto();
+  }
 
   async function printReceipt(venda) {
     try {
@@ -206,7 +235,7 @@ export default function PDV({ setTela, onLogout }) {
                   mostrandoProdutos={s.mostrandoProdutos}
                   onAdd={s.addToCart}
                   onCtx={s.abrirMenu}
-                  onOpenProd={() => s.setOpenProd(true)}
+                  onOpenProd={abrirNovoProduto}
                   page={s.prodPage}
                   pages={s.prodPages}
                   total={s.prodTotal}
@@ -231,6 +260,7 @@ export default function PDV({ setTela, onLogout }) {
 
             <ContextMenu
               menu={s.menu}
+              onEditarProduto={abrirEditarProduto}
               onExcluirProduto={s.excluirProduto}
               onExcluirCategoria={s.excluirCategoria}
             />
@@ -254,12 +284,15 @@ export default function PDV({ setTela, onLogout }) {
               categorias={s.categorias}
               onClose={() => {
                 blurActiveElement();
+                setEditandoProduto(null);
                 s.setOpenProd(false);
               }}
-              onSave={s.criarProduto}
+              onSave={salvarProduto}
               setNome={s.setProdNome}
               setPreco={s.setProdPreco}
               setCategoriaId={s.setProdCategoriaId}
+              titulo={editandoProduto ? "Editar Produto" : "Cadastrar Produto"}
+              textoBotao={editandoProduto ? "Salvar alterações" : "Salvar"}
             />
 
             <ModalPagamento
