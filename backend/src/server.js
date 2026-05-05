@@ -10,7 +10,6 @@ const port = process.env.PORT || 3001;
     if (typeof initDatabase === "function") await initDatabase();
 
     if (typeof app?.listen !== "function") {
-      console.log("DEBUG backendMod =", backendMod);
       throw new Error("Export inválido: não encontrei app.listen()");
     }
 
