@@ -137,7 +137,23 @@ export function TopbarFuncionarios({ onBack, onLogout }) {
       <div className="pdv-controls">
         <div className="pdv-toggle">
           <button onClick={onBack}>← Menu</button>
-          <button className="active">Funcionários</button>
+          <button
+  className={window.location.hash === "#operadores" ? "" : "active"}
+  onClick={() => {
+    window.location.hash = "";
+  }}
+>
+  Marcados
+</button>
+
+<button
+  className={window.location.hash === "#operadores" ? "active" : ""}
+  onClick={() => {
+    window.location.hash = "#operadores";
+  }}
+>
+  Cadastro Funcionários
+</button>
           <button onClick={onLogout}>Sair</button>
         </div>
       </div>

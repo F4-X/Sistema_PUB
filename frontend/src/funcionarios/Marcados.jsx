@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { TopbarFuncionarios } from "../components.jsx";
+import Operadores from "./Operadores";
 
 function money(v) {
   const n = Number(v || 0);
@@ -226,6 +227,9 @@ export default function Marcados({ setTela }) {
   const [funcQuery, setFuncQuery] = useState("");
 
   const [toast, setToast] = useState(null);
+
+const modoOperadores =
+  window.location.hash === "#operadores";
 
   useEffect(() => {
     setFuncPage(1);
@@ -725,14 +729,48 @@ export default function Marcados({ setTela }) {
       `}</style>
 
       <TopbarFuncionarios
-        onBack={() => setTela("menu")}
-        onLogout={() => {
-          localStorage.removeItem("token");
-          location.reload();
-        }}
-      />
+  onBack={() => setTela("menu")}
+  onLogout={() => {
+    localStorage.removeItem("token");
+    location.reload();
+  }}
+/>
+
+<div
+  className="mk-filter-tabs"
+  style={{
+    width: "min(1700px,96vw)",
+    margin: "18px auto 0",
+    justifyContent: "flex-start",
+  }}
+>
+  <button
+    className={!modoOperadores ? "active" : ""}
+    onClick={() => {
+      window.location.hash = "";
+      location.reload();
+    }}
+  >
+    Marcados
+  </button>
+
+  <button
+    className={modoOperadores ? "active" : ""}
+    onClick={() => {
+      window.location.hash = "#operadores";
+      location.reload();
+    }}
+  >
+    Cadastro Funcionários
+  </button>
+</div>
 
       {toast && <div className={`toast ${toast.ok ? "ok" : "err"}`}>{toast.msg}</div>}
+
+{modoOperadores ? (
+  <Operadores />
+) : (
+  <>
 
       <div className="mk-top-help">
         <div className="panel">
@@ -1094,12 +1132,15 @@ export default function Marcados({ setTela }) {
         </div>
       </div>
 
-      <ModalNovoFuncionario
-        open={openNovoFunc}
-        onClose={() => !savingFunc && setOpenNovoFunc(false)}
-        onSave={onCriarFuncionario}
-        saving={savingFunc}
-      />
-    </div>
-  );
+</>
+)}
+
+<ModalNovoFuncionario
+  open={openNovoFunc}
+  onClose={() => !savingFunc && setOpenNovoFunc(false)}
+  onSave={onCriarFuncionario}
+  saving={savingFunc}
+/>
+</div>
+);
 }
