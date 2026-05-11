@@ -228,8 +228,9 @@ export default function Marcados({ setTela }) {
 
   const [toast, setToast] = useState(null);
 
-const modoOperadores =
-  window.location.hash === "#operadores";
+const [abaFuncionarios, setAbaFuncionarios] = useState("marcados");
+
+const modoOperadores = abaFuncionarios === "operadores";
 
   useEffect(() => {
     setFuncPage(1);
@@ -747,8 +748,7 @@ const modoOperadores =
   <button
     className={!modoOperadores ? "active" : ""}
     onClick={() => {
-      window.location.hash = "";
-      location.reload();
+      setAbaFuncionarios("marcados");
     }}
   >
     Marcados
@@ -757,8 +757,7 @@ const modoOperadores =
   <button
     className={modoOperadores ? "active" : ""}
     onClick={() => {
-      window.location.hash = "#operadores";
-      location.reload();
+      setAbaFuncionarios("operadores");
     }}
   >
     Cadastro Funcionários
