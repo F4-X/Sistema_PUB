@@ -228,9 +228,9 @@ export default function Marcados({ setTela }) {
 
   const [toast, setToast] = useState(null);
 
-const [page, setPage] = useState("marcados");
+const [paginaFuncionarios, setPaginaFuncionarios] = useState("marcados");
 
-const modoOperadores = page === "operadores";
+const modoOperadores = paginaFuncionarios === "operadores";
 
   useEffect(() => {
     setFuncPage(1);
@@ -730,8 +730,8 @@ const modoOperadores = page === "operadores";
       `}</style>
 
       <TopbarFuncionarios
-  page={page}
-  setPage={setPage}
+  page={paginaFuncionarios}
+  setPage={setPaginaFuncionarios}
   onBack={() => setTela("menu")}
   onLogout={() => {
     localStorage.removeItem("token");
