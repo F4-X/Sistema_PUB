@@ -187,6 +187,16 @@ export function TopbarFuncionarios({
   );
 }
 
+export function Toast({ msg }) {
+  if (!msg) return null;
+
+  return (
+    <div className={`toast ${msg.type}`}>
+      {msg.text}
+    </div>
+  );
+}
+
 export function Categorias({
   categorias,
   categoriaAtiva,
