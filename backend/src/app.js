@@ -13,6 +13,7 @@ const authRoutes = require("./routes/auth");
 const funcionariosRoutes = require("./routes/funcionarios");
 const marcadosRoutes = require("./routes/marcados");
 const contasPagarRoutes = require("./routes/contas_pagar");
+const operadoresRoutes = require("./routes/operadores");
 
 const auth = require("./middleware/auth");
 
@@ -36,6 +37,7 @@ app.use("/fechamentos", auth, fechamentosRoutes);
 app.use("/caixa", auth, caixaRoutes);
 app.use("/funcionarios", auth, funcionariosRoutes);
 app.use("/marcados", auth, marcadosRoutes);
+app.use("/operadores", auth, operadoresRoutes);
 
 async function initDatabase() {
   await initOnStart();

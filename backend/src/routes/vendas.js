@@ -158,6 +158,21 @@ router.post("/", async (req, res) => {
     const itens = Array.isArray(req.body?.itens) ? req.body.itens : [];
     const pagamentos = Array.isArray(req.body?.pagamentos) ? req.body.pagamentos : [];
 
+    const sessaoR = await db.query(`
+  SELECT *
+  FROM caixa_sessoes
+  WHERE status = 'aberto'
+  ORDER BY id DESC
+  LIMIT 1
+`);
+
+const sessao = sessaoR.rows[0];
+
+if (!sessao) {
+  return res.status(400).json({
+    error: "Nenhum caixa aberto",
+  });
+}
     if (!itens.length) return res.status(400).json({ error: "Itens obrigatórios" });
     if (!pagamentos.length) return res.status(400).json({ error: "Pagamentos obrigatórios" });
 
@@ -168,11 +183,31 @@ router.post("/", async (req, res) => {
 
     const rv = await db.query(
       `
-      INSERT INTO vendas (caixa_numero, total_bruto, desconto, acrescimo, total_final, nfce_status)
-      VALUES ($1,$2,$3,$4,$5,$6)
-      RETURNING id
+      INSERT INTO vendas (
+  caixa_numero,
+  total_bruto,
+  desconto,
+  acrescimo,
+  total_final,
+  nfce_status,
+  usuario_id,
+  usuario_email,
+  sessao_caixa_id
+)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+RETURNING id
     `,
-      [caixa_numero, total_bruto, desconto, acrescimo, total_final, null]
+      [
+  caixa_numero,
+  total_bruto,
+  desconto,
+  acrescimo,
+  total_final,
+  null,
+  req.user?.id || null,
+  req.user?.email || null,
+  sessao.id
+]
     );
 
     const venda_id = rv.rows[0].id;
