@@ -228,9 +228,9 @@ export default function Marcados({ setTela }) {
 
   const [toast, setToast] = useState(null);
 
-const [abaFuncionarios, setAbaFuncionarios] = useState("marcados");
+const [page, setPage] = useState("marcados");
 
-const modoOperadores = abaFuncionarios === "operadores";
+const modoOperadores = page === "operadores";
 
   useEffect(() => {
     setFuncPage(1);
@@ -730,39 +730,14 @@ const modoOperadores = abaFuncionarios === "operadores";
       `}</style>
 
       <TopbarFuncionarios
+  page={page}
+  setPage={setPage}
   onBack={() => setTela("menu")}
   onLogout={() => {
     localStorage.removeItem("token");
     location.reload();
   }}
 />
-
-<div
-  className="mk-filter-tabs"
-  style={{
-    width: "min(1700px,96vw)",
-    margin: "18px auto 0",
-    justifyContent: "flex-start",
-  }}
->
-  <button
-    className={!modoOperadores ? "active" : ""}
-    onClick={() => {
-      setAbaFuncionarios("marcados");
-    }}
-  >
-    Marcados
-  </button>
-
-  <button
-    className={modoOperadores ? "active" : ""}
-    onClick={() => {
-      setAbaFuncionarios("operadores");
-    }}
-  >
-    Cadastro Funcionários
-  </button>
-</div>
 
       {toast && <div className={`toast ${toast.ok ? "ok" : "err"}`}>{toast.msg}</div>}
 

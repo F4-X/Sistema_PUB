@@ -126,44 +126,65 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
   );
 }
 
-export function TopbarFuncionarios({ onBack, onLogout }) {
+export function TopbarFuncionarios({
+  page,
+  setPage,
+  onBack,
+  onLogout,
+}) {
   return (
     <header className="pdv-topbar">
       <div className="pdv-brand">
-        <div className="pdv-title">1005 PUB</div>
-        <div className="pdv-sub">Funcionários</div>
+        <div className="pdv-title">
+          1005 PUB
+        </div>
+
+        <div className="pdv-sub">
+          Funcionários
+        </div>
       </div>
 
       <div className="pdv-controls">
         <div className="pdv-toggle">
-          <button onClick={onBack}>← Menu</button>
-          <button
-  className={window.location.hash === "#operadores" ? "" : "active"}
-  onClick={() => {
-    window.location.hash = "";
-  }}
->
-  Marcados
-</button>
 
-<button
-  className={window.location.hash === "#operadores" ? "active" : ""}
-  onClick={() => {
-    window.location.hash = "#operadores";
-  }}
->
-  Cadastro Funcionários
-</button>
-          <button onClick={onLogout}>Sair</button>
+          <button onClick={onBack}>
+            ← Menu
+          </button>
+
+          <button
+            className={
+              page === "marcados"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setPage("marcados")
+            }
+          >
+            Marcados
+          </button>
+
+          <button
+            className={
+              page === "operadores"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setPage("operadores")
+            }
+          >
+            Cadastro Funcionários
+          </button>
+
+          <button onClick={onLogout}>
+            Sair
+          </button>
+
         </div>
       </div>
     </header>
   );
-}
-
-export function Toast({ msg }) {
-  if (!msg) return null;
-  return <div className={`toast ${msg.type}`}>{msg.text}</div>;
 }
 
 export function Categorias({
