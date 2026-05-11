@@ -435,7 +435,10 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
           vIPI: 0,
         },
       },
-      pag: { detPag },
+      pag: {
+  detPag,
+  vTroco: Number(venda.troco || 0),
+},
       transp: { modFrete: 9 },
       infRespTec: {
         CNPJ: process.env.NF_RT_CNPJ,
