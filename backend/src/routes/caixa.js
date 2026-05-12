@@ -372,12 +372,6 @@ router.get("/fechamentos", async (req, res) => {
 
       const totalDeclarado = fechado ? Number(s.valor_fechamento || 0) : null;
 
-const dinheiroSistema =
-  abertura +
-  dados.dinheiro +
-  dados.entradas -
-  dados.saidas;
-
       const difDinheiro = fechado
         ? dinheiroConferencia - (abertura + dados.dinheiro + dados.entradas - dados.saidas)
         : 0;
@@ -402,11 +396,7 @@ const dinheiroSistema =
 
         abertura,
 
-        dinheiro_sistema:
-  abertura +
-  dados.dinheiro +
-  dados.entradas -
-  dados.saidas,
+        dinheiro_sistema: dados.dinheiro,
         pix_sistema: dados.pix,
         cartao_sistema: dados.cartao,
 
