@@ -251,7 +251,7 @@ setHistTotalPages(hist.data?.pages || 1);
   const abertura = n(preview?.abertura ?? sessao?.valor_abertura);
   const dinheiroSistema = n(preview?.dinheiro);
   const pixSistema = n(preview?.pix);
-  const cartaoSistema = n(preview?.cartao) + n(preview?.credito) + n(preview?.debito);
+  const cartaoSistema = n(preview?.cartao);
   const entradasSistema = n(preview?.entradas);
   const saidasSistema = n(preview?.saidas);
 
