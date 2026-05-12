@@ -430,12 +430,11 @@ const [historico, setHistorico] =
       };
 
       const valorFinal =
-        abertura +
-        declarado.dinheiro +
-        declarado.pix +
-        declarado.cartao +
-        n(dados.entradas) -
-        n(dados.saidas);
+  declarado.dinheiro +
+  declarado.pix +
+  declarado.cartao +
+  n(dados.entradas) -
+  n(dados.saidas);
 
       const r = await api.post(
         "/caixa/fechar",
