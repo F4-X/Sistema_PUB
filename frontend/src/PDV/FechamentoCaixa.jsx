@@ -347,9 +347,9 @@ setHistTotalPages(hist.data?.pages || 1);
               </div>
 
               <div className="panel">
-                <div className="mk-selected-k">Total Sistema</div>
-                <div className="mk-selected-v">{money(totalSistema)}</div>
-              </div>
+  <div className="mk-selected-k">Total Sistema</div>
+  <div className="mk-selected-v">Oculto</div>
+</div>
 
               <div className="panel">
                 <div className="mk-selected-k">Total Declarado</div>
@@ -428,16 +428,15 @@ setHistTotalPages(hist.data?.pages || 1);
               </div>
 
               <div className="panel">
-                <div className="mk-selected-k">Diferença atual</div>
-                <div
-                  className="mk-selected-v"
-                  style={{
-                    color: Number(diferencaAtual || 0) === 0 ? "#2ecc71" : "#ff7675",
-                  }}
-                >
-                  {money(diferencaAtual)}
-                </div>
-              </div>
+  <div className="mk-selected-k">Diferença atual</div>
+
+  <div
+    className="mk-selected-v"
+    style={{ color: "#ff7675" }}
+  >
+    Será exibida após fechamento
+  </div>
+</div>
             </div>
 
             <button
