@@ -534,6 +534,17 @@ const items = historico;
   </div>
 </div>
 
+<div className="panel">
+  <div className="mk-selected-k">Dinheiro total</div>
+
+  <div
+    className="mk-selected-v"
+    style={{ color: "#4da3ff" }}
+  >
+    {money(item.dinheiro_sistema)}
+  </div>
+</div>
+
                           <div className="panel">
   <div className="mk-selected-k">Dinheiro conferência</div>
 
