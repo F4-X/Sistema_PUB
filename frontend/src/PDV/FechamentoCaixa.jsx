@@ -524,7 +524,7 @@ const items = historico;
                         >
                           <div className="panel">
                             <div className="mk-selected-k">Dinheiro vendas</div>
-                            <div className="mk-selected-v">{money(item.dinheiro_sistema)}</div>
+                            <div className="mk-selected-v">{money(item.dinheiro)}</div>
                           </div>
 
 <div className="panel">
