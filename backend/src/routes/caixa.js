@@ -111,17 +111,20 @@ router.post("/movimentos", async (req, res) => {
   await db.query(
     `
     INSERT INTO caixa_movimentos
-    (tipo, valor, motivo, origem, observacao, usuario_id, usuario_email)
-    VALUES ($1,$2,$3,$4,$5,$6,$7)
+(sessao_id, tipo, valor, motivo, origem, observacao, usuario_id, usuario_email)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
     `,
     [
-      tipo,
-      valor,
-      motivo,
-      origem,
-      observacao,
-      req.user?.id || null,
-      req.user?.email || null,
+      [
+  sessao.id,
+  tipo,
+  valor,
+  motivo,
+  origem,
+  observacao,
+  req.user?.id || null,
+  req.user?.email || null,
+]
     ]
   );
 
@@ -241,7 +244,7 @@ router.post("/fechar", async (req, res) => {
   }
 });
 
-async function calcularPeriodo(inicio, fim) {
+async function calcularPeriodo(sessaoId) {
   const pagamentos = await db.query(
     `
     SELECT
@@ -263,8 +266,7 @@ async function calcularPeriodo(inicio, fim) {
       COALESCE(SUM(CASE WHEN tipo='entrada' AND motivo!='venda' THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas_manuais,
       COALESCE(SUM(CASE WHEN tipo='saida' AND motivo!='troco' THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas_manuais
     FROM caixa_movimentos
-    WHERE criado_em >= $1
-      AND criado_em <= $2
+    WHERE sessao_id = $1
     `,
     [inicio, fim]
   );
