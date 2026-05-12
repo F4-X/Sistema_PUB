@@ -575,6 +575,51 @@ export default function FechamentoCaixa() {
                             </div>
                           </div>
 
+<div className="panel">
+  <div className="mk-selected-k">Diferença dinheiro</div>
+  <div
+    className="mk-selected-v"
+    style={{
+      color:
+        Number(item.dif_dinheiro || 0) === 0
+          ? "#2ecc71"
+          : "#ff7675",
+    }}
+  >
+    {money(item.dif_dinheiro)}
+  </div>
+</div>
+
+<div className="panel">
+  <div className="mk-selected-k">Diferença PIX</div>
+  <div
+    className="mk-selected-v"
+    style={{
+      color:
+        Number(item.dif_pix || 0) === 0
+          ? "#2ecc71"
+          : "#ff7675",
+    }}
+  >
+    {money(item.dif_pix)}
+  </div>
+</div>
+
+<div className="panel">
+  <div className="mk-selected-k">Diferença cartão</div>
+  <div
+    className="mk-selected-v"
+    style={{
+      color:
+        Number(item.dif_cartao || 0) === 0
+          ? "#2ecc71"
+          : "#ff7675",
+    }}
+  >
+    {money(item.dif_cartao)}
+  </div>
+</div>
+
                           <div className="panel">
                             <div className="mk-selected-k">Diferença</div>
                             <div
