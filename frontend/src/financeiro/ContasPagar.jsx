@@ -27,15 +27,16 @@ function norm(s) {
 
 function formatDateBR(v) {
   if (!v) return "—";
-  try {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) {
-      const [yyyy, mm, dd] = String(v).split("-");
-      return `${dd}/${mm}/${yyyy}`;
-    }
-    return new Date(v).toLocaleDateString("pt-BR");
-  } catch {
-    return String(v);
+
+  const s = String(v).trim();
+
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    const [, yyyy, mm, dd] = m;
+    return `${dd}/${mm}/${yyyy}`;
   }
+
+  return s;
 }
 
 function valueSearch(v) {
