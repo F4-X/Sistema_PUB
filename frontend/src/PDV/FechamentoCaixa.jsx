@@ -534,13 +534,17 @@ export default function FechamentoCaixa() {
 </div>
 
                           <div className="panel">
-                            <div className="mk-selected-k">Dinheiro conferência</div>
-                            <div className="mk-selected-v">
-                              {item.status === "fechado"
-                                ? money(item.dinheiro_conferencia)
-                                : "—"}
-                            </div>
-                          </div>
+  <div className="mk-selected-k">Dinheiro conferência</div>
+
+  <div
+    className="mk-selected-v"
+    style={{ color: "#4da3ff" }}
+  >
+    {item.status === "fechado"
+      ? money(item.dinheiro_conferencia)
+      : "—"}
+  </div>
+</div>
 
                           <div className="panel">
                             <div className="mk-selected-k">PIX sistema</div>
@@ -621,7 +625,7 @@ export default function FechamentoCaixa() {
 </div>
 
                           <div className="panel">
-                            <div className="mk-selected-k">Diferença</div>
+                            <div className="mk-selected-k">Diferença Total</div>
                             <div
                               className="mk-selected-v"
                               style={{
