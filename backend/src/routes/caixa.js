@@ -253,15 +253,21 @@ const troco = Number(mov.rows[0].troco || 0);
     const saldo = entradas - saidas;
 
     res.json({
-      abertura: sessao.valor_abertura,
-      aberto_em: sessao.aberto_em,
-      dinheiro,
-      troco,
-      entradas,
-      saidas,
-      saldo,
-      total: saldo + Number(sessao.valor_abertura || 0),
-    });
+  abertura: sessao.valor_abertura,
+  aberto_em: sessao.aberto_em,
+
+  dinheiro,
+  pix,
+  credito,
+  debito,
+
+  troco,
+  entradas,
+  saidas,
+  saldo,
+
+  total: saldo + Number(sessao.valor_abertura || 0),
+});
 
   } catch (e) {
     res.status(500).json({ error: e.message });
