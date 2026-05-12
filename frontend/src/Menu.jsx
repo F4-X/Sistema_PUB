@@ -1,6 +1,6 @@
 export default function Menu({ setTela, onLogout }) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const tipo = user?.tipo || "comum";
+const tipo = String(user?.tipo || "comum").toLowerCase();
 
   const cards = [
     {
@@ -24,10 +24,15 @@ export default function Menu({ setTela, onLogout }) {
     },
   ];
 
-  const cardsVisiveis = cards.filter((item) => {
-    if (tipo === "admin") return true;
-    return !item.adminOnly;
-  });
+ const cardsVisiveis = cards.filter((item) => {
+  if (!item.adminOnly) return true;
+
+  return (
+    tipo === "admin" ||
+    tipo === "geral" ||
+    tipo === "funcional"
+  );
+});
 
   return (
     <div className="menu-page">
