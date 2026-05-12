@@ -706,100 +706,71 @@ export default function FechamentoCaixa() {
             </div>
 
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit,minmax(220px,1fr))",
-                gap: 14,
-              }}
-            >
-              <div className="panel">
-                <div className="mk-selected-k">
-                  Dinheiro sistema
-                </div>
-
-                <div className="mk-selected-v">
-                  {money(
-                    preview?.dinheiro
-                  )}
-                </div>
-              </div>
-
-              <div className="panel">
-                <div className="mk-selected-k">
-                  PIX sistema
-                </div>
-
-                <div className="mk-selected-v">
-                  {money(
-                    preview?.pix
-                  )}
-                </div>
-              </div>
-
-              <div className="panel">
-                <div className="mk-selected-k">
-                  Cartão sistema
-                </div>
-
-                <div className="mk-selected-v">
-                  {money(
-                    calculadoCartao
-                  )}
-                </div>
-              </div>
-
-              <div
-                className="panel"
-                style={{
-                  border:
-                    totalDeclarado -
-                      totalSistema ===
-                    0
-                      ? "1px solid rgba(46,204,113,.35)"
-                      : "1px solid rgba(231,76,60,.35)",
-                }}
-              >
-                <div className="mk-selected-k">
-                  Diferença
-                </div>
-
-                <div
-                  className="mk-selected-v"
-                  style={{
-                    color:
-                      totalDeclarado -
-                        totalSistema ===
-                      0
-                        ? "#2ecc71"
-                        : "#ff7675",
-                  }}
-                >
-                  {money(
-                    totalDeclarado -
-                      totalSistema
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <button
-              className="btn-danger"
-              onClick={fecharCaixa}
-              disabled={loading}
-              style={{
-                height: 58,
-                fontSize: 17,
-                fontWeight: 900,
-              }}
-            >
-              {loading
-                ? "Fechando..."
-                : "Fechar Caixa e Imprimir"}
-            </button>
-          </div>
-        )}
-      </div>
+  style={{
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit,minmax(220px,1fr))",
+    gap: 14,
+  }}
+>
+  <div className="panel">
+    <div className="mk-selected-k">
+      Dinheiro sistema
     </div>
+
+    <div className="mk-selected-v">
+      Oculto
+    </div>
+  </div>
+
+  <div className="panel">
+    <div className="mk-selected-k">
+      PIX sistema
+    </div>
+
+    <div className="mk-selected-v">
+      Oculto
+    </div>
+  </div>
+
+  <div className="panel">
+    <div className="mk-selected-k">
+      Cartão sistema
+    </div>
+
+    <div className="mk-selected-v">
+      Oculto
+    </div>
+  </div>
+
+  <div className="panel">
+    <div className="mk-selected-k">
+      Diferença
+    </div>
+
+    <div className="mk-selected-v">
+      Será exibida após fechamento
+    </div>
+  </div>
+</div>
+
+          <button
+            className="btn-danger"
+            onClick={fecharCaixa}
+            disabled={loading}
+            style={{
+              height: 58,
+              fontSize: 17,
+              fontWeight: 900,
+            }}
+          >
+            {loading
+              ? "Fechando..."
+              : "Fechar Caixa e Imprimir"}
+          </button>
+        </div>
+      )}
+    </div>
+        </div>
   );
 }
