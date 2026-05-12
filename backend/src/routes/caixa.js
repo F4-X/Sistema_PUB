@@ -6,166 +6,176 @@ function moneyNumber(v) {
   return Number.isFinite(n) ? Number(n.toFixed(2)) : 0;
 }
 
-async function garantirColunasConferencia() {
-  try {
-    await db.query(`
-      ALTER TABLE caixa_sessoes
-      ADD COLUMN IF NOT EXISTS dinheiro_conferencia NUMERIC(10,2) DEFAULT 0
-    `);
+async function garantirColunas() {
+  await db.query(`
+    ALTER TABLE caixa_sessoes
+    ADD COLUMN IF NOT EXISTS dinheiro_conferencia NUMERIC(10,2) DEFAULT 0
+  `);
 
-    await db.query(`
-      ALTER TABLE caixa_sessoes
-      ADD COLUMN IF NOT EXISTS pix_conferencia NUMERIC(10,2) DEFAULT 0
-    `);
+  await db.query(`
+    ALTER TABLE caixa_sessoes
+    ADD COLUMN IF NOT EXISTS pix_conferencia NUMERIC(10,2) DEFAULT 0
+  `);
 
-    await db.query(`
-      ALTER TABLE caixa_sessoes
-      ADD COLUMN IF NOT EXISTS cartao_conferencia NUMERIC(10,2) DEFAULT 0
-    `);
-  } catch (e) {
-    console.log("Erro ao garantir colunas de conferência:", e?.message || e);
-  }
+  await db.query(`
+    ALTER TABLE caixa_sessoes
+    ADD COLUMN IF NOT EXISTS cartao_conferencia NUMERIC(10,2) DEFAULT 0
+  `);
+
+  await db.query(`
+    ALTER TABLE caixa_movimentos
+    ADD COLUMN IF NOT EXISTS sessao_id INTEGER
+  `);
+}
+
+async function buscarSessaoAberta() {
+  const r = await db.query(`
+    SELECT *
+    FROM caixa_sessoes
+    WHERE status='aberto'
+    ORDER BY id DESC
+    LIMIT 1
+  `);
+
+  return r.rows[0] || null;
 }
 
 router.get("/saldo", async (req, res) => {
-  const r = await db.query(`
-    SELECT
-      COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas,
-      COALESCE(SUM(CASE WHEN tipo='saida' THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas
-    FROM caixa_movimentos
-  `);
+  try {
+    await garantirColunas();
 
-  const entradas = Number(r.rows?.[0]?.entradas || 0);
-  const saidas = Number(r.rows?.[0]?.saidas || 0);
+    const sessao = await buscarSessaoAberta();
 
-  res.json({
-    entradas,
-    saidas,
-    saldo: Number((entradas - saidas).toFixed(2)),
-  });
-});
+    if (!sessao) {
+      return res.json({ entradas: 0, saidas: 0, saldo: 0 });
+    }
 
-router.get("/resumo", async (req, res) => {
-  const r = await db.query(`
-    SELECT
-      COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas,
-      COALESCE(SUM(CASE WHEN tipo='saida' THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas,
-      COALESCE(SUM(CASE WHEN tipo='entrada' AND motivo='venda' THEN valor ELSE 0 END),0)::numeric(10,2) AS dinheiro_recebido,
-      COALESCE(SUM(CASE WHEN tipo='saida' AND motivo='troco' THEN valor ELSE 0 END),0)::numeric(10,2) AS troco_pago,
-      COALESCE(SUM(CASE WHEN tipo='entrada' AND (motivo IS NULL OR motivo NOT IN ('venda')) THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas_manuais,
-      COALESCE(SUM(CASE WHEN tipo='saida' AND (motivo IS NULL OR motivo NOT IN ('troco')) THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas_manuais
-    FROM caixa_movimentos
-  `);
+    const r = await db.query(
+      `
+      SELECT
+        COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas,
+        COALESCE(SUM(CASE WHEN tipo='saida' THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas
+      FROM caixa_movimentos
+      WHERE sessao_id = $1
+      `,
+      [sessao.id]
+    );
 
-  const entradas = Number(r.rows?.[0]?.entradas || 0);
-  const saidas = Number(r.rows?.[0]?.saidas || 0);
+    const entradas = Number(r.rows?.[0]?.entradas || 0);
+    const saidas = Number(r.rows?.[0]?.saidas || 0);
 
-  res.json({
-    saldo: Number((entradas - saidas).toFixed(2)),
-    entradas,
-    saidas,
-    dinheiro_recebido: Number(r.rows?.[0]?.dinheiro_recebido || 0),
-    troco_pago: Number(r.rows?.[0]?.troco_pago || 0),
-    entradas_manuais: Number(r.rows?.[0]?.entradas_manuais || 0),
-    saidas_manuais: Number(r.rows?.[0]?.saidas_manuais || 0),
-  });
+    res.json({
+      entradas,
+      saidas,
+      saldo: Number((Number(sessao.valor_abertura || 0) + entradas - saidas).toFixed(2)),
+    });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao buscar saldo" });
+  }
 });
 
 router.get("/movimentos", async (req, res) => {
-  const limit = Math.max(1, Math.min(50, Number(req.query.limit || 10)));
-  const page = Math.max(1, Number(req.query.page || 1));
-  const off = (page - 1) * limit;
+  try {
+    await garantirColunas();
 
-  const r = await db.query(
-    `
-    SELECT id, tipo, valor, motivo, origem, observacao, usuario_id, usuario_email, criado_em
-    FROM caixa_movimentos
-    ORDER BY id DESC
-    LIMIT $1 OFFSET $2
-    `,
-    [limit, off]
-  );
+    const limit = Math.max(1, Math.min(500, Number(req.query.limit || 50)));
+    const page = Math.max(1, Number(req.query.page || 1));
+    const off = (page - 1) * limit;
 
-  res.json({ items: r.rows, page, limit });
+    const r = await db.query(
+      `
+      SELECT id, sessao_id, tipo, valor, motivo, origem, observacao, usuario_id, usuario_email, criado_em
+      FROM caixa_movimentos
+      ORDER BY id DESC
+      LIMIT $1 OFFSET $2
+      `,
+      [limit, off]
+    );
+
+    res.json({ items: r.rows, page, limit });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao listar movimentos" });
+  }
 });
 
 router.post("/movimentos", async (req, res) => {
-  const tipo = String(req.body?.tipo || "").trim();
-  const valor = moneyNumber(req.body?.valor);
-  const motivo = String(req.body?.motivo || "").trim();
-  const origem = req.body?.origem == null ? null : String(req.body.origem).trim();
-  const observacao = req.body?.observacao == null ? null : String(req.body.observacao).trim();
+  try {
+    await garantirColunas();
 
-  if (!tipo || !["entrada", "saida"].includes(tipo)) {
-    return res.status(400).json({ error: "Tipo inválido" });
-  }
+    const tipo = String(req.body?.tipo || "").trim();
+    const valor = moneyNumber(req.body?.valor);
+    const motivo = String(req.body?.motivo || "").trim();
+    const origem = req.body?.origem == null ? "caixa" : String(req.body.origem).trim();
+    const observacao = req.body?.observacao == null ? null : String(req.body.observacao).trim();
 
-  if (!Number.isFinite(valor) || valor <= 0) {
-    return res.status(400).json({ error: "Valor inválido" });
-  }
+    if (!["entrada", "saida"].includes(tipo)) {
+      return res.status(400).json({ error: "Tipo inválido" });
+    }
 
-  if (!motivo) {
-    return res.status(400).json({ error: "Motivo obrigatório" });
-  }
+    if (!Number.isFinite(valor) || valor <= 0) {
+      return res.status(400).json({ error: "Valor inválido" });
+    }
 
-  await db.query(
-    `
-    INSERT INTO caixa_movimentos
-(sessao_id, tipo, valor, motivo, origem, observacao, usuario_id, usuario_email)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-    `,
-    [
+    if (!["sangria", "reforco"].includes(motivo)) {
+      return res.status(400).json({ error: "Motivo inválido" });
+    }
+
+    const sessao = await buscarSessaoAberta();
+
+    if (!sessao) {
+      return res.status(400).json({
+        error: "Abra o caixa antes de lançar sangria/reforço",
+      });
+    }
+
+    await db.query(
+      `
+      INSERT INTO caixa_movimentos
+      (sessao_id, tipo, valor, motivo, origem, observacao, usuario_id, usuario_email)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      `,
       [
-  sessao.id,
-  tipo,
-  valor,
-  motivo,
-  origem,
-  observacao,
-  req.user?.id || null,
-  req.user?.email || null,
-]
-    ]
-  );
+        sessao.id,
+        tipo,
+        valor,
+        motivo,
+        origem || "caixa",
+        observacao,
+        req.user?.id || null,
+        req.user?.email || null,
+      ]
+    );
 
-  res.json({ ok: true });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao lançar movimento" });
+  }
 });
 
 router.get("/sessao-atual", async (req, res) => {
   try {
-    const r = await db.query(`
-      SELECT *
-      FROM caixa_sessoes
-      WHERE status = 'aberto'
-      ORDER BY id DESC
-      LIMIT 1
-    `);
+    await garantirColunas();
+
+    const sessao = await buscarSessaoAberta();
 
     res.json({
-      aberto: !!r.rows[0],
-      sessao: r.rows[0] || null,
+      aberto: !!sessao,
+      sessao: sessao || null,
     });
   } catch (e) {
-    res.status(500).json({
-      error: e?.message || "Erro ao buscar sessão do caixa",
-    });
+    res.status(500).json({ error: e?.message || "Erro ao buscar sessão do caixa" });
   }
 });
 
 router.post("/abrir", async (req, res) => {
   try {
-    await garantirColunasConferencia();
+    await garantirColunas();
 
     const valor_abertura = moneyNumber(req.body?.valor_abertura);
 
-    const aberto = await db.query(`
-      SELECT id
-      FROM caixa_sessoes
-      WHERE status = 'aberto'
-      LIMIT 1
-    `);
+    const aberto = await buscarSessaoAberta();
 
-    if (aberto.rows.length) {
+    if (aberto) {
       return res.status(400).json({ error: "Já existe um caixa aberto" });
     }
 
@@ -186,30 +196,20 @@ router.post("/abrir", async (req, res) => {
 
     res.json({ ok: true, sessao: r.rows[0] });
   } catch (e) {
-    res.status(500).json({
-      error: e?.message || "Erro ao abrir caixa",
-    });
+    res.status(500).json({ error: e?.message || "Erro ao abrir caixa" });
   }
 });
 
 router.post("/fechar", async (req, res) => {
   try {
-    await garantirColunasConferencia();
+    await garantirColunas();
 
     const valor_fechamento = moneyNumber(req.body?.valor_fechamento);
     const dinheiro_conferencia = moneyNumber(req.body?.dinheiro);
     const pix_conferencia = moneyNumber(req.body?.pix);
     const cartao_conferencia = moneyNumber(req.body?.cartao);
 
-    const aberto = await db.query(`
-      SELECT *
-      FROM caixa_sessoes
-      WHERE status = 'aberto'
-      ORDER BY id DESC
-      LIMIT 1
-    `);
-
-    const sessao = aberto.rows[0];
+    const sessao = await buscarSessaoAberta();
 
     if (!sessao) {
       return res.status(400).json({ error: "Nenhum caixa aberto" });
@@ -238,13 +238,14 @@ router.post("/fechar", async (req, res) => {
 
     res.json({ ok: true, sessao: r.rows[0] });
   } catch (e) {
-    res.status(500).json({
-      error: e?.message || "Erro ao fechar caixa",
-    });
+    res.status(500).json({ error: e?.message || "Erro ao fechar caixa" });
   }
 });
 
-async function calcularPeriodo(sessaoId) {
+async function calcularPeriodo(sessao) {
+  const inicio = sessao.aberto_em;
+  const fim = sessao.fechado_em || new Date();
+
   const pagamentos = await db.query(
     `
     SELECT
@@ -262,19 +263,15 @@ async function calcularPeriodo(sessaoId) {
   const movimentos = await db.query(
     `
     SELECT
-      COALESCE(SUM(CASE WHEN tipo='saida' AND motivo='troco' THEN valor ELSE 0 END),0)::numeric(10,2) AS troco,
-      COALESCE(SUM(CASE WHEN tipo='entrada' AND motivo!='venda' THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas_manuais,
-      COALESCE(SUM(CASE WHEN tipo='saida' AND motivo!='troco' THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas_manuais
+      COALESCE(SUM(CASE WHEN tipo='entrada' AND motivo='reforco' THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas_manuais,
+      COALESCE(SUM(CASE WHEN tipo='saida' AND motivo='sangria' THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas_manuais
     FROM caixa_movimentos
     WHERE sessao_id = $1
     `,
-    [inicio, fim]
+    [sessao.id]
   );
 
-  const dinheiroPago = Number(pagamentos.rows?.[0]?.dinheiro_pago || 0);
-  const troco = Number(movimentos.rows?.[0]?.troco || 0);
-
-  const dinheiro = Number((dinheiroPago - troco).toFixed(2));
+  const dinheiro = Number(pagamentos.rows?.[0]?.dinheiro_pago || 0);
   const pix = Number(pagamentos.rows?.[0]?.pix || 0);
   const cartao = Number(pagamentos.rows?.[0]?.cartao || 0);
   const entradas = Number(movimentos.rows?.[0]?.entradas_manuais || 0);
@@ -286,7 +283,7 @@ async function calcularPeriodo(sessaoId) {
     cartao,
     credito: 0,
     debito: cartao,
-    troco,
+    troco: 0,
     entradas,
     saidas,
   };
@@ -294,29 +291,18 @@ async function calcularPeriodo(sessaoId) {
 
 router.get("/fechamento-preview", async (req, res) => {
   try {
-    const aberto = await db.query(`
-      SELECT *
-      FROM caixa_sessoes
-      WHERE status='aberto'
-      ORDER BY id DESC
-      LIMIT 1
-    `);
+    await garantirColunas();
 
-    const sessao = aberto.rows[0];
+    const sessao = await buscarSessaoAberta();
 
     if (!sessao) {
       return res.status(400).json({ error: "Nenhum caixa aberto" });
     }
 
-    const dados = await calcularPeriodo(sessao.aberto_em, new Date());
+    const dados = await calcularPeriodo(sessao);
 
     const abertura = Number(sessao.valor_abertura || 0);
-    const saldo =
-      dados.dinheiro +
-      dados.pix +
-      dados.cartao +
-      dados.entradas -
-      dados.saidas;
+    const saldo = dados.dinheiro + dados.pix + dados.cartao + dados.entradas - dados.saidas;
 
     res.json({
       abertura,
@@ -326,15 +312,13 @@ router.get("/fechamento-preview", async (req, res) => {
       total: Number((abertura + saldo).toFixed(2)),
     });
   } catch (e) {
-    res.status(500).json({
-      error: e?.message || "Erro ao gerar preview do fechamento",
-    });
+    res.status(500).json({ error: e?.message || "Erro ao gerar preview do fechamento" });
   }
 });
 
 router.get("/fechamentos", async (req, res) => {
   try {
-    await garantirColunasConferencia();
+    await garantirColunas();
 
     const limit = Math.max(1, Math.min(6, Number(req.query.limit || 6)));
     const page = Math.max(1, Number(req.query.page || 1));
@@ -369,9 +353,7 @@ router.get("/fechamentos", async (req, res) => {
     const items = [];
 
     for (const s of sessoes.rows) {
-      const fim = s.fechado_em || new Date();
-      const dados = await calcularPeriodo(s.aberto_em, fim);
-
+      const dados = await calcularPeriodo(s);
       const abertura = Number(s.valor_abertura || 0);
 
       const totalSistema =
@@ -384,37 +366,22 @@ router.get("/fechamentos", async (req, res) => {
 
       const fechado = String(s.status || "") === "fechado";
 
-      const dinheiroConferencia = fechado
-        ? Number(s.dinheiro_conferencia || 0)
-        : 0;
+      const dinheiroConferencia = fechado ? Number(s.dinheiro_conferencia || 0) : 0;
+      const pixConferencia = fechado ? Number(s.pix_conferencia || 0) : 0;
+      const cartaoConferencia = fechado ? Number(s.cartao_conferencia || 0) : 0;
 
-      const pixConferencia = fechado
-        ? Number(s.pix_conferencia || 0)
-        : 0;
-
-      const cartaoConferencia = fechado
-        ? Number(s.cartao_conferencia || 0)
-        : 0;
-
-      const totalDeclarado = fechado
-        ? Number(s.valor_fechamento || 0)
-        : null;
+      const totalDeclarado = fechado ? Number(s.valor_fechamento || 0) : null;
 
       const difDinheiro = fechado
-  ? dinheiroConferencia - (abertura + dados.dinheiro)
-  : 0;
+        ? dinheiroConferencia - (abertura + dados.dinheiro + dados.entradas - dados.saidas)
+        : 0;
 
-const difPix = fechado
-  ? pixConferencia - dados.pix
-  : 0;
+      const difPix = fechado ? pixConferencia - dados.pix : 0;
+      const difCartao = fechado ? cartaoConferencia - dados.cartao : 0;
 
-const difCartao = fechado
-  ? cartaoConferencia - dados.cartao
-  : 0;
-
-const diferenca = fechado
-  ? Number((difDinheiro + difPix + difCartao).toFixed(2))
-  : 0;
+      const diferenca = fechado
+        ? Number((difDinheiro + difPix + difCartao).toFixed(2))
+        : 0;
 
       items.push({
         ...s,
@@ -426,20 +393,25 @@ const diferenca = fechado
         troco: dados.troco,
         entradas: dados.entradas,
         saidas: dados.saidas,
+
         abertura,
+
         dinheiro_sistema: dados.dinheiro,
         pix_sistema: dados.pix,
         cartao_sistema: dados.cartao,
+
         dinheiro_conferencia: dinheiroConferencia,
-        dif_dinheiro: Number(difDinheiro.toFixed(2)),
-dif_pix: Number(difPix.toFixed(2)),
-dif_cartao: Number(difCartao.toFixed(2)),
         pix_conferencia: pixConferencia,
         cartao_conferencia: cartaoConferencia,
+
+        dif_dinheiro: Number(difDinheiro.toFixed(2)),
+        dif_pix: Number(difPix.toFixed(2)),
+        dif_cartao: Number(difCartao.toFixed(2)),
+
         total_sistema: Number(totalSistema.toFixed(2)),
         total: totalDeclarado ?? Number(totalSistema.toFixed(2)),
         valor_total_final: totalDeclarado ?? Number(totalSistema.toFixed(2)),
-        diferenca: diferenca ?? 0,
+        diferenca,
       });
     }
 
@@ -452,9 +424,7 @@ dif_cartao: Number(difCartao.toFixed(2)),
       total,
     });
   } catch (e) {
-    res.status(500).json({
-      error: e?.message || "Erro ao buscar fechamentos",
-    });
+    res.status(500).json({ error: e?.message || "Erro ao buscar fechamentos" });
   }
 });
 
