@@ -802,88 +802,240 @@ const [historico, setHistorico] =
     </span>
   </div>
 
-  {!historico.length ? (
-    <div
-      className="empty"
-      style={{ marginTop: 16 }}
-    >
-      Nenhum fechamento encontrado
-    </div>
-  ) : (
-    <div
-      style={{
-        display: "grid",
-        gap: 12,
-        marginTop: 18,
-      }}
-    >
-      {historico.map((item) => (
-        <div
-          key={item.id}
-          style={{
-            border:
-              "1px solid rgba(255,255,255,.08)",
-            borderRadius: 16,
-            padding: 16,
-            background:
-              "rgba(17,17,24,.55)",
-            display: "flex",
-            justifyContent:
-              "space-between",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontWeight: 900,
-                fontSize: 16,
-              }}
-            >
-              {item.usuario_email ||
-                "Operador"}
-            </div>
+  {(() => {
+    const porPagina = 6;
 
-            <div
-              style={{
-                marginTop: 6,
-                color:
-                  "rgba(255,255,255,.7)",
-                fontSize: 13,
-              }}
-            >
-              {brDate(item.fechado_em)}
-            </div>
-          </div>
+    const totalPaginas =
+      Math.ceil(
+        historico.length / porPagina
+      ) || 1;
 
+    const page =
+      Number(
+        window.__fechamentoPage || 1
+      );
+
+    const inicio =
+      (page - 1) * porPagina;
+
+    const items =
+      historico.slice(
+        inicio,
+        inicio + porPagina
+      );
+
+    return (
+      <>
+        {!items.length ? (
           <div
+            className="empty"
             style={{
-              textAlign: "right",
+              marginTop: 16,
             }}
           >
+            Nenhum fechamento encontrado
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gap: 14,
+              marginTop: 18,
+            }}
+          >
+            {items.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  border:
+                    "1px solid rgba(255,255,255,.08)",
+                  borderRadius: 18,
+                  padding: 18,
+                  background:
+                    "rgba(17,17,24,.55)",
+                  display: "grid",
+                  gap: 16,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontWeight: 900,
+                        fontSize: 18,
+                      }}
+                    >
+                      {item.usuario_email ||
+                        "Operador"}
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 6,
+                        color:
+                          "rgba(255,255,255,.7)",
+                        fontSize: 13,
+                      }}
+                    >
+                      {brDate(
+                        item.fechado_em
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    className="badge"
+                    style={{
+                      fontSize: 13,
+                    }}
+                  >
+                    {item.status}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit,minmax(180px,1fr))",
+                    gap: 12,
+                  }}
+                >
+                  <div className="panel">
+                    <div className="mk-selected-k">
+                      Dinheiro
+                    </div>
+
+                    <div className="mk-selected-v">
+                      {money(
+                        item.dinheiro
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="panel">
+                    <div className="mk-selected-k">
+                      PIX
+                    </div>
+
+                    <div className="mk-selected-v">
+                      {money(item.pix)}
+                    </div>
+                  </div>
+
+                  <div className="panel">
+                    <div className="mk-selected-k">
+                      Cartão
+                    </div>
+
+                    <div className="mk-selected-v">
+                      {money(
+                        item.cartao
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="panel">
+                    <div className="mk-selected-k">
+                      Diferença
+                    </div>
+
+                    <div
+                      className="mk-selected-v"
+                      style={{
+                        color:
+                          Number(
+                            item.diferenca || 0
+                          ) === 0
+                            ? "#2ecc71"
+                            : "#ff7675",
+                      }}
+                    >
+                      {money(
+                        item.diferenca
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="panel">
+                    <div className="mk-selected-k">
+                      Total
+                    </div>
+
+                    <div className="mk-selected-v">
+                      {money(
+                        item.valor_fechamento
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
             <div
               style={{
-                fontWeight: 900,
-                fontSize: 18,
+                display: "flex",
+                justifyContent:
+                  "center",
+                gap: 12,
+                marginTop: 10,
               }}
             >
-              {money(
-                item.valor_fechamento
-              )}
-            </div>
+              <button
+                className="btn-secondary"
+                disabled={page <= 1}
+                onClick={() => {
+                  window.__fechamentoPage =
+                    page - 1;
 
-            <div className="badge">
-              {item.status}
+                  carregar();
+                }}
+              >
+                ← Anterior
+              </button>
+
+              <div
+                className="badge"
+                style={{
+                  padding:
+                    "10px 18px",
+                }}
+              >
+                Página {page} de{" "}
+                {totalPaginas}
+              </div>
+
+              <button
+                className="btn-secondary"
+                disabled={
+                  page >= totalPaginas
+                }
+                onClick={() => {
+                  window.__fechamentoPage =
+                    page + 1;
+
+                  carregar();
+                }}
+              >
+                Próxima →
+              </button>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
-  )}
+        )}
+      </>
+    );
+  })()}
 </div>
-
     </div>
-        </div>
+  </div>
   );
 }
