@@ -526,6 +526,13 @@ export default function FechamentoCaixa() {
                             <div className="mk-selected-v">{money(item.dinheiro_sistema)}</div>
                           </div>
 
+<div className="panel">
+  <div className="mk-selected-k">Dinheiro entrada</div>
+  <div className="mk-selected-v">
+    {money(item.abertura)}
+  </div>
+</div>
+
                           <div className="panel">
                             <div className="mk-selected-k">Dinheiro conferência</div>
                             <div className="mk-selected-v">
