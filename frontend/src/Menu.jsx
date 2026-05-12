@@ -1,4 +1,7 @@
 export default function Menu({ setTela, onLogout }) {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const tipo = user?.tipo || "comum";
+
   const cards = [
     {
       key: "funcionarios",
@@ -11,6 +14,7 @@ export default function Menu({ setTela, onLogout }) {
       icon: "💰",
       label: "Financeiro",
       desc: "XMLs, contas a pagar e contas pagas.",
+      adminOnly: true,
     },
     {
       key: "pdv",
@@ -19,6 +23,11 @@ export default function Menu({ setTela, onLogout }) {
       desc: "Vendas, caixa, histórico e operação do balcão.",
     },
   ];
+
+  const cardsVisiveis = cards.filter((item) => {
+    if (tipo === "admin") return true;
+    return !item.adminOnly;
+  });
 
   return (
     <div className="menu-page">
@@ -57,7 +66,7 @@ export default function Menu({ setTela, onLogout }) {
         </section>
 
         <section className="menu-grid">
-          {cards.map((item) => (
+          {cardsVisiveis.map((item) => (
             <button
               key={item.key}
               type="button"

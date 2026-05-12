@@ -21,6 +21,7 @@ export default function Login({ onLogin }) {
       });
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
       // ✅ garante que as próximas requisições já vão autenticadas
       api.defaults.headers.common.Authorization = `Bearer ${data.token}`;
