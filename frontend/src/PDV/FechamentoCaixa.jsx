@@ -313,6 +313,9 @@ export default function FechamentoCaixa() {
 
   const [msg, setMsg] = useState("");
 
+const [historico, setHistorico] =
+  useState([]);
+
   async function carregar() {
     setLoading(true);
     setMsg("");
@@ -328,14 +331,31 @@ export default function FechamentoCaixa() {
       setSessao(atual);
 
       if (atual) {
-        const p = await api.get(
-          "/caixa/fechamento-preview"
-        );
+  const p = await api.get(
+    "/caixa/fechamento-preview"
+  );
 
-        setPreview(p.data || null);
-      } else {
-        setPreview(null);
-      }
+  setPreview(p.data || null);
+
+  const hist = await api.get(
+    "/caixa/fechamentos"
+  );
+
+  setHistorico(
+    hist.data?.items || []
+  );
+
+} else {
+  setPreview(null);
+
+  const hist = await api.get(
+    "/caixa/fechamentos"
+  );
+
+  setHistorico(
+    hist.data?.items || []
+  );
+}
     } catch (e) {
       setMsg(
         e?.response?.data?.error ||
@@ -770,6 +790,99 @@ export default function FechamentoCaixa() {
           </button>
         </div>
       )}
+
+      <div className="panel">
+  <div className="panel-head">
+    <h2>
+      Histórico de Fechamentos
+    </h2>
+
+    <span className="badge">
+      {historico.length} registro(s)
+    </span>
+  </div>
+
+  {!historico.length ? (
+    <div
+      className="empty"
+      style={{ marginTop: 16 }}
+    >
+      Nenhum fechamento encontrado
+    </div>
+  ) : (
+    <div
+      style={{
+        display: "grid",
+        gap: 12,
+        marginTop: 18,
+      }}
+    >
+      {historico.map((item) => (
+        <div
+          key={item.id}
+          style={{
+            border:
+              "1px solid rgba(255,255,255,.08)",
+            borderRadius: 16,
+            padding: 16,
+            background:
+              "rgba(17,17,24,.55)",
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontWeight: 900,
+                fontSize: 16,
+              }}
+            >
+              {item.usuario_email ||
+                "Operador"}
+            </div>
+
+            <div
+              style={{
+                marginTop: 6,
+                color:
+                  "rgba(255,255,255,.7)",
+                fontSize: 13,
+              }}
+            >
+              {brDate(item.fechado_em)}
+            </div>
+          </div>
+
+          <div
+            style={{
+              textAlign: "right",
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 900,
+                fontSize: 18,
+              }}
+            >
+              {money(
+                item.valor_fechamento
+              )}
+            </div>
+
+            <div className="badge">
+              {item.status}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
     </div>
         </div>
   );

@@ -229,4 +229,35 @@ router.get("/fechamento-preview", async (req, res) => {
   }
 });
 
+// ✅ Histórico de fechamentos
+router.get("/fechamentos", async (req, res) => {
+  try {
+    const r = await db.query(`
+      SELECT
+        id,
+        caixa_numero,
+        valor_abertura,
+        valor_fechamento,
+        usuario_email,
+        aberto_em,
+        fechado_em,
+        status
+      FROM caixa_sessoes
+      ORDER BY id DESC
+      LIMIT 30
+    `);
+
+    res.json({
+      items: r.rows,
+    });
+
+  } catch (e) {
+    res.status(500).json({
+      error:
+        e?.message ||
+        "Erro ao buscar fechamentos",
+    });
+  }
+});
+
 module.exports = router;
