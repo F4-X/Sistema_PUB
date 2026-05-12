@@ -132,6 +132,18 @@ export function TopbarFuncionarios({
   onBack,
   onLogout,
 }) {
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
+
+  const tipo = String(
+    user?.tipo || ""
+  ).toLowerCase();
+
+  const podeVerCadastro =
+    tipo === "geral" ||
+    tipo === "admin";
+
   return (
     <header className="pdv-topbar">
       <div className="pdv-brand">
@@ -164,18 +176,20 @@ export function TopbarFuncionarios({
             Marcados
           </button>
 
-          <button
-            className={
-              page === "operadores"
-                ? "active"
-                : ""
-            }
-            onClick={() =>
-              setPage("operadores")
-            }
-          >
-            Cadastro Funcionários
-          </button>
+          {podeVerCadastro && (
+            <button
+              className={
+                page === "operadores"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setPage("operadores")
+              }
+            >
+              Cadastro Funcionários
+            </button>
+          )}
 
           <button onClick={onLogout}>
             Sair
