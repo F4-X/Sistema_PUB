@@ -6,6 +6,27 @@ function moneyNumber(v) {
   return Number.isFinite(n) ? Number(n.toFixed(2)) : 0;
 }
 
+async function garantirColunasConferencia() {
+  try {
+    await db.query(`
+      ALTER TABLE caixa_sessoes
+      ADD COLUMN IF NOT EXISTS dinheiro_conferencia NUMERIC(10,2) DEFAULT 0
+    `);
+
+    await db.query(`
+      ALTER TABLE caixa_sessoes
+      ADD COLUMN IF NOT EXISTS pix_conferencia NUMERIC(10,2) DEFAULT 0
+    `);
+
+    await db.query(`
+      ALTER TABLE caixa_sessoes
+      ADD COLUMN IF NOT EXISTS cartao_conferencia NUMERIC(10,2) DEFAULT 0
+    `);
+  } catch (e) {
+    console.log("Erro ao garantir colunas de conferência:", e?.message || e);
+  }
+}
+
 router.get("/saldo", async (req, res) => {
   const r = await db.query(`
     SELECT
@@ -130,6 +151,8 @@ router.get("/sessao-atual", async (req, res) => {
 
 router.post("/abrir", async (req, res) => {
   try {
+    await garantirColunasConferencia();
+
     const valor_abertura = moneyNumber(req.body?.valor_abertura);
 
     const aberto = await db.query(`
@@ -168,7 +191,12 @@ router.post("/abrir", async (req, res) => {
 
 router.post("/fechar", async (req, res) => {
   try {
+    await garantirColunasConferencia();
+
     const valor_fechamento = moneyNumber(req.body?.valor_fechamento);
+    const dinheiro_conferencia = moneyNumber(req.body?.dinheiro);
+    const pix_conferencia = moneyNumber(req.body?.pix);
+    const cartao_conferencia = moneyNumber(req.body?.cartao);
 
     const aberto = await db.query(`
       SELECT *
@@ -188,12 +216,21 @@ router.post("/fechar", async (req, res) => {
       `
       UPDATE caixa_sessoes
       SET valor_fechamento=$1,
+          dinheiro_conferencia=$2,
+          pix_conferencia=$3,
+          cartao_conferencia=$4,
           fechado_em=NOW(),
           status='fechado'
-      WHERE id=$2
+      WHERE id=$5
       RETURNING *
       `,
-      [valor_fechamento, sessao.id]
+      [
+        valor_fechamento,
+        dinheiro_conferencia,
+        pix_conferencia,
+        cartao_conferencia,
+        sessao.id,
+      ]
     );
 
     res.json({ ok: true, sessao: r.rows[0] });
@@ -295,6 +332,8 @@ router.get("/fechamento-preview", async (req, res) => {
 
 router.get("/fechamentos", async (req, res) => {
   try {
+    await garantirColunasConferencia();
+
     const limit = Math.max(1, Math.min(6, Number(req.query.limit || 6)));
     const page = Math.max(1, Number(req.query.page || 1));
     const off = (page - 1) * limit;
@@ -306,6 +345,9 @@ router.get("/fechamentos", async (req, res) => {
         caixa_numero,
         valor_abertura,
         valor_fechamento,
+        dinheiro_conferencia,
+        pix_conferencia,
+        cartao_conferencia,
         usuario_email,
         aberto_em,
         fechado_em,
@@ -329,6 +371,7 @@ router.get("/fechamentos", async (req, res) => {
       const dados = await calcularPeriodo(s.aberto_em, fim);
 
       const abertura = Number(s.valor_abertura || 0);
+
       const totalSistema =
         abertura +
         dados.dinheiro +
@@ -339,13 +382,25 @@ router.get("/fechamentos", async (req, res) => {
 
       const fechado = String(s.status || "") === "fechado";
 
-const totalDeclarado = fechado
-  ? Number(s.valor_fechamento || 0)
-  : null;
+      const dinheiroConferencia = fechado
+        ? Number(s.dinheiro_conferencia || 0)
+        : 0;
 
-const diferenca = fechado
-  ? Number((totalDeclarado - totalSistema).toFixed(2))
-  : null;
+      const pixConferencia = fechado
+        ? Number(s.pix_conferencia || 0)
+        : 0;
+
+      const cartaoConferencia = fechado
+        ? Number(s.cartao_conferencia || 0)
+        : 0;
+
+      const totalDeclarado = fechado
+        ? Number(s.valor_fechamento || 0)
+        : null;
+
+      const diferenca = fechado
+        ? Number((totalDeclarado - totalSistema).toFixed(2))
+        : null;
 
       items.push({
         ...s,
@@ -357,9 +412,17 @@ const diferenca = fechado
         troco: dados.troco,
         entradas: dados.entradas,
         saidas: dados.saidas,
+        abertura,
+        dinheiro_sistema: dados.dinheiro,
+        pix_sistema: dados.pix,
+        cartao_sistema: dados.cartao,
+        dinheiro_conferencia: dinheiroConferencia,
+        pix_conferencia: pixConferencia,
+        cartao_conferencia: cartaoConferencia,
         total_sistema: Number(totalSistema.toFixed(2)),
-      diferenca: diferenca ?? 0,
-      total: totalDeclarado ?? totalSistema,
+        total: totalDeclarado ?? Number(totalSistema.toFixed(2)),
+        valor_total_final: totalDeclarado ?? Number(totalSistema.toFixed(2)),
+        diferenca: diferenca ?? 0,
       });
     }
 
