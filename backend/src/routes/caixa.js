@@ -317,7 +317,7 @@ router.get("/fechamentos", async (req, res) => {
           WHERE LOWER(vp.tipo) IN ('credito','debito','cartao')
             AND v.criado_em >= s.aberto_em
             AND v.criado_em <= COALESCE(s.fechado_em, NOW())
-        ),0)::numeric(10,2) AS cartao
+        ),0)::numeric(10,2) AS cartao,
 
         COALESCE((
   SELECT SUM(cm.valor)
@@ -334,7 +334,7 @@ COALESCE((
   WHERE cm.tipo='saida'
     AND cm.criado_em >= s.aberto_em
     AND cm.criado_em <= COALESCE(s.fechado_em, NOW())
-),0)::numeric(10,2) AS saidas,
+),0)::numeric(10,2) AS saidas
 
       FROM caixa_sessoes s
       ORDER BY s.id DESC
