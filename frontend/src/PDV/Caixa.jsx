@@ -310,23 +310,14 @@ export default function Caixa() {
         </div>
 
         <form onSubmit={onSubmit} style={{ display: "grid", gap: 10 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(160px, 1fr))", gap: 10 }}>
-            <div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Tipo</div>
-              <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
-                <option value="entrada">entrada</option>
-                <option value="saida">saida</option>
-              </select>
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(160px, 1fr))", gap: 10 }}>
 
             <div>
               <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Motivo</div>
               <select value={motivo} onChange={(e) => setMotivo(e.target.value)}>
-                <option value="sangria">sangria</option>
-                <option value="reforco">reforco</option>
-                <option value="troco">troco</option>
-                <option value="ajuste">ajuste</option>
-              </select>
+  <option value="sangria">sangria</option>
+  <option value="reforco">reforco</option>
+</select>
             </div>
 
             <div>
