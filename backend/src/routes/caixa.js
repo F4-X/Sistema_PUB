@@ -277,30 +277,81 @@ const troco = Number(mov.rows[0].troco || 0);
 // ✅ Histórico de fechamentos
 router.get("/fechamentos", async (req, res) => {
   try {
+    const limit = Math.max(1, Math.min(6, Number(req.query.limit || 6)));
+    const page = Math.max(1, Number(req.query.page || 1));
+    const off = (page - 1) * limit;
+
     const r = await db.query(`
       SELECT
-        id,
-        caixa_numero,
-        valor_abertura,
-        valor_fechamento,
-        usuario_email,
-        aberto_em,
-        fechado_em,
-        status
-      FROM caixa_sessoes
-      ORDER BY id DESC
-      LIMIT 30
-    `);
+        s.id,
+        s.caixa_numero,
+        s.valor_abertura,
+        s.valor_fechamento,
+        s.usuario_email,
+        s.aberto_em,
+        s.fechado_em,
+        s.status,
+
+        COALESCE((
+          SELECT SUM(cm.valor)
+          FROM caixa_movimentos cm
+          WHERE cm.tipo='entrada'
+            AND cm.motivo='venda'
+            AND cm.criado_em >= s.aberto_em
+            AND cm.criado_em <= COALESCE(s.fechado_em, NOW())
+        ),0)::numeric(10,2) AS dinheiro,
+
+        COALESCE((
+          SELECT SUM(vp.valor)
+          FROM venda_pagamentos vp
+          JOIN vendas v ON v.id = vp.venda_id
+          WHERE LOWER(vp.tipo)='pix'
+            AND v.criado_em >= s.aberto_em
+            AND v.criado_em <= COALESCE(s.fechado_em, NOW())
+        ),0)::numeric(10,2) AS pix,
+
+        COALESCE((
+          SELECT SUM(vp.valor)
+          FROM venda_pagamentos vp
+          JOIN vendas v ON v.id = vp.venda_id
+          WHERE LOWER(vp.tipo) IN ('credito','debito','cartao')
+            AND v.criado_em >= s.aberto_em
+            AND v.criado_em <= COALESCE(s.fechado_em, NOW())
+        ),0)::numeric(10,2) AS cartao
+
+      FROM caixa_sessoes s
+      ORDER BY s.id DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, off]);
+
+    const totalR = await db.query(`SELECT COUNT(*)::int AS total FROM caixa_sessoes`);
+    const total = totalR.rows?.[0]?.total || 0;
 
     res.json({
-      items: r.rows,
-    });
+      items: r.rows.map((x) => {
+        const abertura = Number(x.valor_abertura || 0);
+        const dinheiro = Number(x.dinheiro || 0);
+        const pix = Number(x.pix || 0);
+        const cartao = Number(x.cartao || 0);
+        const totalSistema = abertura + dinheiro + pix + cartao;
+        const totalDeclarado = Number(x.valor_fechamento || 0);
 
+        return {
+          ...x,
+          dinheiro,
+          pix,
+          cartao,
+          total_sistema: totalSistema,
+          diferenca: Number((totalDeclarado - totalSistema).toFixed(2)),
+        };
+      }),
+      page,
+      pages: Math.max(1, Math.ceil(total / limit)),
+      total,
+    });
   } catch (e) {
     res.status(500).json({
-      error:
-        e?.message ||
-        "Erro ao buscar fechamentos",
+      error: e?.message || "Erro ao buscar fechamentos",
     });
   }
 });
