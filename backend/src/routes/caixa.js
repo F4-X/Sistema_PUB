@@ -337,8 +337,15 @@ router.get("/fechamentos", async (req, res) => {
         dados.entradas -
         dados.saidas;
 
-      const totalDeclarado = Number(s.valor_fechamento || 0);
-      const diferenca = Number((totalDeclarado - totalSistema).toFixed(2));
+      const fechado = String(s.status || "") === "fechado";
+
+const totalDeclarado = fechado
+  ? Number(s.valor_fechamento || 0)
+  : null;
+
+const diferenca = fechado
+  ? Number((totalDeclarado - totalSistema).toFixed(2))
+  : null;
 
       items.push({
         ...s,
@@ -351,7 +358,8 @@ router.get("/fechamentos", async (req, res) => {
         entradas: dados.entradas,
         saidas: dados.saidas,
         total_sistema: Number(totalSistema.toFixed(2)),
-        diferenca,
+      diferenca: diferenca ?? 0,
+      total: totalDeclarado ?? totalSistema,
       });
     }
 
