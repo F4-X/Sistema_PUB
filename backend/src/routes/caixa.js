@@ -319,6 +319,23 @@ router.get("/fechamentos", async (req, res) => {
             AND v.criado_em <= COALESCE(s.fechado_em, NOW())
         ),0)::numeric(10,2) AS cartao
 
+        COALESCE((
+  SELECT SUM(cm.valor)
+  FROM caixa_movimentos cm
+  WHERE cm.tipo='entrada'
+    AND cm.motivo!='venda'
+    AND cm.criado_em >= s.aberto_em
+    AND cm.criado_em <= COALESCE(s.fechado_em, NOW())
+),0)::numeric(10,2) AS entradas,
+
+COALESCE((
+  SELECT SUM(cm.valor)
+  FROM caixa_movimentos cm
+  WHERE cm.tipo='saida'
+    AND cm.criado_em >= s.aberto_em
+    AND cm.criado_em <= COALESCE(s.fechado_em, NOW())
+),0)::numeric(10,2) AS saidas,
+
       FROM caixa_sessoes s
       ORDER BY s.id DESC
       LIMIT $1 OFFSET $2
@@ -333,7 +350,19 @@ router.get("/fechamentos", async (req, res) => {
         const dinheiro = Number(x.dinheiro || 0);
         const pix = Number(x.pix || 0);
         const cartao = Number(x.cartao || 0);
-        const totalSistema = abertura + dinheiro + pix + cartao;
+        const entradas =
+  Number(x.entradas || 0);
+
+const saidas =
+  Number(x.saidas || 0);
+
+const totalSistema =
+  abertura +
+  dinheiro +
+  pix +
+  cartao +
+  entradas -
+  saidas;
         const totalDeclarado = Number(x.valor_fechamento || 0);
 
         return {
