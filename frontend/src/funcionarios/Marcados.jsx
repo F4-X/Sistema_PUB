@@ -404,6 +404,13 @@ const modoOperadores = paginaFuncionarios === "operadores";
     const v = Number(String(valor).replace(",", "."));
     if (!Number.isFinite(v) || v <= 0) return showToast("Valor inválido", false);
 
+if (!descricao.trim()) {
+  return showToast(
+    "Descrição obrigatória",
+    false
+  );
+}
+
     const funcSnap = selected;
 
     setSaving(true);
