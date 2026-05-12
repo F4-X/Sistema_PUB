@@ -373,8 +373,8 @@ router.get("/fechamentos", async (req, res) => {
       const totalDeclarado = fechado ? Number(s.valor_fechamento || 0) : null;
 
       const difDinheiro = fechado
-        ? dinheiroConferencia - (abertura + dados.dinheiro + dados.entradas - dados.saidas)
-        : 0;
+        ? dinheiroConferencia - dinheiroSistema
+  : 0;
 
       const difPix = fechado ? pixConferencia - dados.pix : 0;
       const difCartao = fechado ? cartaoConferencia - dados.cartao : 0;
@@ -382,6 +382,12 @@ router.get("/fechamentos", async (req, res) => {
       const diferenca = fechado
         ? Number((difDinheiro + difPix + difCartao).toFixed(2))
         : 0;
+
+const dinheiroSistema =
+  abertura +
+  dados.dinheiro +
+  dados.entradas -
+  dados.saidas;
 
       items.push({
         ...s,
@@ -396,7 +402,7 @@ router.get("/fechamentos", async (req, res) => {
 
         abertura,
 
-        dinheiro_sistema: dados.dinheiro,
+        dinheiro_sistema: Number(dinheiroSistema.toFixed(2)),
         pix_sistema: dados.pix,
         cartao_sistema: dados.cartao,
 
