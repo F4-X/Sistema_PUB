@@ -107,6 +107,23 @@ export default function PDV({ setTela, onLogout }) {
   }
 
   async function salvarProduto() {
+
+  const faltando = [];
+
+  if (!String(ncm || "").trim()) faltando.push("NCM");
+  if (!String(cfop || "").trim()) faltando.push("CFOP");
+  if (!String(csosn || "").trim()) faltando.push("CSOSN (ICMS)");
+  if (!String(pis || "").trim()) faltando.push("PIS CST");
+  if (!String(cofins || "").trim()) faltando.push("COFINS CST");
+  if (!String(unidade || "").trim()) faltando.push("UN");
+
+  if (faltando.length) {
+    alert(
+      `Preencha os campos fiscais obrigatórios:\n\n${faltando.join("\n")}`
+    );
+    return;
+  }
+
     const payload = {
       nome: s.prodNome,
       preco: String(s.prodPreco).replace(",", "."),
