@@ -12,6 +12,13 @@ export default function Operadores() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+const tipoUser = String(user?.tipo || "").toLowerCase();
+
+const podeCadastrar =
+  tipoUser === "admin" ||
+  tipoUser === "geral";
+
   async function carregar() {
     const r = await api.get("/operadores");
     setItems(Array.isArray(r.data) ? r.data : []);
@@ -76,10 +83,11 @@ export default function Operadores() {
         alignItems: "start",
       }}
     >
-      <form
-        className="panel panel-sticky"
-        onSubmit={salvar}
-      >
+      {podeCadastrar && (
+  <form
+    className="panel panel-sticky"
+    onSubmit={salvar}
+  >
         <div className="panel-head">
           <h2>Cadastro</h2>
 
@@ -154,7 +162,7 @@ export default function Operadores() {
           ) : null}
         </div>
       </form>
-
+)}
       <div className="panel">
         <div className="panel-head">
           <h2>
