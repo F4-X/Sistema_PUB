@@ -161,8 +161,9 @@ export default function FechamentoCaixa() {
         setPreview(null);
       }
 
-      const hist = await api.get("/caixa/fechamentos");
-      setHistorico(hist.data?.items || []);
+      const hist = await api.get(`/caixa/fechamentos?page=${histPage}&limit=6`);
+setHistorico(hist.data?.items || []);
+setHistTotalPages(hist.data?.pages || 1);
     } catch (e) {
       setMsg(e?.response?.data?.error || "Erro ao carregar caixa");
     } finally {
@@ -170,9 +171,11 @@ export default function FechamentoCaixa() {
     }
   }
 
+  const [histTotalPages, setHistTotalPages] = useState(1);
+
   useEffect(() => {
-    carregar();
-  }, []);
+  carregar();
+}, [histPage]);
 
   async function abrirCaixa() {
     try {
@@ -459,10 +462,8 @@ export default function FechamentoCaixa() {
           </div>
 
           {(() => {
-            const porPagina = 6;
-            const totalPaginas = Math.ceil(historico.length / porPagina) || 1;
-            const inicio = (histPage - 1) * porPagina;
-            const items = historico.slice(inicio, inicio + porPagina);
+            const totalPaginas = histTotalPages;
+const items = historico;
 
             return (
               <>
