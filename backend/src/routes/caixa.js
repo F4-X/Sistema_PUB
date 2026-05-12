@@ -196,20 +196,59 @@ router.get("/fechamento-preview", async (req, res) => {
     }
 
     // 💰 movimentos dentro do período
-    const mov = await db.query(`
-      SELECT
-        COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0) AS entradas,
-        COALESCE(SUM(CASE WHEN tipo='saida' THEN valor ELSE 0 END),0) AS saidas,
-        COALESCE(SUM(CASE WHEN tipo='entrada' AND motivo='venda' THEN valor ELSE 0 END),0) AS dinheiro,
-        COALESCE(SUM(CASE WHEN tipo='saida' AND motivo='troco' THEN valor ELSE 0 END),0) AS troco
-      FROM caixa_movimentos
-      WHERE criado_em >= $1
-    `, [sessao.aberto_em]);
+   const mov = await db.query(`
+  SELECT
+    COALESCE(SUM(CASE
+      WHEN tipo='entrada'
+      THEN valor ELSE 0 END),0) AS entradas,
 
-    const entradas = Number(mov.rows[0].entradas || 0);
-    const saidas = Number(mov.rows[0].saidas || 0);
-    const dinheiro = Number(mov.rows[0].dinheiro || 0);
-    const troco = Number(mov.rows[0].troco || 0);
+    COALESCE(SUM(CASE
+      WHEN tipo='saida'
+      THEN valor ELSE 0 END),0) AS saidas,
+
+    COALESCE(SUM(CASE
+      WHEN tipo='entrada'
+      AND motivo='venda'
+      AND origem='dinheiro'
+      THEN valor ELSE 0 END),0) AS dinheiro,
+
+    COALESCE(SUM(CASE
+      WHEN tipo='entrada'
+      AND motivo='venda'
+      AND origem='pix'
+      THEN valor ELSE 0 END),0) AS pix,
+
+    COALESCE(SUM(CASE
+      WHEN tipo='entrada'
+      AND motivo='venda'
+      AND origem='credito'
+      THEN valor ELSE 0 END),0) AS credito,
+
+    COALESCE(SUM(CASE
+      WHEN tipo='entrada'
+      AND motivo='venda'
+      AND origem='debito'
+      THEN valor ELSE 0 END),0) AS debito,
+
+    COALESCE(SUM(CASE
+      WHEN tipo='saida'
+      AND motivo='troco'
+      THEN valor ELSE 0 END),0) AS troco
+
+  FROM caixa_movimentos
+  WHERE criado_em >= $1
+`, [sessao.aberto_em]);
+
+const entradas = Number(mov.rows[0].entradas || 0);
+const saidas = Number(mov.rows[0].saidas || 0);
+
+const dinheiro = Number(mov.rows[0].dinheiro || 0);
+const pix = Number(mov.rows[0].pix || 0);
+
+const credito = Number(mov.rows[0].credito || 0);
+const debito = Number(mov.rows[0].debito || 0);
+
+const troco = Number(mov.rows[0].troco || 0);
 
     const saldo = entradas - saidas;
 
