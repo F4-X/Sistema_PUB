@@ -112,6 +112,21 @@ router.post("/", async (req, res) => {
   if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
   if (!Number.isFinite(preco)) return res.status(400).json({ error: "Preço inválido" });
 
+const faltando = [];
+
+if (!ncm) faltando.push("NCM");
+if (!cfop) faltando.push("CFOP");
+if (!csosn) faltando.push("CSOSN (ICMS)");
+if (!pis_cst) faltando.push("PIS CST");
+if (!cofins_cst) faltando.push("COFINS CST");
+if (!unidade) faltando.push("UN");
+
+if (faltando.length) {
+  return res.status(400).json({
+    error: `Campos fiscais obrigatórios: ${faltando.join(", ")}`,
+  });
+}
+
   try {
     const r = await db.query(
       `
@@ -160,6 +175,21 @@ router.put("/:id", async (req, res) => {
   if (!id) return res.status(400).json({ error: "ID inválido" });
   if (!nome) return res.status(400).json({ error: "Nome obrigatório" });
   if (!Number.isFinite(preco)) return res.status(400).json({ error: "Preço inválido" });
+
+const faltando = [];
+
+if (!ncm) faltando.push("NCM");
+if (!cfop) faltando.push("CFOP");
+if (!csosn) faltando.push("CSOSN (ICMS)");
+if (!pis_cst) faltando.push("PIS CST");
+if (!cofins_cst) faltando.push("COFINS CST");
+if (!unidade) faltando.push("UN");
+
+if (faltando.length) {
+  return res.status(400).json({
+    error: `Campos fiscais obrigatórios: ${faltando.join(", ")}`,
+  });
+}
 
   try {
     const r = await db.query(
