@@ -29,12 +29,10 @@ export default function Caixa() {
 
   const [openId, setOpenId] = useState(null);
 
-  // ✅ paginação por card
   const LIMIT = 6;
   const [pageManual, setPageManual] = useState(1);
   const [pageVendas, setPageVendas] = useState(1);
 
-  // 🔒 privacidade
   const [unlocked, setUnlocked] = useState(false);
   const [askPass, setAskPass] = useState(false);
   const [pass, setPass] = useState("");
@@ -44,6 +42,7 @@ export default function Caixa() {
     setToast(msg);
     setTimeout(() => setToast(""), 2500);
   }
+
   function toastErr(msg) {
     setToast(msg);
     setTimeout(() => setToast(""), 3500);
@@ -52,7 +51,6 @@ export default function Caixa() {
   const hiddenMoney = useMemo(() => "•••••", []);
   const hiddenText = useMemo(() => "🔒 Oculto", []);
 
-  // ✅ listas completas (pra calcular next)
   const historicoManualAll = useMemo(() => {
     return (items || []).filter((it) => {
       const m = String(it?.motivo || "").trim().toLowerCase();
@@ -68,7 +66,6 @@ export default function Caixa() {
     });
   }, [items]);
 
-  // ✅ páginas (slice)
   const historicoManual = useMemo(() => {
     const start = (pageManual - 1) * LIMIT;
     return historicoManualAll.slice(start, start + LIMIT);
@@ -85,8 +82,21 @@ export default function Caixa() {
   const vendasHasPrev = pageVendas > 1;
   const vendasHasNext = historicoVendasAll.length > pageVendas * LIMIT;
 
+  function aplicarMotivo(novoMotivo) {
+    setMotivo(novoMotivo);
+
+    if (novoMotivo === "reforco") {
+      setTipo("entrada");
+    }
+
+    if (novoMotivo === "sangria") {
+      setTipo("saida");
+    }
+  }
+
   async function loadSaldo() {
     setSaldoErr("");
+
     try {
       const { data } = await api.get("/caixa/saldo");
       setSaldo(data);
@@ -101,10 +111,10 @@ export default function Caixa() {
     }
   }
 
-  // ✅ pega bastante e pagina no FRONT
   async function loadMovimentos() {
     setListErr("");
     setLoadingList(true);
+
     try {
       const { data } = await api.get(`/caixa/movimentos?limit=500&page=1`);
       setItems(data?.items || []);
@@ -121,7 +131,6 @@ export default function Caixa() {
     }
   }
 
-  // restaura desbloqueio
   useEffect(() => {
     const s = sessionStorage.getItem(SESSION_KEY);
     if (s === "1") setUnlocked(true);
@@ -152,19 +161,21 @@ export default function Caixa() {
       const v = Number(String(valor).replace(",", "."));
       if (!v || v <= 0) throw new Error("Informe um valor válido");
 
+      const tipoFinal = motivo === "reforco" ? "entrada" : "saida";
+
       await api.post("/caixa/movimentos", {
-        tipo,
+        tipo: tipoFinal,
         valor: v,
         motivo,
         origem: origem || null,
         observacao: obs || null,
       });
 
+      setTipo(tipoFinal);
       setValor("");
       setObs("");
       setOpenId(null);
 
-      // ✅ volta páginas
       setPageManual(1);
       setPageVendas(1);
 
@@ -177,6 +188,7 @@ export default function Caixa() {
         e2?.response?.data?.message ||
         e2?.message ||
         "Erro ao lançar movimento";
+
       toastErr(msg);
     } finally {
       setSaving(false);
@@ -201,14 +213,17 @@ export default function Caixa() {
 
   function unlockNow() {
     const typed = String(pass || "").trim();
+
     if (!typed) {
       setPassErr("Digite a senha.");
       return;
     }
+
     if (typed !== CAIXA_PASS) {
       setPassErr("Senha incorreta.");
       return;
     }
+
     setUnlocked(true);
     sessionStorage.setItem(SESSION_KEY, "1");
     setAskPass(false);
@@ -219,7 +234,6 @@ export default function Caixa() {
 
   return (
     <div style={{ padding: 16, display: "grid", gap: 14 }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <h2 style={{ margin: 0 }}>Caixa / Sangria</h2>
 
@@ -257,7 +271,6 @@ export default function Caixa() {
         {toast ? <span className="badge">{toast}</span> : null}
       </div>
 
-      {/* Cards saldo */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(220px, 1fr))", gap: 12 }}>
         <div className="panel">
           <div className="panel-head">
@@ -300,24 +313,23 @@ export default function Caixa() {
         </div>
       </div>
 
-      {/* Form */}
       <div className="panel">
         <div className="panel-head">
           <h2>Novo movimento</h2>
           <span className="badge">
-            {tipo === "entrada" ? "Entrada" : "Saída"} • {motivo}
+            {motivo === "reforco" ? "Entrada" : "Saída"} • {motivo}
           </span>
         </div>
 
         <form onSubmit={onSubmit} style={{ display: "grid", gap: 10 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(160px, 1fr))", gap: 10 }}>
-
             <div>
               <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Motivo</div>
-              <select value={motivo} onChange={(e) => setMotivo(e.target.value)}>
-  <option value="sangria">sangria</option>
-  <option value="reforco">reforco</option>
-</select>
+
+              <select value={motivo} onChange={(e) => aplicarMotivo(e.target.value)}>
+                <option value="sangria">sangria</option>
+                <option value="reforco">reforco</option>
+              </select>
             </div>
 
             <div>
@@ -349,7 +361,6 @@ export default function Caixa() {
         </form>
       </div>
 
-      {/* Históricos */}
       <div className="panel">
         <div className="panel-head">
           <h2>Históricos do caixa</h2>
@@ -408,7 +419,6 @@ export default function Caixa() {
         )}
       </div>
 
-      {/* Modal senha */}
       {askPass ? (
         <div
           onClick={() => setAskPass(false)}
@@ -461,6 +471,7 @@ export default function Caixa() {
                 <button className="btn-secondary" type="button" onClick={() => setAskPass(false)}>
                   Cancelar
                 </button>
+
                 <button className="btn-primary" type="button" onClick={unlockNow}>
                   Liberar
                 </button>
@@ -503,7 +514,6 @@ function HistoricoCard({
         <div style={{ fontSize: 12, opacity: 0.7 }}>{subtitulo}</div>
       </div>
 
-      {/* ✅ botões do card */}
       <div
         style={{
           display: "flex",

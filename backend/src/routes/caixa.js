@@ -131,11 +131,21 @@ router.post("/movimentos", async (req, res) => {
   try {
     await garantirColunas();
 
-    const tipo = String(req.body?.tipo || "").trim();
+    let tipo = String(req.body?.tipo || "").trim();
     const valor = moneyNumber(req.body?.valor);
     const motivo = String(req.body?.motivo || "").trim();
+
+    if (motivo === "reforco") {
+      tipo = "entrada";
+    }
+
+    if (motivo === "sangria") {
+      tipo = "saida";
+    }
+
     const origem =
       req.body?.origem == null ? "caixa" : String(req.body.origem).trim();
+
     const observacao =
       req.body?.observacao == null
         ? null
