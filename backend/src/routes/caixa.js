@@ -40,19 +40,6 @@ async function buscarSessaoAberta() {
   return r.rows[0] || null;
 }
 
-async function buscarUltimoSaldoFechado() {
-  const r = await db.query(`
-    SELECT valor_fechamento
-    FROM caixa_sessoes
-    WHERE status='fechado'
-      AND valor_fechamento IS NOT NULL
-    ORDER BY fechado_em DESC, id DESC
-    LIMIT 1
-  `);
-
-  return moneyNumber(r.rows?.[0]?.valor_fechamento || 0);
-}
-
 router.get("/saldo", async (req, res) => {
   try {
     await garantirColunas();
@@ -60,13 +47,11 @@ router.get("/saldo", async (req, res) => {
     const sessao = await buscarSessaoAberta();
 
     if (!sessao) {
-      const ultimoSaldo = await buscarUltimoSaldoFechado();
-
       return res.json({
         aberto: false,
         entradas: 0,
         saidas: 0,
-        saldo: ultimoSaldo,
+        saldo: 0,
       });
     }
 
@@ -88,7 +73,9 @@ router.get("/saldo", async (req, res) => {
       aberto: true,
       entradas,
       saidas,
-      saldo: Number((Number(sessao.valor_abertura || 0) + entradas - saidas).toFixed(2)),
+      saldo: Number(
+        (Number(sessao.valor_abertura || 0) + entradas - saidas).toFixed(2)
+      ),
     });
   } catch (e) {
     res.status(500).json({ error: e?.message || "Erro ao buscar saldo" });
@@ -105,7 +92,17 @@ router.get("/movimentos", async (req, res) => {
 
     const r = await db.query(
       `
-      SELECT id, sessao_id, tipo, valor, motivo, origem, observacao, usuario_id, usuario_email, criado_em
+      SELECT
+        id,
+        sessao_id,
+        tipo,
+        valor,
+        motivo,
+        origem,
+        observacao,
+        usuario_id,
+        usuario_email,
+        criado_em
       FROM caixa_movimentos
       ORDER BY id DESC
       LIMIT $1 OFFSET $2
@@ -126,8 +123,12 @@ router.post("/movimentos", async (req, res) => {
     const tipo = String(req.body?.tipo || "").trim();
     const valor = moneyNumber(req.body?.valor);
     const motivo = String(req.body?.motivo || "").trim();
-    const origem = req.body?.origem == null ? "caixa" : String(req.body.origem).trim();
-    const observacao = req.body?.observacao == null ? null : String(req.body.observacao).trim();
+    const origem =
+      req.body?.origem == null ? "caixa" : String(req.body.origem).trim();
+    const observacao =
+      req.body?.observacao == null
+        ? null
+        : String(req.body.observacao).trim();
 
     if (!["entrada", "saida"].includes(tipo)) {
       return res.status(400).json({ error: "Tipo inválido" });
@@ -143,12 +144,6 @@ router.post("/movimentos", async (req, res) => {
 
     const sessao = await buscarSessaoAberta();
 
-    if (!sessao) {
-      return res.status(400).json({
-        error: "Abra o caixa antes de lançar sangria/reforço",
-      });
-    }
-
     await db.query(
       `
       INSERT INTO caixa_movimentos
@@ -156,7 +151,7 @@ router.post("/movimentos", async (req, res) => {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       `,
       [
-        sessao.id,
+        sessao?.id || null,
         tipo,
         valor,
         motivo,
@@ -167,7 +162,13 @@ router.post("/movimentos", async (req, res) => {
       ]
     );
 
-    res.json({ ok: true });
+    res.json({
+      ok: true,
+      avulso: !sessao,
+      mensagem: sessao
+        ? "Movimento lançado no caixa aberto"
+        : "Movimento lançado como avulso, sem caixa aberto",
+    });
   } catch (e) {
     res.status(500).json({ error: e?.message || "Erro ao lançar movimento" });
   }
@@ -184,7 +185,9 @@ router.get("/sessao-atual", async (req, res) => {
       sessao: sessao || null,
     });
   } catch (e) {
-    res.status(500).json({ error: e?.message || "Erro ao buscar sessão do caixa" });
+    res
+      .status(500)
+      .json({ error: e?.message || "Erro ao buscar sessão do caixa" });
   }
 });
 
@@ -198,14 +201,7 @@ router.post("/abrir", async (req, res) => {
       return res.status(400).json({ error: "Já existe um caixa aberto" });
     }
 
-    const valorInformado =
-      req.body?.valor_abertura !== undefined &&
-      req.body?.valor_abertura !== null &&
-      String(req.body.valor_abertura).trim() !== "";
-
-    const valor_abertura = valorInformado
-      ? moneyNumber(req.body.valor_abertura)
-      : await buscarUltimoSaldoFechado();
+    const valor_abertura = moneyNumber(req.body?.valor_abertura);
 
     const r = await db.query(
       `
@@ -330,7 +326,8 @@ router.get("/fechamento-preview", async (req, res) => {
     const dados = await calcularPeriodo(sessao);
 
     const abertura = Number(sessao.valor_abertura || 0);
-    const saldo = dados.dinheiro + dados.pix + dados.cartao + dados.entradas - dados.saidas;
+    const saldo =
+      dados.dinheiro + dados.pix + dados.cartao + dados.entradas - dados.saidas;
 
     res.json({
       abertura,
@@ -340,7 +337,9 @@ router.get("/fechamento-preview", async (req, res) => {
       total: Number((abertura + saldo).toFixed(2)),
     });
   } catch (e) {
-    res.status(500).json({ error: e?.message || "Erro ao gerar preview do fechamento" });
+    res
+      .status(500)
+      .json({ error: e?.message || "Erro ao gerar preview do fechamento" });
   }
 });
 
@@ -394,36 +393,38 @@ router.get("/fechamentos", async (req, res) => {
 
       const fechado = String(s.status || "") === "fechado";
 
-      const dinheiroConferencia = fechado ? Number(s.dinheiro_conferencia || 0) : 0;
-      const pixConferencia = fechado ? Number(s.pix_conferencia || 0) : 0;
-      const cartaoConferencia = fechado ? Number(s.cartao_conferencia || 0) : 0;
+      const dinheiroConferencia = fechado
+        ? Number(s.dinheiro_conferencia || 0)
+        : 0;
+
+      const pixConferencia = fechado
+        ? Number(s.pix_conferencia || 0)
+        : 0;
+
+      const cartaoConferencia = fechado
+        ? Number(s.cartao_conferencia || 0)
+        : 0;
 
       const totalDeclarado = fechado ? Number(s.valor_fechamento || 0) : null;
 
       const dinheiroSistema =
-  abertura +
-  dados.dinheiro +
-  dados.entradas -
-  dados.saidas;
+        abertura + dados.dinheiro + dados.entradas - dados.saidas;
 
-const difDinheiro = fechado
-  ? dinheiroConferencia - dinheiroSistema
-  : 0;
+      const difDinheiro = fechado
+        ? dinheiroConferencia - dinheiroSistema
+        : 0;
 
-const difPix = fechado
-  ? pixConferencia - dados.pix
-  : 0;
+      const difPix = fechado ? pixConferencia - dados.pix : 0;
 
-const difCartao = fechado
-  ? cartaoConferencia - dados.cartao
-  : 0;
+      const difCartao = fechado ? cartaoConferencia - dados.cartao : 0;
 
-const diferenca = fechado
-  ? Number((difDinheiro + difPix + difCartao).toFixed(2))
-  : 0;
+      const diferenca = fechado
+        ? Number((difDinheiro + difPix + difCartao).toFixed(2))
+        : 0;
 
       items.push({
         ...s,
+
         dinheiro: dados.dinheiro,
         pix: dados.pix,
         cartao: dados.cartao,
