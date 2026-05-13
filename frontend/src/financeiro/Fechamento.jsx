@@ -13,7 +13,7 @@ function brDate(v) {
   return new Date(v).toLocaleString("pt-BR");
 }
 
-export default function Fechamentos() {
+export default function Fechamento() {
   const [historico, setHistorico] = useState([]);
   const [histPage, setHistPage] = useState(1);
   const [histTotalPages, setHistTotalPages] = useState(1);
@@ -136,7 +136,9 @@ export default function Fechamentos() {
 
                 <div className="panel">
                   <div className="mk-selected-k">PIX sistema</div>
-                  <div className="mk-selected-v">{money(item.pix_sistema)}</div>
+                  <div className="mk-selected-v">
+                    {money(item.pix_sistema)}
+                  </div>
                 </div>
 
                 <div className="panel">
