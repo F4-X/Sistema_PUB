@@ -12,16 +12,23 @@ export default function Operadores() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
-const user = JSON.parse(localStorage.getItem("user") || "{}");
-const tipoUser = String(user?.tipo || "").toLowerCase();
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const tipoUser = String(user?.tipo || "").toLowerCase();
 
-const podeCadastrar =
-  tipoUser === "admin" ||
-  tipoUser === "geral";
+  const podeCadastrar =
+    tipoUser === "admin" ||
+    tipoUser === "geral";
 
   async function carregar() {
-    const r = await api.get("/operadores");
-    setItems(Array.isArray(r.data) ? r.data : []);
+    try {
+      const r = await api.get("/operadores");
+      setItems(Array.isArray(r.data) ? r.data : []);
+    } catch (e) {
+      setMsg(
+        e?.response?.data?.error ||
+          "Erro ao carregar funcionários"
+      );
+    }
   }
 
   useEffect(() => {
@@ -53,7 +60,7 @@ const podeCadastrar =
     } catch (e) {
       setMsg(
         e?.response?.data?.error ||
-        "Erro ao cadastrar"
+          "Erro ao cadastrar"
       );
     } finally {
       setLoading(false);
@@ -62,13 +69,43 @@ const podeCadastrar =
 
   async function alterarStatus(id) {
     try {
-      await api.patch(
-        `/operadores/${id}/status`
-      );
+      setMsg("");
+
+      await api.patch(`/operadores/${id}/status`);
 
       await carregar();
-    } catch {
-      setMsg("Erro ao alterar status");
+    } catch (e) {
+      setMsg(
+        e?.response?.data?.error ||
+          "Erro ao alterar status"
+      );
+    }
+  }
+
+  async function excluirOperador(op) {
+    const emailOperador = op?.email || "este funcionário";
+
+    if (
+      !window.confirm(
+        `Deseja realmente excluir ${emailOperador}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setMsg("");
+
+      await api.delete(`/operadores/${op.id}`);
+
+      setMsg("Funcionário excluído com sucesso");
+
+      await carregar();
+    } catch (e) {
+      setMsg(
+        e?.response?.data?.error ||
+          "Erro ao excluir funcionário"
+      );
     }
   }
 
@@ -78,91 +115,94 @@ const podeCadastrar =
         width: "min(1700px,96vw)",
         margin: "18px auto 26px",
         display: "grid",
-        gridTemplateColumns: "420px 1fr",
+        gridTemplateColumns: podeCadastrar
+          ? "420px 1fr"
+          : "1fr",
         gap: 18,
         alignItems: "start",
       }}
     >
       {podeCadastrar && (
-  <form
-    className="panel panel-sticky"
-    onSubmit={salvar}
-  >
-        <div className="panel-head">
-          <h2>Cadastro</h2>
-
-          <span className="badge">
-            Funcionários
-          </span>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gap: 12,
-          }}
+        <form
+          className="panel panel-sticky"
+          onSubmit={salvar}
         >
-          <input
-            placeholder="Nome"
-            value={nome}
-            onChange={(e) =>
-              setNome(e.target.value)
-            }
-          />
+          <div className="panel-head">
+            <h2>Cadastro</h2>
 
-          <input
-            placeholder="Email"
-            value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-          />
+            <span className="badge">
+              Funcionários
+            </span>
+          </div>
 
-          <input
-            placeholder="Senha"
-            type="password"
-            value={senha}
-            onChange={(e) =>
-              setSenha(e.target.value)
-            }
-          />
-
-          <select
-            value={tipo}
-            onChange={(e) =>
-              setTipo(e.target.value)
-            }
+          <div
+            style={{
+              display: "grid",
+              gap: 12,
+            }}
           >
-            <option value="Comum">
-              Comum
-            </option>
+            <input
+              placeholder="Nome"
+              value={nome}
+              onChange={(e) =>
+                setNome(e.target.value)
+              }
+            />
 
-            <option value="Funcional">
-              Funcional
-            </option>
+            <input
+              placeholder="Email"
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
+            />
 
-            <option value="Geral">
-              Geral
-            </option>
-          </select>
+            <input
+              placeholder="Senha"
+              type="password"
+              value={senha}
+              onChange={(e) =>
+                setSenha(e.target.value)
+              }
+            />
 
-          <button
-            className="btn-primary"
-            disabled={loading}
-          >
-            {loading
-              ? "Salvando..."
-              : "Cadastrar Funcionário"}
-          </button>
+            <select
+              value={tipo}
+              onChange={(e) =>
+                setTipo(e.target.value)
+              }
+            >
+              <option value="Comum">
+                Comum
+              </option>
 
-          {msg ? (
-            <div className="empty">
-              {msg}
-            </div>
-          ) : null}
-        </div>
-      </form>
-)}
+              <option value="Funcional">
+                Funcional
+              </option>
+
+              <option value="Geral">
+                Geral
+              </option>
+            </select>
+
+            <button
+              className="btn-primary"
+              disabled={loading}
+            >
+              {loading
+                ? "Salvando..."
+                : "Cadastrar Funcionário"}
+            </button>
+
+            {msg ? (
+              <div className="empty">
+                {msg}
+              </div>
+            ) : null}
+          </div>
+        </form>
+      )}
+
       <div className="panel">
         <div className="panel-head">
           <h2>
@@ -173,6 +213,12 @@ const podeCadastrar =
             {items.length} item(ns)
           </span>
         </div>
+
+        {!podeCadastrar && msg ? (
+          <div className="empty" style={{ marginBottom: 12 }}>
+            {msg}
+          </div>
+        ) : null}
 
         {!items.length ? (
           <div className="empty">
@@ -229,6 +275,8 @@ const podeCadastrar =
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
+                    flexWrap: "wrap",
+                    justifyContent: "flex-end",
                   }}
                 >
                   <div className="badge">
@@ -246,6 +294,18 @@ const podeCadastrar =
                   >
                     Alterar
                   </button>
+
+                  {podeCadastrar ? (
+                    <button
+                      type="button"
+                      className="btn-danger"
+                      onClick={() =>
+                        excluirOperador(op)
+                      }
+                    >
+                      Excluir
+                    </button>
+                  ) : null}
                 </div>
               </div>
             ))}

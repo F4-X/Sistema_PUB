@@ -5,11 +5,7 @@ const db = require("../db");
 function normalizarTipo(tipo) {
   const t = String(tipo || "Comum").trim();
 
-  const permitidos = [
-    "Comum",
-    "Funcional",
-    "Geral",
-  ];
+  const permitidos = ["Comum", "Funcional", "Geral"];
 
   return permitidos.includes(t) ? t : "Comum";
 }
@@ -38,12 +34,8 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const nome = String(req.body?.nome || "").trim();
-    const email = String(req.body?.email || "")
-      .trim()
-      .toLowerCase();
-
+    const email = String(req.body?.email || "").trim().toLowerCase();
     const senha = String(req.body?.senha || "").trim();
-
     const tipo = normalizarTipo(req.body?.tipo);
 
     if (!nome) {
@@ -143,6 +135,71 @@ router.patch("/:id/status", async (req, res) => {
   } catch (e) {
     res.status(500).json({
       error: "Erro ao alterar status",
+    });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({
+        error: "ID inválido",
+      });
+    }
+
+    const r = await db.query(
+      `
+      SELECT id, email, tipo
+      FROM usuarios
+      WHERE id=$1
+      LIMIT 1
+      `,
+      [id]
+    );
+
+    const usuario = r.rows[0];
+
+    if (!usuario) {
+      return res.status(404).json({
+        error: "Operador não encontrado",
+      });
+    }
+
+    const email = String(usuario.email || "").trim().toLowerCase();
+
+    if (email === "admin@pub.com") {
+      return res.status(400).json({
+        error: "Não é permitido excluir o administrador principal",
+      });
+    }
+
+    await db.query(
+      `
+      DELETE FROM funcionarios
+      WHERE usuario_id=$1
+      `,
+      [id]
+    );
+
+    await db.query(
+      `
+      DELETE FROM usuarios
+      WHERE id=$1
+      `,
+      [id]
+    );
+
+    res.json({
+      ok: true,
+      message: "Operador excluído com sucesso",
+    });
+  } catch (e) {
+    console.error("OPERADORES DELETE ERR:", e?.message || e);
+
+    res.status(500).json({
+      error: "Erro ao excluir operador",
     });
   }
 });
