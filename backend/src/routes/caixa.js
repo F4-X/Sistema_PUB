@@ -47,11 +47,22 @@ router.get("/saldo", async (req, res) => {
     const sessao = await buscarSessaoAberta();
 
     if (!sessao) {
+      const r = await db.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas,
+          COALESCE(SUM(CASE WHEN tipo='saida' THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas
+        FROM caixa_movimentos
+        WHERE sessao_id IS NULL
+      `);
+
+      const entradas = Number(r.rows?.[0]?.entradas || 0);
+      const saidas = Number(r.rows?.[0]?.saidas || 0);
+
       return res.json({
         aberto: false,
-        entradas: 0,
-        saidas: 0,
-        saldo: 0,
+        entradas,
+        saidas,
+        saldo: Number((entradas - saidas).toFixed(2)),
       });
     }
 
