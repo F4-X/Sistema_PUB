@@ -4,6 +4,7 @@ import { TopbarFinanceiro } from "../components.jsx";
 import XMLs from "./XMLs.jsx";
 import ContasPagar from "./ContasPagar.jsx";
 import ContasPagas from "./ContasPagas.jsx";
+import Fechamento from "./Fechamento.jsx";
 
 const isoDate = (d) => d.toISOString().slice(0, 10);
 const startOfDay = (dateStr) => `${dateStr}T00:00:00`;
@@ -228,6 +229,26 @@ export default function Financeiro({ setTela }) {
       </>
     );
   }
+
+  if (page === "fechamentos") {
+  return (
+    <>
+      <TopbarFinanceiro
+        page={page}
+        setPage={setPage}
+        onBack={() => setTela("menu")}
+        onLogout={() => {
+          localStorage.removeItem("token");
+          location.reload();
+        }}
+      />
+
+      <main className="fin-wrap">
+        <Fechamento />
+      </main>
+    </>
+  );
+}
 
   return (
     <>
