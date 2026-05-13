@@ -13,6 +13,10 @@ function brDate(v) {
   return new Date(v).toLocaleString("pt-BR");
 }
 
+function diffColor(v) {
+  return Number(v || 0) === 0 ? "#2ecc71" : "#ff7675";
+}
+
 export default function Fechamento() {
   const [historico, setHistorico] = useState([]);
   const [histPage, setHistPage] = useState(1);
@@ -104,20 +108,10 @@ export default function Fechamento() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+                  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
                   gap: 12,
                 }}
               >
-                <div className="panel">
-                  <div className="mk-selected-k">Dinheiro vendas</div>
-                  <div className="mk-selected-v">{money(item.dinheiro)}</div>
-                </div>
-
-                <div className="panel">
-                  <div className="mk-selected-k">Dinheiro entrada</div>
-                  <div className="mk-selected-v">{money(item.abertura)}</div>
-                </div>
-
                 <div className="panel">
                   <div className="mk-selected-k">Dinheiro total</div>
                   <div className="mk-selected-v" style={{ color: "#4da3ff" }}>
@@ -126,63 +120,10 @@ export default function Fechamento() {
                 </div>
 
                 <div className="panel">
-                  <div className="mk-selected-k">Dinheiro conferência</div>
-                  <div className="mk-selected-v" style={{ color: "#4da3ff" }}>
-                    {item.status === "fechado"
-                      ? money(item.dinheiro_conferencia)
-                      : "—"}
-                  </div>
-                </div>
-
-                <div className="panel">
-                  <div className="mk-selected-k">PIX sistema</div>
-                  <div className="mk-selected-v">
-                    {money(item.pix_sistema)}
-                  </div>
-                </div>
-
-                <div className="panel">
-                  <div className="mk-selected-k">PIX conferência</div>
-                  <div className="mk-selected-v">
-                    {item.status === "fechado"
-                      ? money(item.pix_conferencia)
-                      : "—"}
-                  </div>
-                </div>
-
-                <div className="panel">
-                  <div className="mk-selected-k">Cartão sistema</div>
-                  <div className="mk-selected-v">
-                    {money(item.cartao_sistema)}
-                  </div>
-                </div>
-
-                <div className="panel">
-                  <div className="mk-selected-k">Cartão conferência</div>
-                  <div className="mk-selected-v">
-                    {item.status === "fechado"
-                      ? money(item.cartao_conferencia)
-                      : "—"}
-                  </div>
-                </div>
-
-                <div className="panel">
-                  <div className="mk-selected-k">Valor total final</div>
-                  <div className="mk-selected-v">
-                    {money(item.valor_total_final ?? item.total)}
-                  </div>
-                </div>
-
-                <div className="panel">
                   <div className="mk-selected-k">Diferença dinheiro</div>
                   <div
                     className="mk-selected-v"
-                    style={{
-                      color:
-                        Number(item.dif_dinheiro || 0) === 0
-                          ? "#2ecc71"
-                          : "#ff7675",
-                    }}
+                    style={{ color: diffColor(item.dif_dinheiro) }}
                   >
                     {money(item.dif_dinheiro)}
                   </div>
@@ -192,12 +133,7 @@ export default function Fechamento() {
                   <div className="mk-selected-k">Diferença PIX</div>
                   <div
                     className="mk-selected-v"
-                    style={{
-                      color:
-                        Number(item.dif_pix || 0) === 0
-                          ? "#2ecc71"
-                          : "#ff7675",
-                    }}
+                    style={{ color: diffColor(item.dif_pix) }}
                   >
                     {money(item.dif_pix)}
                   </div>
@@ -207,29 +143,9 @@ export default function Fechamento() {
                   <div className="mk-selected-k">Diferença cartão</div>
                   <div
                     className="mk-selected-v"
-                    style={{
-                      color:
-                        Number(item.dif_cartao || 0) === 0
-                          ? "#2ecc71"
-                          : "#ff7675",
-                    }}
+                    style={{ color: diffColor(item.dif_cartao) }}
                   >
                     {money(item.dif_cartao)}
-                  </div>
-                </div>
-
-                <div className="panel">
-                  <div className="mk-selected-k">Diferença Total</div>
-                  <div
-                    className="mk-selected-v"
-                    style={{
-                      color:
-                        Number(item.diferenca || 0) === 0
-                          ? "#2ecc71"
-                          : "#ff7675",
-                    }}
-                  >
-                    {money(item.diferenca)}
                   </div>
                 </div>
               </div>
@@ -242,6 +158,7 @@ export default function Fechamento() {
               justifyContent: "center",
               gap: 12,
               marginTop: 10,
+              flexWrap: "wrap",
             }}
           >
             <button
