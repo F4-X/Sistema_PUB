@@ -70,15 +70,17 @@ export function TopbarPDV({ page, setPage, search, setSearch, onLogout, onBack }
 
 export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
   const subtitle =
-    page === "financeiro"
-      ? "Financeiro"
-      : page === "xmls"
-      ? "XMLs"
-      : page === "contas-pagar"
-      ? "Contas a Pagar"
-      : page === "contas-pagas"
-      ? "Contas Pagas"
-      : "Financeiro";
+  page === "financeiro"
+    ? "Financeiro"
+    : page === "xmls"
+    ? "XMLs"
+    : page === "contas-pagar"
+    ? "Contas a Pagar"
+    : page === "contas-pagas"
+    ? "Contas Pagas"
+    : page === "fechamentos"
+    ? "Fechamentos"
+    : "Financeiro";
 
   return (
     <header className="pdv-topbar">
@@ -113,11 +115,18 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
           </button>
 
           <button
-            className={page === "contas-pagas" ? "active" : ""}
-            onClick={() => setPage("contas-pagas")}
-          >
-            Contas Pagas
-          </button>
+  className={page === "contas-pagas" ? "active" : ""}
+  onClick={() => setPage("contas-pagas")}
+>
+  Contas Pagas
+</button>
+
+<button
+  className={page === "fechamentos" ? "active" : ""}
+  onClick={() => setPage("fechamentos")}
+>
+  Fechamentos
+</button>
 
           <button onClick={onLogout}>Sair</button>
         </div>
