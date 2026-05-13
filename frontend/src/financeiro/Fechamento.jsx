@@ -29,9 +29,7 @@ export default function Fechamento() {
       setLoading(true);
       setMsg("");
 
-      const hist = await api.get(
-        `/caixa/fechamentos?page=${histPage}&limit=6`
-      );
+      const hist = await api.get(`/caixa/fechamentos?page=${histPage}&limit=6`);
 
       setHistorico(hist.data?.items || []);
       setHistTotalPages(hist.data?.pages || 1);
@@ -44,35 +42,41 @@ export default function Fechamento() {
 
   useEffect(() => {
     carregarHistorico();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [histPage]);
 
   return (
-    <div className="panel">
-      <div className="panel-head">
-        <h2>Histórico de Fechamentos</h2>
+    <div className="panel" style={{ padding: 12 }}>
+      <div className="panel-head" style={{ marginBottom: 8 }}>
+        <h2 style={{ fontSize: 18 }}>Histórico de Fechamentos</h2>
+
         <span className="badge">
           {loading ? "Carregando..." : `${historico.length} registro(s)`}
         </span>
       </div>
 
-      {msg ? <div className="empty">{msg}</div> : null}
+      {msg ? (
+        <div className="empty" style={{ padding: 12, marginTop: 8 }}>
+          {msg}
+        </div>
+      ) : null}
 
       {!historico.length ? (
-        <div className="empty" style={{ marginTop: 16 }}>
+        <div className="empty" style={{ marginTop: 10, padding: 12 }}>
           Nenhum fechamento encontrado
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+        <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
           {historico.map((item) => (
             <div
               key={item.id}
               style={{
                 border: "1px solid rgba(255,255,255,.08)",
-                borderRadius: 18,
-                padding: 18,
+                borderRadius: 14,
+                padding: 12,
                 background: "rgba(17,17,24,.55)",
                 display: "grid",
-                gap: 16,
+                gap: 10,
               }}
             >
               <div
@@ -80,27 +84,27 @@ export default function Fechamento() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 12,
+                  gap: 8,
                   flexWrap: "wrap",
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 900, fontSize: 18 }}>
+                  <div style={{ fontWeight: 900, fontSize: 16 }}>
                     {item.usuario_email || "Operador"}
                   </div>
 
                   <div
                     style={{
-                      marginTop: 6,
+                      marginTop: 3,
                       color: "rgba(255,255,255,.7)",
-                      fontSize: 13,
+                      fontSize: 12,
                     }}
                   >
                     {brDate(item.fechado_em || item.aberto_em)}
                   </div>
                 </div>
 
-                <div className="badge" style={{ fontSize: 13 }}>
+                <div className="badge" style={{ fontSize: 12 }}>
                   {item.status}
                 </div>
               </div>
@@ -108,42 +112,62 @@ export default function Fechamento() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))",
+                  gap: 8,
                 }}
               >
-                <div className="panel">
-                  <div className="mk-selected-k">Dinheiro total</div>
-                  <div className="mk-selected-v" style={{ color: "#4da3ff" }}>
+                <div className="panel" style={{ padding: 10 }}>
+                  <div className="mk-selected-k" style={{ fontSize: 12 }}>
+                    Dinheiro total
+                  </div>
+                  <div
+                    className="mk-selected-v"
+                    style={{ color: "#4da3ff", fontSize: 18 }}
+                  >
                     {money(item.dinheiro_sistema)}
                   </div>
                 </div>
 
-                <div className="panel">
-                  <div className="mk-selected-k">Diferença dinheiro</div>
+                <div className="panel" style={{ padding: 10 }}>
+                  <div className="mk-selected-k" style={{ fontSize: 12 }}>
+                    Diferença dinheiro
+                  </div>
                   <div
                     className="mk-selected-v"
-                    style={{ color: diffColor(item.dif_dinheiro) }}
+                    style={{
+                      color: diffColor(item.dif_dinheiro),
+                      fontSize: 18,
+                    }}
                   >
                     {money(item.dif_dinheiro)}
                   </div>
                 </div>
 
-                <div className="panel">
-                  <div className="mk-selected-k">Diferença PIX</div>
+                <div className="panel" style={{ padding: 10 }}>
+                  <div className="mk-selected-k" style={{ fontSize: 12 }}>
+                    Diferença PIX
+                  </div>
                   <div
                     className="mk-selected-v"
-                    style={{ color: diffColor(item.dif_pix) }}
+                    style={{
+                      color: diffColor(item.dif_pix),
+                      fontSize: 18,
+                    }}
                   >
                     {money(item.dif_pix)}
                   </div>
                 </div>
 
-                <div className="panel">
-                  <div className="mk-selected-k">Diferença cartão</div>
+                <div className="panel" style={{ padding: 10 }}>
+                  <div className="mk-selected-k" style={{ fontSize: 12 }}>
+                    Diferença cartão
+                  </div>
                   <div
                     className="mk-selected-v"
-                    style={{ color: diffColor(item.dif_cartao) }}
+                    style={{
+                      color: diffColor(item.dif_cartao),
+                      fontSize: 18,
+                    }}
                   >
                     {money(item.dif_cartao)}
                   </div>
@@ -156,8 +180,8 @@ export default function Fechamento() {
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: 12,
-              marginTop: 10,
+              gap: 8,
+              marginTop: 4,
               flexWrap: "wrap",
             }}
           >
@@ -165,11 +189,18 @@ export default function Fechamento() {
               className="btn-secondary"
               disabled={histPage <= 1}
               onClick={() => setHistPage((p) => Math.max(1, p - 1))}
+              style={{ padding: "7px 10px", fontSize: 12 }}
             >
               ← Anterior
             </button>
 
-            <div className="badge" style={{ padding: "10px 18px" }}>
+            <div
+              className="badge"
+              style={{
+                padding: "7px 12px",
+                fontSize: 12,
+              }}
+            >
               Página {histPage} de {histTotalPages}
             </div>
 
@@ -179,6 +210,7 @@ export default function Fechamento() {
               onClick={() =>
                 setHistPage((p) => Math.min(histTotalPages, p + 1))
               }
+              style={{ padding: "7px 10px", fontSize: 12 }}
             >
               Próxima →
             </button>

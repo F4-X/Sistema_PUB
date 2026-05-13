@@ -1,222 +1,689 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { TopbarFinanceiro } from "../components.jsx";
+import XMLs from "./XMLs.jsx";
+import ContasPagar from "./ContasPagar.jsx";
+import ContasPagas from "./ContasPagas.jsx";
+import Fechamento from "./Fechamento.jsx";
 
-function money(v) {
-  return Number(v || 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
+const isoDate = (d) => d.toISOString().slice(0, 10);
+const startOfDay = (dateStr) => `${dateStr}T00:00:00`;
+const nextDayStart = (dateStr) => {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return `${isoDate(d)}T00:00:00`;
+};
 
-function brDate(v) {
-  if (!v) return "—";
-  return new Date(v).toLocaleString("pt-BR");
-}
+export default function Financeiro({ setTela }) {
+  const [page, setPage] = useState("financeiro");
 
-function diffColor(v) {
-  return Number(v || 0) === 0 ? "#2ecc71" : "#ff7675";
-}
+  const [modo, setModo] = useState("dia");
+  const [data, setData] = useState(isoDate(new Date()));
+  const [inicio, setInicio] = useState(isoDate(new Date()));
+  const [fim, setFim] = useState(isoDate(new Date()));
 
-export default function Fechamento() {
-  const [historico, setHistorico] = useState([]);
-  const [histPage, setHistPage] = useState(1);
-  const [histTotalPages, setHistTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [resumo, setResumo] = useState({
+    faturamento: "0.00",
+    qtd_vendas: 0,
+    ticket_medio: "0.00",
+    por_pagamento: { dinheiro: "0.00", pix: "0.00", cartao: "0.00" },
+  });
 
-  async function carregarHistorico() {
+  const [porCaixa, setPorCaixa] = useState([]);
+  const [porCategoria, setPorCategoria] = useState([]);
+  const [topProdutos, setTopProdutos] = useState([]);
+
+  const CAIXA_NUMERO = 1;
+  const [fechMsg, setFechMsg] = useState(null);
+
+  const compactPanel = {
+    padding: 12,
+  };
+
+  const compactTitle = {
+    margin: 0,
+    fontSize: 18,
+  };
+
+  const queryParams = useMemo(() => {
+    if (modo === "periodo") {
+      const i = startOfDay(inicio);
+      const f = nextDayStart(fim);
+      return `inicio=${encodeURIComponent(i)}&fim=${encodeURIComponent(f)}`;
+    }
+
+    return `data=${encodeURIComponent(data)}`;
+  }, [modo, data, inicio, fim]);
+
+  async function carregar() {
+    setLoading(true);
+
     try {
-      setLoading(true);
-      setMsg("");
+      const [r1, r2, r3, r4] = await Promise.all([
+        api.get(`/financeiro/resumo?${queryParams}`),
+        api.get(`/financeiro/por-caixa?${queryParams}`),
+        api.get(`/financeiro/por-categoria?${queryParams}`),
+        api.get(`/financeiro/top-produtos?${queryParams}&limit=10`),
+      ]);
 
-      const hist = await api.get(`/caixa/fechamentos?page=${histPage}&limit=6`);
+      const rp = r1.data || {};
+      const porPg = rp.por_pagamento || {};
 
-      setHistorico(hist.data?.items || []);
-      setHistTotalPages(hist.data?.pages || 1);
+      setResumo({
+        faturamento: rp.faturamento ?? "0.00",
+        qtd_vendas: rp.qtd_vendas ?? 0,
+        ticket_medio: rp.ticket_medio ?? "0.00",
+        por_pagamento: {
+          dinheiro: porPg.dinheiro ?? "0.00",
+          pix: porPg.pix ?? "0.00",
+          cartao: porPg.cartao ?? "0.00",
+        },
+      });
+
+      setPorCaixa(r2.data || []);
+      setPorCategoria(r3.data || []);
+      setTopProdutos(r4.data || []);
     } catch (e) {
-      setMsg(e?.response?.data?.error || "Erro ao carregar fechamentos");
+      console.log("ERRO Financeiro carregar:", e?.response?.data || e.message);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    carregarHistorico();
+    if (page !== "financeiro") return;
+    carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [histPage]);
+  }, [queryParams, page]);
+
+  const totalGeral = useMemo(
+    () => Number(resumo?.faturamento || 0).toFixed(2),
+    [resumo]
+  );
+
+  const caixa1 = porCaixa.find((x) => x.caixa_numero === 1);
+
+  const pg = resumo?.por_pagamento || {};
+  const dinheiro = Number(pg.dinheiro || 0).toFixed(2);
+  const pix = Number(pg.pix || 0).toFixed(2);
+  const cartao = Number(pg.cartao || 0).toFixed(2);
+
+  async function fecharCaixa() {
+    setFechMsg(null);
+    setLoading(true);
+
+    try {
+      const i = modo === "periodo" ? startOfDay(inicio) : startOfDay(data);
+      const f = modo === "periodo" ? nextDayStart(fim) : nextDayStart(data);
+
+      const { data: resp } = await api.post("/fechamentos", {
+        caixa_numero: CAIXA_NUMERO,
+        inicio: i,
+        fim: f,
+      });
+
+      setFechMsg(
+        `Fechado! Caixa ${resp.caixa_numero} • R$ ${Number(
+          resp.faturamento
+        ).toFixed(2)} • ${resp.qtd_vendas} venda(s)`
+      );
+    } catch (e) {
+      setFechMsg(e?.response?.data?.error || "Erro ao fechar caixa");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function baixarBlob(response, type, fallbackName) {
+    const blob = new Blob([response.data], { type });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fallbackName;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+  }
+
+  async function exportarVendas() {
+    try {
+      const response = await api.get(`/financeiro/exportar-vendas?${queryParams}`, {
+        responseType: "blob",
+      });
+
+      const hoje = new Date().toISOString().slice(0, 10);
+      const nome =
+        modo === "periodo"
+          ? `vendas_sintetico_${inicio}_a_${fim}.csv`
+          : `vendas_sintetico_${data || hoje}.csv`;
+
+      baixarBlob(response, "text/csv;charset=utf-8;", nome);
+    } catch (e) {
+      alert(e?.response?.data?.error || "Erro ao exportar CSV");
+    }
+  }
+
+  async function exportarPDF() {
+    try {
+      const response = await api.get(`/financeiro/exportar-vendas-pdf?${queryParams}`, {
+        responseType: "blob",
+      });
+
+      const hoje = new Date().toISOString().slice(0, 10);
+      const nome =
+        modo === "periodo"
+          ? `vendas_sintetico_${inicio}_a_${fim}.pdf`
+          : `vendas_sintetico_${data || hoje}.pdf`;
+
+      baixarBlob(response, "application/pdf", nome);
+    } catch (e) {
+      alert(e?.response?.data?.error || "Erro ao exportar PDF");
+    }
+  }
+
+  function TopbarPadrao() {
+    return (
+      <TopbarFinanceiro
+        page={page}
+        setPage={setPage}
+        onBack={() => setTela("menu")}
+        onLogout={() => {
+          localStorage.removeItem("token");
+          location.reload();
+        }}
+      />
+    );
+  }
+
+  if (page === "xmls") {
+    return (
+      <>
+        <TopbarPadrao />
+        <main className="fin-wrap" style={{ gap: 10, paddingTop: 10 }}>
+          <XMLs />
+        </main>
+      </>
+    );
+  }
+
+  if (page === "contas-pagar") {
+    return (
+      <>
+        <TopbarPadrao />
+        <main className="fin-wrap" style={{ gap: 10, paddingTop: 10 }}>
+          <ContasPagar />
+        </main>
+      </>
+    );
+  }
+
+  if (page === "contas-pagas") {
+    return (
+      <>
+        <TopbarPadrao />
+        <main className="fin-wrap" style={{ gap: 10, paddingTop: 10 }}>
+          <ContasPagas />
+        </main>
+      </>
+    );
+  }
+
+  if (page === "fechamentos") {
+    return (
+      <>
+        <TopbarPadrao />
+        <main className="fin-wrap" style={{ gap: 10, paddingTop: 10 }}>
+          <Fechamento />
+        </main>
+      </>
+    );
+  }
 
   return (
-    <div className="panel" style={{ padding: 12 }}>
-      <div className="panel-head" style={{ marginBottom: 8 }}>
-        <h2 style={{ fontSize: 18 }}>Histórico de Fechamentos</h2>
+    <>
+      <TopbarPadrao />
 
-        <span className="badge">
-          {loading ? "Carregando..." : `${historico.length} registro(s)`}
-        </span>
-      </div>
-
-      {msg ? (
-        <div className="empty" style={{ padding: 12, marginTop: 8 }}>
-          {msg}
-        </div>
-      ) : null}
-
-      {!historico.length ? (
-        <div className="empty" style={{ marginTop: 10, padding: 12 }}>
-          Nenhum fechamento encontrado
-        </div>
-      ) : (
-        <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-          {historico.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                border: "1px solid rgba(255,255,255,.08)",
-                borderRadius: 14,
-                padding: 12,
-                background: "rgba(17,17,24,.55)",
-                display: "grid",
-                gap: 10,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 8,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 900, fontSize: 16 }}>
-                    {item.usuario_email || "Operador"}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 3,
-                      color: "rgba(255,255,255,.7)",
-                      fontSize: 12,
-                    }}
-                  >
-                    {brDate(item.fechado_em || item.aberto_em)}
-                  </div>
-                </div>
-
-                <div className="badge" style={{ fontSize: 12 }}>
-                  {item.status}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))",
-                  gap: 8,
-                }}
-              >
-                <div className="panel" style={{ padding: 10 }}>
-                  <div className="mk-selected-k" style={{ fontSize: 12 }}>
-                    Dinheiro total
-                  </div>
-                  <div
-                    className="mk-selected-v"
-                    style={{ color: "#4da3ff", fontSize: 18 }}
-                  >
-                    {money(item.dinheiro_sistema)}
-                  </div>
-                </div>
-
-                <div className="panel" style={{ padding: 10 }}>
-                  <div className="mk-selected-k" style={{ fontSize: 12 }}>
-                    Diferença dinheiro
-                  </div>
-                  <div
-                    className="mk-selected-v"
-                    style={{
-                      color: diffColor(item.dif_dinheiro),
-                      fontSize: 18,
-                    }}
-                  >
-                    {money(item.dif_dinheiro)}
-                  </div>
-                </div>
-
-                <div className="panel" style={{ padding: 10 }}>
-                  <div className="mk-selected-k" style={{ fontSize: 12 }}>
-                    Diferença PIX
-                  </div>
-                  <div
-                    className="mk-selected-v"
-                    style={{
-                      color: diffColor(item.dif_pix),
-                      fontSize: 18,
-                    }}
-                  >
-                    {money(item.dif_pix)}
-                  </div>
-                </div>
-
-                <div className="panel" style={{ padding: 10 }}>
-                  <div className="mk-selected-k" style={{ fontSize: 12 }}>
-                    Diferença cartão
-                  </div>
-                  <div
-                    className="mk-selected-v"
-                    style={{
-                      color: diffColor(item.dif_cartao),
-                      fontSize: 18,
-                    }}
-                  >
-                    {money(item.dif_cartao)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-
+      <main
+        className="fin-wrap"
+        style={{
+          gap: 10,
+          paddingTop: 10,
+          alignItems: "start",
+        }}
+      >
+        <section className="panel" style={compactPanel}>
           <div
+            className="fin-header"
             style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: 8,
-              marginTop: 4,
-              flexWrap: "wrap",
+              gap: 10,
+              marginBottom: 8,
             }}
           >
-            <button
-              className="btn-secondary"
-              disabled={histPage <= 1}
-              onClick={() => setHistPage((p) => Math.max(1, p - 1))}
-              style={{ padding: "7px 10px", fontSize: 12 }}
-            >
-              ← Anterior
-            </button>
-
-            <div
-              className="badge"
-              style={{
-                padding: "7px 12px",
-                fontSize: 12,
-              }}
-            >
-              Página {histPage} de {histTotalPages}
+            <div>
+              <h2 style={compactTitle}>Financeiro</h2>
+              <div className="fin-subtitle" style={{ fontSize: 12 }}>
+                Filtro por dia ou período • fechamento de caixa
+              </div>
             </div>
 
-            <button
-              className="btn-secondary"
-              disabled={histPage >= histTotalPages}
-              onClick={() =>
-                setHistPage((p) => Math.min(histTotalPages, p + 1))
-              }
-              style={{ padding: "7px 10px", fontSize: 12 }}
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
             >
-              Próxima →
-            </button>
+              <button
+                className={modo === "dia" ? "btn-primary" : "btn-secondary"}
+                onClick={() => setModo("dia")}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                Dia
+              </button>
+
+              <button
+                className={modo === "periodo" ? "btn-primary" : "btn-secondary"}
+                onClick={() => setModo("periodo")}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                Período
+              </button>
+
+              <button
+                className="btn-primary"
+                onClick={exportarVendas}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                Exportar CSV
+              </button>
+
+              <button
+                className="btn-secondary"
+                onClick={exportarPDF}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                Exportar PDF
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+
+          {modo === "dia" ? (
+            <div
+              className="fin-date"
+              style={{
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
+              <div className="fin-datebox" style={{ padding: "8px 10px" }}>
+                <span className="tag">Data</span>
+                <input
+                  type="date"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                />
+              </div>
+
+              <button
+                className="btn-secondary"
+                onClick={() => setData(isoDate(new Date()))}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                Hoje
+              </button>
+
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - 1);
+                  setData(isoDate(d));
+                }}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                Ontem
+              </button>
+
+              <button
+                className="btn-primary"
+                onClick={carregar}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                {loading ? "Carregando..." : "Atualizar"}
+              </button>
+            </div>
+          ) : (
+            <div
+              className="fin-date"
+              style={{
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
+              <div className="fin-datebox" style={{ padding: "8px 10px" }}>
+                <span className="tag">Início</span>
+                <input
+                  type="date"
+                  value={inicio}
+                  onChange={(e) => setInicio(e.target.value)}
+                />
+              </div>
+
+              <div className="fin-datebox" style={{ padding: "8px 10px" }}>
+                <span className="tag">Fim</span>
+                <input
+                  type="date"
+                  value={fim}
+                  onChange={(e) => setFim(e.target.value)}
+                />
+              </div>
+
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  const d = new Date();
+                  const end = isoDate(d);
+                  d.setDate(d.getDate() - 6);
+                  setInicio(isoDate(d));
+                  setFim(end);
+                }}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                7 dias
+              </button>
+
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  const d = new Date();
+                  const end = isoDate(d);
+                  d.setDate(d.getDate() - 29);
+                  setInicio(isoDate(d));
+                  setFim(end);
+                }}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                30 dias
+              </button>
+
+              <button
+                className="btn-primary"
+                onClick={carregar}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                {loading ? "Carregando..." : "Atualizar"}
+              </button>
+            </div>
+          )}
+
+          <div
+            className="fin-kpis"
+            style={{
+              gap: 8,
+              marginBottom: 8,
+            }}
+          >
+            <div
+              className={`fin-kpi ${loading ? "fin-dim" : ""}`}
+              style={{ padding: 12 }}
+            >
+              <div className="fin-k" style={{ fontSize: 12 }}>
+                Faturamento
+              </div>
+              <div className="fin-v" style={{ fontSize: 22 }}>
+                R$ {totalGeral}
+              </div>
+              <div className="fin-s" style={{ fontSize: 11 }}>
+                Total do período
+              </div>
+            </div>
+
+            <div
+              className={`fin-kpi ${loading ? "fin-dim" : ""}`}
+              style={{ padding: 12 }}
+            >
+              <div className="fin-k" style={{ fontSize: 12 }}>
+                Vendas
+              </div>
+              <div className="fin-v" style={{ fontSize: 22 }}>
+                {resumo?.qtd_vendas || 0}
+              </div>
+              <div className="fin-s" style={{ fontSize: 11 }}>
+                Quantidade
+              </div>
+            </div>
+
+            <div
+              className={`fin-kpi ${loading ? "fin-dim" : ""}`}
+              style={{ padding: 12 }}
+            >
+              <div className="fin-k" style={{ fontSize: 12 }}>
+                Ticket médio
+              </div>
+              <div className="fin-v" style={{ fontSize: 22 }}>
+                R$ {Number(resumo?.ticket_medio || 0).toFixed(2)}
+              </div>
+              <div className="fin-s" style={{ fontSize: 11 }}>
+                Média por venda
+              </div>
+            </div>
+          </div>
+
+          <div className="panel-head" style={{ marginTop: 6, marginBottom: 6 }}>
+            <h2 style={{ fontSize: 16 }}>Por Pagamento</h2>
+            <span className="badge">Dinheiro / Pix / Cartão</span>
+          </div>
+
+          <div
+            className="fin-kpis fin-kpis-3"
+            style={{
+              gap: 8,
+              marginBottom: 8,
+            }}
+          >
+            <div
+              className={`fin-kpi ${loading ? "fin-dim" : ""}`}
+              style={{ padding: 12 }}
+            >
+              <div className="fin-k" style={{ fontSize: 12 }}>
+                💵 Dinheiro
+              </div>
+              <div className="fin-v" style={{ fontSize: 20 }}>
+                R$ {dinheiro}
+              </div>
+              <div className="fin-s" style={{ fontSize: 11 }}>
+                Total no período
+              </div>
+            </div>
+
+            <div
+              className={`fin-kpi ${loading ? "fin-dim" : ""}`}
+              style={{ padding: 12 }}
+            >
+              <div className="fin-k" style={{ fontSize: 12 }}>
+                📱 Pix
+              </div>
+              <div className="fin-v" style={{ fontSize: 20 }}>
+                R$ {pix}
+              </div>
+              <div className="fin-s" style={{ fontSize: 11 }}>
+                Total no período
+              </div>
+            </div>
+
+            <div
+              className={`fin-kpi ${loading ? "fin-dim" : ""}`}
+              style={{ padding: 12 }}
+            >
+              <div className="fin-k" style={{ fontSize: 12 }}>
+                💳 Cartão
+              </div>
+              <div className="fin-v" style={{ fontSize: 20 }}>
+                R$ {cartao}
+              </div>
+              <div className="fin-s" style={{ fontSize: 11 }}>
+                Total no período
+              </div>
+            </div>
+          </div>
+
+          <div className="panel-head" style={{ marginTop: 6, marginBottom: 6 }}>
+            <h2 style={{ fontSize: 16 }}>Por Caixa</h2>
+            <span className="badge">Caixa 1</span>
+          </div>
+
+          <div
+            className="fin-kpis fin-kpis-1"
+            style={{
+              gap: 8,
+              marginBottom: 8,
+            }}
+          >
+            <div
+              className={`fin-kpi ${loading ? "fin-dim" : ""}`}
+              style={{ padding: 12 }}
+            >
+              <div className="fin-k" style={{ fontSize: 12 }}>
+                Caixa 1
+              </div>
+              <div className="fin-v" style={{ fontSize: 20 }}>
+                R$ {Number(caixa1?.faturamento || 0).toFixed(2)}
+              </div>
+              <div className="fin-s" style={{ fontSize: 11 }}>
+                {caixa1?.qtd_vendas || 0} venda(s)
+              </div>
+            </div>
+          </div>
+
+          <div className="panel-head" style={{ marginTop: 6, marginBottom: 6 }}>
+            <h2 style={{ fontSize: 16 }}>Por Categoria</h2>
+            <span className="badge">Resumo</span>
+          </div>
+
+          <div className="fin-list" style={{ gap: 6 }}>
+            {!porCategoria || porCategoria.length === 0 ? (
+              <div className="empty fin-empty" style={{ padding: 12 }}>
+                <div className="empty-title">Sem vendas nesse filtro</div>
+                <div className="empty-sub">
+                  Finalize uma venda no PDV para aparecer aqui.
+                </div>
+              </div>
+            ) : (
+              [...porCategoria]
+                .sort((a, b) => Number(b.faturamento) - Number(a.faturamento))
+                .map((c, idx) => (
+                  <div key={idx} className="fin-row" style={{ padding: "8px 10px" }}>
+                    <div className="fin-left">
+                      <div className="fin-name" style={{ fontSize: 13 }}>
+                        {c.categoria || "Sem categoria"}
+                      </div>
+                      <div className="fin-sub" style={{ fontSize: 11 }}>
+                        {Number(c.itens || 0)} item(ns)
+                      </div>
+                    </div>
+
+                    <div className="fin-right" style={{ fontSize: 13 }}>
+                      R$ {Number(c.faturamento || 0).toFixed(2)}
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </section>
+
+        <aside
+          className="fin-side"
+          style={{
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div className="panel" style={compactPanel}>
+            <div className="panel-head" style={{ marginBottom: 6 }}>
+              <h2 style={{ fontSize: 16 }}>Top Produtos</h2>
+              <span className="badge">10</span>
+            </div>
+
+            <div className="fin-list" style={{ gap: 6 }}>
+              {topProdutos.length === 0 ? (
+                <div className="empty fin-empty" style={{ padding: 12 }}>
+                  <div className="empty-title">Sem vendas</div>
+                  <div className="empty-sub">
+                    Quando vender, o ranking aparece aqui.
+                  </div>
+                </div>
+              ) : (
+                topProdutos.map((p, idx) => (
+                  <div key={idx} className="fin-row" style={{ padding: "8px 10px" }}>
+                    <div className="fin-left">
+                      <div className="fin-name" style={{ fontSize: 13 }}>
+                        {p.nome}
+                      </div>
+                      <div className="fin-sub" style={{ fontSize: 11 }}>
+                        {p.qtd} un
+                      </div>
+                    </div>
+
+                    <div className="fin-right" style={{ fontSize: 13 }}>
+                      R$ {Number(p.faturamento).toFixed(2)}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="panel" style={compactPanel}>
+            <div className="panel-head" style={{ marginBottom: 8 }}>
+              <h2 style={{ fontSize: 16 }}>Fechamento</h2>
+              <span className="badge">Salvar</span>
+            </div>
+
+            <div className="fin-close" style={{ gap: 8 }}>
+              <div
+                className="badge"
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 12,
+                }}
+              >
+                Caixa 1
+              </div>
+
+              <button
+                className="btn-primary"
+                onClick={fecharCaixa}
+                disabled={loading}
+                style={{ padding: "8px 12px" }}
+              >
+                {loading ? "Fechando..." : "Fechar Caixa"}
+              </button>
+            </div>
+
+            {fechMsg && (
+              <div className="fin-close-msg" style={{ marginTop: 8, fontSize: 12 }}>
+                {fechMsg}
+              </div>
+            )}
+          </div>
+        </aside>
+      </main>
+    </>
   );
 }
