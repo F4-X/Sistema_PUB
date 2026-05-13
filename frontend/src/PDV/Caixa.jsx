@@ -233,9 +233,9 @@ export default function Caixa() {
   }
 
   return (
-    <div style={{ padding: 16, display: "grid", gap: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>Caixa / Sangria</h2>
+    <div style={{ padding: 10, display: "grid", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <h2 style={{ margin: 0, fontSize: 22 }}>Caixa / Sangria</h2>
 
         <button className="btn-secondary" onClick={presetSangria} type="button">
           Sangria
@@ -271,41 +271,47 @@ export default function Caixa() {
         {toast ? <span className="badge">{toast}</span> : null}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(220px, 1fr))", gap: 12 }}>
-        <div className="panel">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(180px, 1fr))",
+          gap: 8,
+        }}
+      >
+        <div className="panel" style={{ padding: 12 }}>
           <div className="panel-head">
-            <h2>Saldo atual</h2>
+            <h2 style={{ fontSize: 16 }}>Saldo atual</h2>
             <span className="badge">
               {saldo ? (unlocked ? money(saldo.saldo) : hiddenMoney) : "—"}
             </span>
           </div>
 
           {!unlocked ? (
-            <div style={{ marginTop: 10, opacity: 0.75, fontSize: 12 }}>
-              🔒 Saldo oculto — clique em <b>Mostrar valores</b> para liberar com senha.
+            <div style={{ marginTop: 6, opacity: 0.75, fontSize: 11 }}>
+              🔒 Saldo oculto — clique em <b>Mostrar valores</b>.
             </div>
           ) : null}
 
           {saldoErr ? (
-            <div className="empty" style={{ marginTop: 10 }}>
+            <div className="empty" style={{ marginTop: 8 }}>
               <div className="empty-title">⚠ Não foi possível carregar</div>
               <div className="empty-sub">{saldoErr}</div>
             </div>
           ) : null}
         </div>
 
-        <div className="panel">
+        <div className="panel" style={{ padding: 12 }}>
           <div className="panel-head">
-            <h2>Entradas</h2>
+            <h2 style={{ fontSize: 16 }}>Entradas</h2>
             <span className="badge">
               {saldo ? (unlocked ? money(saldo.entradas) : hiddenMoney) : "—"}
             </span>
           </div>
         </div>
 
-        <div className="panel">
+        <div className="panel" style={{ padding: 12 }}>
           <div className="panel-head">
-            <h2>Saídas</h2>
+            <h2 style={{ fontSize: 16 }}>Saídas</h2>
             <span className="badge">
               {saldo ? (unlocked ? money(saldo.saidas) : hiddenMoney) : "—"}
             </span>
@@ -313,18 +319,25 @@ export default function Caixa() {
         </div>
       </div>
 
-      <div className="panel">
+      <div className="panel" style={{ padding: 12 }}>
         <div className="panel-head">
-          <h2>Novo movimento</h2>
+          <h2 style={{ fontSize: 18 }}>Novo movimento</h2>
           <span className="badge">
             {motivo === "reforco" ? "Entrada" : "Saída"} • {motivo}
           </span>
         </div>
 
-        <form onSubmit={onSubmit} style={{ display: "grid", gap: 10 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(160px, 1fr))", gap: 10 }}>
+        <form onSubmit={onSubmit} style={{ display: "grid", gap: 8 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, minmax(140px, 1fr))",
+              gap: 8,
+              alignItems: "end",
+            }}
+          >
             <div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Motivo</div>
+              <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 4 }}>Motivo</div>
 
               <select value={motivo} onChange={(e) => aplicarMotivo(e.target.value)}>
                 <option value="sangria">sangria</option>
@@ -333,12 +346,12 @@ export default function Caixa() {
             </div>
 
             <div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Origem</div>
+              <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 4 }}>Origem</div>
               <input value={origem} onChange={(e) => setOrigem(e.target.value)} placeholder="caixa" />
             </div>
 
             <div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Valor (R$)</div>
+              <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 4 }}>Valor (R$)</div>
               <input
                 value={valor}
                 onChange={(e) => setValor(e.target.value)}
@@ -346,11 +359,11 @@ export default function Caixa() {
                 inputMode="decimal"
               />
             </div>
-          </div>
 
-          <div>
-            <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>Observação</div>
-            <input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="opcional" />
+            <div>
+              <div style={{ fontSize: 11, opacity: 0.75, marginBottom: 4 }}>Observação</div>
+              <input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="opcional" />
+            </div>
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -361,23 +374,23 @@ export default function Caixa() {
         </form>
       </div>
 
-      <div className="panel">
+      <div className="panel" style={{ padding: 12 }}>
         <div className="panel-head">
-          <h2>Históricos do caixa</h2>
+          <h2 style={{ fontSize: 18 }}>Históricos do caixa</h2>
           <span className="badge">{loadingList ? "Carregando..." : "OK"}</span>
         </div>
 
         {!unlocked ? (
-          <div className="empty" style={{ marginTop: 10 }}>
+          <div className="empty" style={{ marginTop: 8 }}>
             <div className="empty-title">{hiddenText}</div>
             <div className="empty-sub">
-              O histórico está oculto. Clique em <b>Mostrar valores</b> e digite a senha para liberar.
+              O histórico está oculto. Clique em <b>Mostrar valores</b> e digite a senha.
             </div>
           </div>
         ) : (
           <>
             {listErr ? (
-              <div className="empty" style={{ marginTop: 10 }}>
+              <div className="empty" style={{ marginTop: 8 }}>
                 <div className="empty-title">⚠ Erro ao carregar histórico</div>
                 <div className="empty-sub">{listErr}</div>
               </div>
@@ -387,8 +400,8 @@ export default function Caixa() {
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(2, minmax(320px, 1fr))",
-                gap: 14,
-                marginTop: 10,
+                gap: 10,
+                marginTop: 8,
               }}
             >
               <HistoricoCard
@@ -438,7 +451,7 @@ export default function Caixa() {
             style={{ width: "min(520px, 100%)", padding: 14, borderRadius: 14 }}
           >
             <div className="panel-head" style={{ marginBottom: 8 }}>
-              <h2>🔒 Liberar valores do caixa</h2>
+              <h2 style={{ fontSize: 18 }}>🔒 Liberar valores do caixa</h2>
               <span className="badge">Senha</span>
             </div>
 
@@ -503,15 +516,15 @@ function HistoricoCard({
     <div
       style={{
         border: "1px solid rgba(255,255,255,.08)",
-        borderRadius: 16,
-        padding: 12,
+        borderRadius: 14,
+        padding: 9,
         background: "rgba(255,255,255,.02)",
-        minHeight: 320,
+        minHeight: 260,
       }}
     >
-      <div style={{ display: "grid", gap: 2, marginBottom: 8 }}>
-        <div style={{ fontWeight: 800, fontSize: 18 }}>{titulo}</div>
-        <div style={{ fontSize: 12, opacity: 0.7 }}>{subtitulo}</div>
+      <div style={{ display: "grid", gap: 1, marginBottom: 6 }}>
+        <div style={{ fontWeight: 800, fontSize: 16 }}>{titulo}</div>
+        <div style={{ fontSize: 11, opacity: 0.7 }}>{subtitulo}</div>
       </div>
 
       <div
@@ -519,8 +532,8 @@ function HistoricoCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "flex-end",
-          gap: 8,
-          marginBottom: 10,
+          gap: 6,
+          marginBottom: 6,
         }}
       >
         <button
@@ -528,7 +541,7 @@ function HistoricoCard({
           type="button"
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={!hasPrev}
-          style={{ padding: "6px 10px" }}
+          style={{ padding: "4px 8px", fontSize: 12 }}
           title="Página anterior"
         >
           ◀
@@ -541,7 +554,7 @@ function HistoricoCard({
           type="button"
           onClick={() => setPage((p) => p + 1)}
           disabled={!hasNext}
-          style={{ padding: "6px 10px" }}
+          style={{ padding: "4px 8px", fontSize: 12 }}
           title="Próxima página"
         >
           ▶
@@ -549,7 +562,7 @@ function HistoricoCard({
       </div>
 
       <div style={{ overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ opacity: 0.8 }}>
               <Th>Data</Th>
@@ -582,7 +595,11 @@ function HistoricoCard({
                         type="button"
                         onClick={() => onToggleObs(it.id)}
                         disabled={!hasObs}
-                        style={{ padding: "6px 10px", opacity: hasObs ? 1 : 0.5 }}
+                        style={{
+                          padding: "4px 8px",
+                          fontSize: 12,
+                          opacity: hasObs ? 1 : 0.5,
+                        }}
                       >
                         👁 {isOpen ? "Fechar" : "Ver"}
                       </button>
@@ -591,18 +608,18 @@ function HistoricoCard({
 
                   {isOpen ? (
                     <tr style={{ borderTop: "1px dashed rgba(255,255,255,.10)" }}>
-                      <Td colSpan={6} style={{ padding: 12 }}>
+                      <Td colSpan={6} style={{ padding: 8 }}>
                         <div
                           style={{
                             background: "rgba(255,255,255,.04)",
                             border: "1px solid rgba(255,255,255,.08)",
                             borderRadius: 10,
-                            padding: 12,
+                            padding: 9,
                             display: "grid",
-                            gap: 6,
+                            gap: 4,
                           }}
                         >
-                          <div style={{ fontSize: 12, opacity: 0.75 }}>Observação</div>
+                          <div style={{ fontSize: 11, opacity: 0.75 }}>Observação</div>
                           <div style={{ whiteSpace: "pre-wrap" }}>{it.observacao}</div>
                         </div>
                       </Td>
@@ -614,7 +631,7 @@ function HistoricoCard({
 
             {!items.length ? (
               <tr>
-                <Td colSpan={6} style={{ textAlign: "center", padding: 16, opacity: 0.7 }}>
+                <Td colSpan={6} style={{ textAlign: "center", padding: 12, opacity: 0.7 }}>
                   Nenhum registro encontrado.
                 </Td>
               </tr>
@@ -628,7 +645,14 @@ function HistoricoCard({
 
 function Th({ children, align }) {
   return (
-    <th style={{ textAlign: align || "left", fontSize: 12, padding: "10px 8px", whiteSpace: "nowrap" }}>
+    <th
+      style={{
+        textAlign: align || "left",
+        fontSize: 11,
+        padding: "7px 6px",
+        whiteSpace: "nowrap",
+      }}
+    >
       {children}
     </th>
   );
@@ -636,7 +660,7 @@ function Th({ children, align }) {
 
 function Td({ children, colSpan, style }) {
   return (
-    <td style={{ padding: "10px 8px", ...style }} colSpan={colSpan}>
+    <td style={{ padding: "7px 6px", ...style }} colSpan={colSpan}>
       {children}
     </td>
   );
