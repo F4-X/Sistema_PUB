@@ -40,6 +40,57 @@ async function buscarSessaoAberta() {
   return r.rows[0] || null;
 }
 
+async function buscarUltimoFechamento() {
+  const r = await db.query(`
+    SELECT
+      id,
+      valor_fechamento,
+      fechado_em
+    FROM caixa_sessoes
+    WHERE status='fechado'
+      AND fechado_em IS NOT NULL
+    ORDER BY fechado_em DESC, id DESC
+    LIMIT 1
+  `);
+
+  return r.rows[0] || null;
+}
+
+async function calcularSaldoSemCaixaAberto() {
+  const ultimo = await buscarUltimoFechamento();
+
+  const saldoBase = Number(ultimo?.valor_fechamento || 0);
+
+  let sql = `
+    SELECT
+      COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas,
+      COALESCE(SUM(CASE WHEN tipo='saida' THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas
+    FROM caixa_movimentos
+    WHERE sessao_id IS NULL
+  `;
+
+  const params = [];
+
+  if (ultimo?.fechado_em) {
+    sql += ` AND criado_em > $1`;
+    params.push(ultimo.fechado_em);
+  }
+
+  const r = await db.query(sql, params);
+
+  const entradas = Number(r.rows?.[0]?.entradas || 0);
+  const saidas = Number(r.rows?.[0]?.saidas || 0);
+
+  return {
+    entradas,
+    saidas,
+    saldo_base: saldoBase,
+    saldo: Number((saldoBase + entradas - saidas).toFixed(2)),
+    ultimo_fechamento_id: ultimo?.id || null,
+    ultimo_fechamento_em: ultimo?.fechado_em || null,
+  };
+}
+
 router.get("/saldo", async (req, res) => {
   try {
     await garantirColunas();
@@ -47,22 +98,16 @@ router.get("/saldo", async (req, res) => {
     const sessao = await buscarSessaoAberta();
 
     if (!sessao) {
-      const r = await db.query(`
-        SELECT
-          COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0)::numeric(10,2) AS entradas,
-          COALESCE(SUM(CASE WHEN tipo='saida' THEN valor ELSE 0 END),0)::numeric(10,2) AS saidas
-        FROM caixa_movimentos
-        WHERE sessao_id IS NULL
-      `);
-
-      const entradas = Number(r.rows?.[0]?.entradas || 0);
-      const saidas = Number(r.rows?.[0]?.saidas || 0);
+      const saldoAtual = await calcularSaldoSemCaixaAberto();
 
       return res.json({
         aberto: false,
-        entradas,
-        saidas,
-        saldo: Number((entradas - saidas).toFixed(2)),
+        entradas: saldoAtual.entradas,
+        saidas: saldoAtual.saidas,
+        saldo_base: saldoAtual.saldo_base,
+        saldo: saldoAtual.saldo,
+        ultimo_fechamento_id: saldoAtual.ultimo_fechamento_id,
+        ultimo_fechamento_em: saldoAtual.ultimo_fechamento_em,
       });
     }
 
@@ -222,7 +267,18 @@ router.post("/abrir", async (req, res) => {
       return res.status(400).json({ error: "Já existe um caixa aberto" });
     }
 
-    const valor_abertura = moneyNumber(req.body?.valor_abertura);
+    const valorInformado =
+      req.body?.valor_abertura !== undefined &&
+      req.body?.valor_abertura !== null &&
+      String(req.body.valor_abertura).trim() !== "";
+
+    const saldoAtual = valorInformado
+      ? null
+      : await calcularSaldoSemCaixaAberto();
+
+    const valor_abertura = valorInformado
+      ? moneyNumber(req.body.valor_abertura)
+      : moneyNumber(saldoAtual?.saldo || 0);
 
     const r = await db.query(
       `

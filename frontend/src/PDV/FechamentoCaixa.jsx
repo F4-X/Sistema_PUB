@@ -228,10 +228,12 @@ export default function FechamentoCaixa() {
       setLoading(true);
       setMsg("");
 
-      await api.post("/caixa/abrir", {
-        valor_abertura: n(valorAbertura),
-        caixa_numero: 1,
-      });
+      const valorDigitado = String(valorAbertura || "").trim();
+
+await api.post("/caixa/abrir", {
+  valor_abertura: valorDigitado ? n(valorDigitado) : null,
+  caixa_numero: 1,
+});
 
       setValorAbertura("");
       setMsg("Caixa aberto com sucesso");
