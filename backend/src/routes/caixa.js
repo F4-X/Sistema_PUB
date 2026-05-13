@@ -40,6 +40,19 @@ async function buscarSessaoAberta() {
   return r.rows[0] || null;
 }
 
+async function buscarUltimoSaldoFechado() {
+  const r = await db.query(`
+    SELECT valor_fechamento
+    FROM caixa_sessoes
+    WHERE status='fechado'
+      AND valor_fechamento IS NOT NULL
+    ORDER BY fechado_em DESC, id DESC
+    LIMIT 1
+  `);
+
+  return moneyNumber(r.rows?.[0]?.valor_fechamento || 0);
+}
+
 router.get("/saldo", async (req, res) => {
   try {
     await garantirColunas();
@@ -47,7 +60,14 @@ router.get("/saldo", async (req, res) => {
     const sessao = await buscarSessaoAberta();
 
     if (!sessao) {
-      return res.json({ entradas: 0, saidas: 0, saldo: 0 });
+      const ultimoSaldo = await buscarUltimoSaldoFechado();
+
+      return res.json({
+        aberto: false,
+        entradas: 0,
+        saidas: 0,
+        saldo: ultimoSaldo,
+      });
     }
 
     const r = await db.query(
@@ -65,6 +85,7 @@ router.get("/saldo", async (req, res) => {
     const saidas = Number(r.rows?.[0]?.saidas || 0);
 
     res.json({
+      aberto: true,
       entradas,
       saidas,
       saldo: Number((Number(sessao.valor_abertura || 0) + entradas - saidas).toFixed(2)),
@@ -171,13 +192,20 @@ router.post("/abrir", async (req, res) => {
   try {
     await garantirColunas();
 
-    const valor_abertura = moneyNumber(req.body?.valor_abertura);
-
     const aberto = await buscarSessaoAberta();
 
     if (aberto) {
       return res.status(400).json({ error: "Já existe um caixa aberto" });
     }
+
+    const valorInformado =
+      req.body?.valor_abertura !== undefined &&
+      req.body?.valor_abertura !== null &&
+      String(req.body.valor_abertura).trim() !== "";
+
+    const valor_abertura = valorInformado
+      ? moneyNumber(req.body.valor_abertura)
+      : await buscarUltimoSaldoFechado();
 
     const r = await db.query(
       `
