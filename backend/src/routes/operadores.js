@@ -168,10 +168,11 @@ router.delete("/:id", async (req, res) => {
     }
 
     const email = String(usuario.email || "").trim().toLowerCase();
+    const tipo = String(usuario.tipo || "").trim().toLowerCase();
 
-    if (email === "admin@pub.com") {
+    if (email === "admin@pub.com" || tipo === "admin") {
       return res.status(400).json({
-        error: "Não é permitido excluir o administrador principal",
+        error: "Não é permitido excluir usuários administradores",
       });
     }
 
