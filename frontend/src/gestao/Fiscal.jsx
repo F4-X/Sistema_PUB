@@ -663,16 +663,32 @@ export default function Fiscal({ setTela }) {
           </div>
 
           <div
-            style={{
-              display: "flex",
-              justifyContent:
-                "space-between",
-              alignItems: "center",
-              gap: 12,
-              marginTop: 14,
-              flexWrap: "wrap",
-            }}
-          >
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 14,
+    flexWrap: "wrap",
+  }}
+>
+  <input
+    value={busca}
+    onChange={(e) => {
+      setBusca(e.target.value);
+      setPage(1);
+    }}
+    placeholder="Buscar produto..."
+    style={{
+      width: 320,
+      padding: "11px 12px",
+      borderRadius: 12,
+      border: "1px solid rgba(255,255,255,.10)",
+      background: "rgba(10,10,16,.55)",
+      color: "var(--text)",
+      outline: "none",
+    }}
+  />
             <div
               style={{
                 color:
@@ -691,30 +707,6 @@ export default function Fiscal({ setTela }) {
                 alignItems: "center",
               }}
             >
-              <input
-                value={busca}
-                onChange={(e) => {
-                  setBusca(
-                    e.target.value
-                  );
-
-                  setPage(1);
-                }}
-                placeholder="Buscar produto..."
-                style={{
-                  width: 260,
-                  padding:
-                    "11px 12px",
-                  borderRadius: 12,
-                  border:
-                    "1px solid rgba(255,255,255,.10)",
-                  background:
-                    "rgba(10,10,16,.55)",
-                  color:
-                    "var(--text)",
-                  outline: "none",
-                }}
-              />
 
               <button
                 className="btn-secondary"
