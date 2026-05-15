@@ -4,7 +4,7 @@ import Login from "./Login.jsx";
 import Financeiro from "./financeiro/Financeiro.jsx";
 import Marcados from "./funcionarios/Marcados.jsx";
 import Menu from "./Menu.jsx";
-import Fiscal from "./fiscal/Fiscal.jsx";
+import Fiscal from "./gestao/Fiscal.jsx";
 
 export default function App() {
   const isElectron = navigator.userAgent.includes("Electron");
