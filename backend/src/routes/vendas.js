@@ -526,7 +526,14 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
 
     res.json({ ok: true, status, motivo, nfce_numero: numero, nfce_id, chave });
   } catch (e) {
-    const msg = String(
+    console.log("ERRO NFC-e COMPLETO:");
+console.dir(e?.response?.data || e, { depth: null });
+
+const errosValidacao = e?.response?.data?.error?.errors;
+
+const msg = Array.isArray(errosValidacao)
+  ? errosValidacao.map((x) => x.message || JSON.stringify(x)).join(" | ")
+  : String(
       e?.response?.data?.message ||
         e?.response?.data?.error?.message ||
         e?.message ||
