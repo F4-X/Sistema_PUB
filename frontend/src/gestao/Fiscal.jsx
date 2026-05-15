@@ -1,7 +1,64 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../api";
 
 export default function Fiscal({ setTela }) {
   const [page, setPage] = useState("tributacao");
+
+  const [produtos, setProdutos] = useState([]);
+  const [busca, setBusca] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState("");
+
+  async function carregarProdutos() {
+    setLoading(true);
+    setErro("");
+
+    try {
+      const r = await api.get("/produtos?limit=100&page=1");
+      setProdutos(r.data?.items || []);
+    } catch (e) {
+      setErro(e?.response?.data?.error || "Erro ao carregar produtos");
+      setProdutos([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarProdutos();
+  }, []);
+
+  const produtosFiltrados = useMemo(() => {
+    const q = busca.toLowerCase().trim();
+
+    return produtos.filter((p) => {
+      const txt = `
+        ${p.nome || ""}
+        ${p.ncm || ""}
+        ${p.cfop || ""}
+        ${p.csosn || ""}
+        ${p.pis_cst || ""}
+        ${p.cofins_cst || ""}
+        ${p.unidade || ""}
+      `.toLowerCase();
+
+      return !q || txt.includes(q);
+    });
+  }, [produtos, busca]);
+
+  const produtosComFiscal = useMemo(() => {
+    return produtos.filter(
+      (p) =>
+        p.ncm ||
+        p.cfop ||
+        p.csosn ||
+        p.pis_cst ||
+        p.cofins_cst ||
+        p.unidade
+    ).length;
+  }, [produtos]);
+
+  const produtosSemFiscal = Math.max(0, produtos.length - produtosComFiscal);
 
   return (
     <div className="pdv-page">
@@ -77,10 +134,10 @@ export default function Fiscal({ setTela }) {
           {page === "tributacao" && (
             <div style={{ display: "grid", gap: 14 }}>
               <div className="empty">
-                <div className="empty-title">Tributação padrão</div>
+                <div className="empty-title">Tributação dos produtos</div>
                 <div className="empty-sub">
-                  Aqui ficarão os padrões fiscais usados nos produtos, como NCM,
-                  CFOP, CSOSN, CST PIS, CST COFINS e unidade.
+                  Visualize os dados fiscais cadastrados em cada produto, como
+                  NCM, CFOP, CSOSN, PIS, COFINS e unidade.
                 </div>
               </div>
 
@@ -92,21 +149,118 @@ export default function Fiscal({ setTela }) {
                 }}
               >
                 <div className="panel">
-                  <div className="fin-k">NCM</div>
-                  <div className="fin-v">—</div>
-                  <div className="fin-s">Classificação fiscal</div>
+                  <div className="fin-k">Produtos cadastrados</div>
+                  <div className="fin-v">{produtos.length}</div>
+                  <div className="fin-s">Total no sistema</div>
                 </div>
 
                 <div className="panel">
-                  <div className="fin-k">CFOP</div>
-                  <div className="fin-v">—</div>
-                  <div className="fin-s">Operação fiscal</div>
+                  <div className="fin-k">Com fiscal</div>
+                  <div className="fin-v">{produtosComFiscal}</div>
+                  <div className="fin-s">Possuem dados fiscais</div>
                 </div>
 
                 <div className="panel">
-                  <div className="fin-k">CSOSN</div>
-                  <div className="fin-v">102</div>
-                  <div className="fin-s">Simples Nacional padrão</div>
+                  <div className="fin-k">Sem fiscal</div>
+                  <div className="fin-v">{produtosSemFiscal}</div>
+                  <div className="fin-s">Precisam de conferência</div>
+                </div>
+              </div>
+
+              <div className="panel">
+                <div className="panel-head">
+                  <div>
+                    <h2 style={{ margin: 0 }}>Produtos e tributação</h2>
+                    <div
+                      style={{
+                        marginTop: 6,
+                        color: "var(--muted)",
+                        fontSize: 13,
+                      }}
+                    >
+                      Lista dos produtos com seus campos fiscais.
+                    </div>
+                  </div>
+
+                  <span className="badge">
+                    {loading
+                      ? "Carregando..."
+                      : `${produtosFiltrados.length} produto(s)`}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginBottom: 14,
+                  }}
+                >
+                  <input
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Buscar por produto, NCM, CFOP, CSOSN..."
+                    style={{
+                      flex: 1,
+                      minWidth: 260,
+                      padding: "12px 14px",
+                      borderRadius: 14,
+                      border: "1px solid rgba(255,255,255,.10)",
+                      background: "rgba(10,10,16,.55)",
+                      color: "var(--text)",
+                      outline: "none",
+                    }}
+                  />
+
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    onClick={carregarProdutos}
+                    disabled={loading}
+                  >
+                    Atualizar
+                  </button>
+                </div>
+
+                {erro ? (
+                  <div className="empty">
+                    <div className="empty-title">Erro</div>
+                    <div className="empty-sub">{erro}</div>
+                  </div>
+                ) : null}
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  {produtosFiltrados.map((p) => (
+                    <div key={p.id} className="fin-row">
+                      <div className="fin-left">
+                        <div className="fin-name">{p.nome}</div>
+
+                        <div className="fin-sub">
+                          NCM: {p.ncm || "—"} • CFOP: {p.cfop || "—"} • CSOSN:{" "}
+                          {p.csosn || "—"}
+                        </div>
+
+                        <div className="fin-sub">
+                          PIS: {p.pis_cst || "—"} • COFINS:{" "}
+                          {p.cofins_cst || "—"} • Unidade: {p.unidade || "—"}
+                        </div>
+                      </div>
+
+                      <div className="fin-right">
+                        R$ {Number(p.preco || 0).toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+
+                  {!loading && produtosFiltrados.length === 0 && (
+                    <div className="empty">
+                      <div className="empty-title">Nenhum produto encontrado</div>
+                      <div className="empty-sub">
+                        Cadastre ou edite produtos com dados fiscais no PDV.
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -172,7 +326,9 @@ export default function Fiscal({ setTela }) {
                 <div className="fin-row">
                   <div className="fin-left">
                     <div className="fin-name">Regime tributário</div>
-                    <div className="fin-sub">Simples Nacional, MEI, Lucro Presumido...</div>
+                    <div className="fin-sub">
+                      Simples Nacional, MEI, Lucro Presumido...
+                    </div>
                   </div>
                   <div className="fin-right">—</div>
                 </div>
@@ -220,22 +376,22 @@ export default function Fiscal({ setTela }) {
           <div className="fin-kpis fin-kpis-2">
             <div className="fin-kpi">
               <div className="fin-k">Produtos fiscais</div>
-              <div className="fin-v">—</div>
-              <div className="fin-s">Com NCM/CFOP cadastrados</div>
+              <div className="fin-v">{produtosComFiscal}</div>
+              <div className="fin-s">Com dados fiscais preenchidos</div>
             </div>
 
             <div className="fin-kpi">
-              <div className="fin-k">NFC-e</div>
-              <div className="fin-v">—</div>
-              <div className="fin-s">Notas emitidas</div>
+              <div className="fin-k">Produtos sem fiscal</div>
+              <div className="fin-v">{produtosSemFiscal}</div>
+              <div className="fin-s">Precisam revisar NCM/CFOP</div>
             </div>
           </div>
 
           <div className="empty" style={{ marginTop: 14 }}>
-            <div className="empty-title">Próximo passo</div>
+            <div className="empty-title">Por enquanto</div>
             <div className="empty-sub">
-              Depois podemos ligar essa tela no banco para salvar empresa,
-              contador e padrões tributários.
+              Esta tela apenas visualiza os dados fiscais dos produtos. A edição
+              continua sendo feita no cadastro de produto do PDV.
             </div>
           </div>
         </aside>
