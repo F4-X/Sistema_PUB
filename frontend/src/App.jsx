@@ -4,6 +4,7 @@ import Login from "./Login.jsx";
 import Financeiro from "./financeiro/Financeiro.jsx";
 import Marcados from "./funcionarios/Marcados.jsx";
 import Menu from "./Menu.jsx";
+import Fiscal from "./fiscal/Fiscal.jsx";
 
 export default function App() {
   const isElectron = navigator.userAgent.includes("Electron");
@@ -54,6 +55,9 @@ export default function App() {
   if (tela === "financeiro") {
     return <Financeiro setTela={setTela} />;
   }
+  if (tela === "fiscal") {
+  return <Fiscal setTela={setTela} />;
+}
 
   return <Menu setTela={setTela} onLogout={sair} />;
 }
