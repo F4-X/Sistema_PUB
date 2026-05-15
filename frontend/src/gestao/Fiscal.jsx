@@ -500,24 +500,50 @@ export default function Fiscal({ setTela }) {
         </section>
 
         <section className="panel">
-          <div className="panel-head">
-            <div>
-              <h2 style={{ margin: 0 }}>
-                Produtos cadastrados
-              </h2>
+          <div
+  className="panel-head"
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "wrap",
+  }}
+>
+  <div>
+    <h2 style={{ margin: 0 }}>
+      Produtos cadastrados
+    </h2>
 
-              <div
-                style={{
-                  marginTop: 6,
-                  color: "var(--muted)",
-                  fontSize: 13,
-                }}
-              >
-                Clique em um produto
-                para editar.
-              </div>
-            </div>
-          </div>
+    <div
+      style={{
+        marginTop: 6,
+        color: "var(--muted)",
+        fontSize: 13,
+      }}
+    >
+      Clique em um produto para editar.
+    </div>
+  </div>
+
+  <input
+    value={busca}
+    onChange={(e) => {
+      setBusca(e.target.value);
+      setPage(1);
+    }}
+    placeholder="Buscar produto..."
+    style={{
+      width: 320,
+      padding: "11px 12px",
+      borderRadius: 12,
+      border: "1px solid rgba(255,255,255,.10)",
+      background: "rgba(10,10,16,.55)",
+      color: "var(--text)",
+      outline: "none",
+    }}
+  />
+</div>
 
           <div style={{ overflow: "auto" }}>
             <table
@@ -672,23 +698,7 @@ export default function Fiscal({ setTela }) {
     flexWrap: "wrap",
   }}
 >
-  <input
-    value={busca}
-    onChange={(e) => {
-      setBusca(e.target.value);
-      setPage(1);
-    }}
-    placeholder="Buscar produto..."
-    style={{
-      width: 320,
-      padding: "11px 12px",
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,.10)",
-      background: "rgba(10,10,16,.55)",
-      color: "var(--text)",
-      outline: "none",
-    }}
-  />
+  
             <div
               style={{
                 color:
