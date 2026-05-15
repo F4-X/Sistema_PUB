@@ -24,6 +24,7 @@ export default function Fiscal({ setTela }) {
     try {
       const r = await api.get("/produtos?limit=500&page=1");
       const lista = r.data?.items || [];
+
       setProdutos(lista);
 
       if (!produtoId && lista[0]) {
@@ -74,27 +75,11 @@ export default function Fiscal({ setTela }) {
         ${p.ncm || ""}
         ${p.cfop || ""}
         ${p.csosn || ""}
-        ${p.pis_cst || ""}
-        ${p.cofins_cst || ""}
-        ${p.unidade || ""}
       `.toLowerCase();
 
       return !q || txt.includes(q);
     });
   }, [produtos, busca]);
-
-  function copiarDoProduto() {
-    if (!produtoSelecionado) return;
-
-    setForm({
-      ncm: produtoSelecionado.ncm || "",
-      cfop: produtoSelecionado.cfop || "",
-      csosn: produtoSelecionado.csosn || "",
-      pis_cst: produtoSelecionado.pis_cst || "",
-      cofins_cst: produtoSelecionado.cofins_cst || "",
-      unidade: produtoSelecionado.unidade || "UN",
-    });
-  }
 
   async function salvarFiscal() {
     if (!produtoSelecionado?.id) {
@@ -109,6 +94,7 @@ export default function Fiscal({ setTela }) {
         nome: produtoSelecionado.nome,
         preco: produtoSelecionado.preco,
         categoria_id: produtoSelecionado.categoria_id || null,
+
         ncm: form.ncm,
         cfop: form.cfop,
         csosn: form.csosn,
@@ -118,25 +104,37 @@ export default function Fiscal({ setTela }) {
       });
 
       await carregarProdutos();
-      alert("Tributação atualizada com sucesso!");
+
+      alert("Tributação atualizada!");
     } catch (e) {
-      alert(e?.response?.data?.error || "Erro ao salvar tributação");
+      alert(e?.response?.data?.error || "Erro ao salvar");
     } finally {
       setLoading(false);
     }
   }
 
-  function campo(label, key, placeholder) {
+  function selectCampo(label, key, options) {
     return (
       <div>
-        <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 900, marginBottom: 6 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--muted)",
+            fontWeight: 900,
+            marginBottom: 6,
+          }}
+        >
           {label}
         </div>
 
-        <input
+        <select
           value={form[key]}
-          onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-          placeholder={placeholder}
+          onChange={(e) =>
+            setForm((f) => ({
+              ...f,
+              [key]: e.target.value,
+            }))
+          }
           style={{
             width: "100%",
             padding: "11px 12px",
@@ -146,7 +144,15 @@ export default function Fiscal({ setTela }) {
             color: "var(--text)",
             outline: "none",
           }}
-        />
+        >
+          <option value="">Selecione</option>
+
+          {options.map((op) => (
+            <option key={op.value} value={op.value}>
+              {op.label}
+            </option>
+          ))}
+        </select>
       </div>
     );
   }
@@ -161,9 +167,18 @@ export default function Fiscal({ setTela }) {
 
         <div className="pdv-controls">
           <div className="pdv-toggle">
-            <button onClick={() => setTela("menu")}>← Menu</button>
-            <button className="active">Tributação</button>
-            <button onClick={carregarProdutos} disabled={loading}>
+            <button onClick={() => setTela("menu")}>
+              ← Menu
+            </button>
+
+            <button className="active">
+              Tributação
+            </button>
+
+            <button
+              onClick={carregarProdutos}
+              disabled={loading}
+            >
               Atualizar
             </button>
           </div>
@@ -172,7 +187,7 @@ export default function Fiscal({ setTela }) {
 
       <main
         style={{
-          width: "min(1800px,97vw)",
+          width: "min(1850px,98vw)",
           margin: "18px auto 26px",
           display: "grid",
           gap: 14,
@@ -181,71 +196,249 @@ export default function Fiscal({ setTela }) {
         <section className="panel">
           <div className="panel-head">
             <div>
-              <h2 style={{ margin: 0 }}>Tributação dos Produtos</h2>
-              <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-                Selecione um produto e ajuste rapidamente NCM, CFOP, CSOSN, PIS, COFINS e unidade.
+              <h2 style={{ margin: 0 }}>
+                Tributação dos Produtos
+              </h2>
+
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "var(--muted)",
+                  fontSize: 13,
+                }}
+              >
+                Selecione um produto e escolha os códigos fiscais prontos.
               </div>
             </div>
 
             <span className="badge">
-              {loading ? "Carregando..." : `${produtos.length} produto(s)`}
+              {produtos.length} produto(s)
             </span>
           </div>
 
           {erro ? (
             <div className="empty">
-              <div className="empty-title">Erro</div>
-              <div className="empty-sub">{erro}</div>
+              <div className="empty-title">
+                Erro
+              </div>
+
+              <div className="empty-sub">
+                {erro}
+              </div>
             </div>
           ) : null}
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "2fr repeat(6, 1fr) auto",
+              gridTemplateColumns:
+                "2fr repeat(6, 1fr) auto",
               gap: 10,
               alignItems: "end",
             }}
           >
             <div>
-              <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 900, marginBottom: 6 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--muted)",
+                  fontWeight: 900,
+                  marginBottom: 6,
+                }}
+              >
                 Produto
               </div>
 
               <select
                 value={produtoId}
-                onChange={(e) => onSelectProduto(e.target.value)}
+                onChange={(e) =>
+                  onSelectProduto(e.target.value)
+                }
                 style={{
                   width: "100%",
                   padding: "11px 12px",
                   borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,.10)",
-                  background: "rgba(10,10,16,.55)",
+                  border:
+                    "1px solid rgba(255,255,255,.10)",
+                  background:
+                    "rgba(10,10,16,.55)",
                   color: "var(--text)",
                   outline: "none",
                 }}
               >
-                <option value="">Selecione um produto</option>
+                <option value="">
+                  Selecione um produto
+                </option>
+
                 {produtos.map((p) => (
-                  <option key={p.id} value={p.id}>
+                  <option
+                    key={p.id}
+                    value={p.id}
+                  >
                     {p.nome}
                   </option>
                 ))}
               </select>
             </div>
 
-            {campo("NCM", "ncm", "ex: 24031100")}
-            {campo("CFOP", "cfop", "ex: 5405")}
-            {campo("CSOSN", "csosn", "ex: 500")}
-            {campo("PIS CST", "pis_cst", "ex: 04")}
-            {campo("COFINS CST", "cofins_cst", "ex: 04")}
-            {campo("Unidade", "unidade", "UN")}
+            {selectCampo("NCM", "ncm", [
+              {
+                value: "24031100",
+                label:
+                  "24031100 - Fumo para narguilé",
+              },
+              {
+                value: "22030000",
+                label:
+                  "22030000 - Cervejas de malte",
+              },
+              {
+                value: "22021000",
+                label:
+                  "22021000 - Refrigerantes",
+              },
+              {
+                value: "22029900",
+                label:
+                  "22029900 - Bebidas não alcoólicas",
+              },
+            ])}
+
+            {selectCampo("CFOP", "cfop", [
+              {
+                value: "5102",
+                label:
+                  "5102 - Venda dentro do estado",
+              },
+              {
+                value: "5405",
+                label:
+                  "5405 - Venda com ST dentro do estado",
+              },
+              {
+                value: "6102",
+                label:
+                  "6102 - Venda fora do estado",
+              },
+            ])}
+
+            {selectCampo("CSOSN", "csosn", [
+              {
+                value: "102",
+                label:
+                  "102 - Tributada SN sem crédito",
+              },
+              {
+                value: "103",
+                label:
+                  "103 - Isenção SN",
+              },
+              {
+                value: "400",
+                label:
+                  "400 - Não tributada",
+              },
+              {
+                value: "500",
+                label:
+                  "500 - ICMS ST",
+              },
+            ])}
+
+            {selectCampo("PIS CST", "pis_cst", [
+              {
+                value: "01",
+                label: "01 - Tributável",
+              },
+              {
+                value: "04",
+                label:
+                  "04 - Monofásica",
+              },
+              {
+                value: "06",
+                label:
+                  "06 - Alíquota zero",
+              },
+              {
+                value: "07",
+                label: "07 - Isenta",
+              },
+              {
+                value: "08",
+                label:
+                  "08 - Sem incidência",
+              },
+              {
+                value: "09",
+                label:
+                  "09 - Suspensão",
+              },
+            ])}
+
+            {selectCampo("COFINS CST", "cofins_cst", [
+              {
+                value: "01",
+                label: "01 - Tributável",
+              },
+              {
+                value: "04",
+                label:
+                  "04 - Monofásica",
+              },
+              {
+                value: "06",
+                label:
+                  "06 - Alíquota zero",
+              },
+              {
+                value: "07",
+                label: "07 - Isenta",
+              },
+              {
+                value: "08",
+                label:
+                  "08 - Sem incidência",
+              },
+              {
+                value: "09",
+                label:
+                  "09 - Suspensão",
+              },
+            ])}
+
+            {selectCampo("Unidade", "unidade", [
+              {
+                value: "UN",
+                label: "UN - Unidade",
+              },
+              {
+                value: "CX",
+                label: "CX - Caixa",
+              },
+              {
+                value: "KG",
+                label: "KG - Quilograma",
+              },
+              {
+                value: "L",
+                label: "L - Litro",
+              },
+              {
+                value: "ML",
+                label:
+                  "ML - Mililitro",
+              },
+            ])}
 
             <button
               className="btn-primary"
               type="button"
               onClick={salvarFiscal}
-              disabled={loading || !produtoSelecionado}
+              disabled={
+                loading ||
+                !produtoSelecionado
+              }
               style={{ height: 44 }}
             >
               Salvar
@@ -253,11 +446,22 @@ export default function Fiscal({ setTela }) {
           </div>
 
           {produtoSelecionado ? (
-            <div className="empty" style={{ marginTop: 14 }}>
-              <div className="empty-title">{produtoSelecionado.nome}</div>
+            <div
+              className="empty"
+              style={{ marginTop: 14 }}
+            >
+              <div className="empty-title">
+                {produtoSelecionado.nome}
+              </div>
+
               <div className="empty-sub">
-                Preço: R$ {Number(produtoSelecionado.preco || 0).toFixed(2)} • Categoria:{" "}
-                {produtoSelecionado.categoria_nome || "Sem categoria"}
+                Preço: R${" "}
+                {Number(
+                  produtoSelecionado.preco || 0
+                ).toFixed(2)}{" "}
+                • Categoria:{" "}
+                {produtoSelecionado.categoria_nome ||
+                  "Sem categoria"}
               </div>
             </div>
           ) : null}
@@ -266,22 +470,35 @@ export default function Fiscal({ setTela }) {
         <section className="panel">
           <div className="panel-head">
             <div>
-              <h2 style={{ margin: 0 }}>Produtos cadastrados</h2>
-              <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>
-                Clique em um produto para carregar os dados no seletor acima.
+              <h2 style={{ margin: 0 }}>
+                Produtos cadastrados
+              </h2>
+
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "var(--muted)",
+                  fontSize: 13,
+                }}
+              >
+                Clique em um produto para editar.
               </div>
             </div>
 
             <input
               value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar produto, NCM, CFOP..."
+              onChange={(e) =>
+                setBusca(e.target.value)
+              }
+              placeholder="Buscar produto..."
               style={{
                 width: 320,
                 padding: "11px 12px",
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,.10)",
-                background: "rgba(10,10,16,.55)",
+                border:
+                  "1px solid rgba(255,255,255,.10)",
+                background:
+                  "rgba(10,10,16,.55)",
                 color: "var(--text)",
                 outline: "none",
               }}
@@ -297,7 +514,12 @@ export default function Fiscal({ setTela }) {
               }}
             >
               <thead>
-                <tr style={{ color: "var(--muted)", fontSize: 12 }}>
+                <tr
+                  style={{
+                    color: "var(--muted)",
+                    fontSize: 12,
+                  }}
+                >
                   <th style={th}>Produto</th>
                   <th style={th}>Preço</th>
                   <th style={th}>NCM</th>
@@ -312,35 +534,70 @@ export default function Fiscal({ setTela }) {
 
               <tbody>
                 {produtosFiltrados.map((p) => (
-                  <tr key={p.id} style={{ borderTop: "1px solid rgba(255,255,255,.08)" }}>
+                  <tr
+                    key={p.id}
+                    style={{
+                      borderTop:
+                        "1px solid rgba(255,255,255,.08)",
+                    }}
+                  >
                     <td style={td}>
                       <strong>{p.nome}</strong>
-                      <div style={{ color: "var(--muted)", fontSize: 12 }}>
-                        {p.categoria_nome || "Sem categoria"}
-                      </div>
                     </td>
-                    <td style={td}>R$ {Number(p.preco || 0).toFixed(2)}</td>
-                    <td style={td}>{p.ncm || "—"}</td>
-                    <td style={td}>{p.cfop || "—"}</td>
-                    <td style={td}>{p.csosn || "—"}</td>
-                    <td style={td}>{p.pis_cst || "—"}</td>
-                    <td style={td}>{p.cofins_cst || "—"}</td>
-                    <td style={td}>{p.unidade || "—"}</td>
+
+                    <td style={td}>
+                      R${" "}
+                      {Number(
+                        p.preco || 0
+                      ).toFixed(2)}
+                    </td>
+
+                    <td style={td}>
+                      {p.ncm || "—"}
+                    </td>
+
+                    <td style={td}>
+                      {p.cfop || "—"}
+                    </td>
+
+                    <td style={td}>
+                      {p.csosn || "—"}
+                    </td>
+
+                    <td style={td}>
+                      {p.pis_cst || "—"}
+                    </td>
+
+                    <td style={td}>
+                      {p.cofins_cst || "—"}
+                    </td>
+
+                    <td style={td}>
+                      {p.unidade || "—"}
+                    </td>
+
                     <td style={td}>
                       <button
                         className="btn-secondary"
                         type="button"
-                        onClick={() => selecionarProduto(p)}
+                        onClick={() =>
+                          selecionarProduto(p)
+                        }
                       >
-                        Editar fiscal
+                        Editar
                       </button>
                     </td>
                   </tr>
                 ))}
 
-                {!loading && produtosFiltrados.length === 0 ? (
+                {!loading &&
+                produtosFiltrados.length ===
+                  0 ? (
                   <tr>
-                    <td style={td} colSpan={9}>
+                    <td
+                      style={td}
+                      colSpan={9}
+                    >
                       Nenhum produto encontrado.
                     </td>
                   </tr>
