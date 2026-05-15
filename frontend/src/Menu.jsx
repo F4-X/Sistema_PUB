@@ -17,6 +17,13 @@ const tipo = String(user?.tipo || "comum").toLowerCase();
       adminOnly: true,
     },
     {
+  key: "fiscal",
+  icon: "🧾",
+  label: "Fiscal",
+  desc: "Impostos, NFC-e, tributação e dados fiscais.",
+  adminOnly: true,
+},
+    {
       key: "pdv",
       icon: "🛒",
       label: "PDV",
