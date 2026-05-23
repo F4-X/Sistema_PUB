@@ -72,9 +72,25 @@ function envOrThrow(k) {
 }
 
 function ambienteNF() {
-  const e = String(process.env.NUVEMFISCAL_ENV || "sandbox").toLowerCase();
-  if (e.includes("prod")) return { ambiente: "producao", tpAmb: 1 };
-  return { ambiente: "homologacao", tpAmb: 2 };
+  const e = String(
+    process.env.FOCUS_AMBIENTE || "homologacao"
+  ).toLowerCase();
+
+  if (
+    e.includes("prod") ||
+    e.includes("producao") ||
+    e.includes("production")
+  ) {
+    return {
+      ambiente: "producao",
+      tpAmb: 1,
+    };
+  }
+
+  return {
+    ambiente: "homologacao",
+    tpAmb: 2,
+  };
 }
 
 function onlyDigits(v) {
