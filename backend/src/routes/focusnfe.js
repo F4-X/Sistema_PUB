@@ -47,7 +47,7 @@ async function emitirNfce(payload) {
   };
 
   const { data } = await axios.post(
-    `${BASE_URL}/nfce`,
+  `${BASE_URL}/nfce?ref=${encodeURIComponent(ref)}`,
     body,
     authConfig({
       headers: {

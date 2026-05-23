@@ -6,6 +6,16 @@ function round2(n) {
   return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 }
 
+function onlyDigits(v) {
+  return String(v ?? "").replace(/\D/g, "");
+}
+
+function envOrThrow(k) {
+  const v = String(process.env[k] || "").trim();
+  if (!v) throw new Error(`Env faltando: ${k}`);
+  return v;
+}
+
 function normTipo(t) {
   const s = String(t || "").trim().toLowerCase();
   if (s.includes("din")) return "dinheiro";
@@ -16,42 +26,24 @@ function normTipo(t) {
   return s || "outros";
 }
 
-function mapTPag(tipo) {
+function mapFormaPagamentoFocus(tipo) {
   const t = normTipo(tipo);
   if (t === "dinheiro") return "01";
-  if (t === "pix") return "17";
+  if (t === "credito" || t === "cartao") return "03";
   if (t === "debito") return "04";
-  if (t === "credito") return "03";
-  if (t === "cartao") return "03";
+  if (t === "pix") return "17";
   return "99";
 }
 
-function montarICMS(csosnRaw) {
-  const csosn = String(csosnRaw || "").trim() || "102";
+function csosnValido(v) {
+  const csosn = String(v || "").trim();
+  const validos = ["101", "102", "103", "201", "202", "203", "300", "400", "500", "900"];
+  return validos.includes(csosn) ? csosn : "102";
+}
 
-  if (csosn === "500") {
-    return {
-      ICMSSN500: {
-        orig: 0,
-        CSOSN: "500",
-        vBCSTRet: 0,
-        pST: 0,
-        vICMSSubstituto: 0,
-        vICMSSTRet: 0,
-        vBCFCPSTRet: 0,
-        pFCPSTRet: 0,
-        vFCPSTRet: 0,
-      },
-    };
-  }
-
-  const validos102 = ["102", "103", "300", "400"];
-  return {
-    ICMSSN102: {
-      orig: 0,
-      CSOSN: validos102.includes(csosn) ? csosn : "102",
-    },
-  };
+function cstPisCofins(v) {
+  const cst = String(v || "").trim();
+  return cst || "07";
 }
 
 async function nextNfceNumero() {
@@ -62,135 +54,129 @@ async function nextNfceNumero() {
     WHERE id = 1
     RETURNING (proximo_numero - 1) AS numero
   `);
+
   return Number(r.rows?.[0]?.numero || 1);
 }
 
-function envOrThrow(k) {
-  const v = String(process.env[k] || "").trim();
-  if (!v) throw new Error(`Env faltando: ${k}`);
-  return v;
-}
-
-function ambienteNF() {
-  const e = String(
-    process.env.FOCUS_AMBIENTE || "homologacao"
-  ).toLowerCase();
-
-  if (
-    e.includes("prod") ||
-    e.includes("producao") ||
-    e.includes("production")
-  ) {
-    return {
-      ambiente: "producao",
-      tpAmb: 1,
-    };
-  }
-
-  return {
-    ambiente: "homologacao",
-    tpAmb: 2,
-  };
-}
-
-function onlyDigits(v) {
-  return String(v ?? "").replace(/\D/g, "");
-}
-
-function buildDest({ cpf, cnpj, nome }) {
+function buildDestFocus({ cpf, cnpj, nome }) {
   const CPF = onlyDigits(cpf);
   const CNPJ = onlyDigits(cnpj);
-
-  if (!CPF && !CNPJ) return undefined;
+  const nm = String(nome || "").trim();
 
   const dest = {};
-  if (CNPJ.length === 14) dest.CNPJ = CNPJ;
-  else if (CPF.length === 11) dest.CPF = CPF;
-  else return undefined;
 
-  const nm = String(nome || "").trim();
-  if (nm) dest.xNome = nm;
+  if (CNPJ.length === 14) dest.cnpj_destinatario = CNPJ;
+  else if (CPF.length === 11) dest.cpf_destinatario = CPF;
 
-  dest.indIEDest = 9;
+  if (nm) dest.nome_destinatario = nm;
+
   return dest;
 }
 
 router.get("/", async (req, res) => {
-  const r = await db.query(`
-    SELECT id, caixa_numero, total_final AS total, nfce_status, nfce_numero, criado_em
-    FROM vendas
-    ORDER BY id DESC
-    LIMIT 100
-  `);
-  res.json(r.rows);
+  try {
+    const r = await db.query(`
+      SELECT
+        id,
+        caixa_numero,
+        total_final AS total,
+        nfce_status,
+        nfce_numero,
+        criado_em
+      FROM vendas
+      ORDER BY id DESC
+      LIMIT 100
+    `);
+
+    res.json(r.rows);
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao listar vendas" });
+  }
 });
 
 router.get("/:id", async (req, res) => {
-  const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ error: "ID inválido" });
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: "ID inválido" });
 
-  const rv = await db.query("SELECT * FROM vendas WHERE id = $1", [id]);
-  if (!rv.rows.length) return res.status(404).json({ error: "Venda não encontrada" });
+    const rv = await db.query("SELECT * FROM vendas WHERE id = $1", [id]);
 
-  const itens = await db.query(
-    `
-    SELECT
-      vi.id,
-      vi.produto_id,
-      p.nome,
-      p.ncm,
-      p.cfop,
-      p.csosn,
-      p.pis_cst,
-      p.cofins_cst,
-      p.cest,
-      p.unidade,
-      vi.qtd,
-      vi.preco_unit
-    FROM venda_itens vi
-    LEFT JOIN produtos p ON p.id = vi.produto_id
-    WHERE vi.venda_id = $1
-    ORDER BY vi.id ASC
-  `,
-    [id]
-  );
+    if (!rv.rows.length) {
+      return res.status(404).json({ error: "Venda não encontrada" });
+    }
 
-  const pags = await db.query(
-    `
-    SELECT id, tipo, valor
-    FROM venda_pagamentos
-    WHERE venda_id = $1
-    ORDER BY id ASC
-  `,
-    [id]
-  );
+    const itens = await db.query(
+      `
+      SELECT
+        vi.id,
+        vi.produto_id,
+        p.nome,
+        p.ncm,
+        p.cfop,
+        p.csosn,
+        p.pis_cst,
+        p.cofins_cst,
+        p.cest,
+        p.unidade,
+        vi.qtd,
+        vi.preco_unit
+      FROM venda_itens vi
+      LEFT JOIN produtos p ON p.id = vi.produto_id
+      WHERE vi.venda_id = $1
+      ORDER BY vi.id ASC
+      `,
+      [id]
+    );
 
-  res.json({ venda: rv.rows[0], itens: itens.rows, pagamentos: pags.rows });
+    const pags = await db.query(
+      `
+      SELECT id, tipo, valor
+      FROM venda_pagamentos
+      WHERE venda_id = $1
+      ORDER BY id ASC
+      `,
+      [id]
+    );
+
+    res.json({
+      venda: rv.rows[0],
+      itens: itens.rows,
+      pagamentos: pags.rows,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || "Erro ao buscar venda" });
+  }
 });
 
 router.post("/", async (req, res) => {
   try {
     const caixa_numero = Number(req.body?.caixa_numero || 1);
     const itens = Array.isArray(req.body?.itens) ? req.body.itens : [];
-    const pagamentos = Array.isArray(req.body?.pagamentos) ? req.body.pagamentos : [];
+    const pagamentos = Array.isArray(req.body?.pagamentos)
+      ? req.body.pagamentos
+      : [];
 
     const sessaoR = await db.query(`
-  SELECT *
-  FROM caixa_sessoes
-  WHERE status = 'aberto'
-  ORDER BY id DESC
-  LIMIT 1
-`);
+      SELECT *
+      FROM caixa_sessoes
+      WHERE status = 'aberto'
+      ORDER BY id DESC
+      LIMIT 1
+    `);
 
-const sessao = sessaoR.rows[0];
+    const sessao = sessaoR.rows[0];
 
-if (!sessao) {
-  return res.status(400).json({
-    error: "Nenhum caixa aberto",
-  });
-}
-    if (!itens.length) return res.status(400).json({ error: "Itens obrigatórios" });
-    if (!pagamentos.length) return res.status(400).json({ error: "Pagamentos obrigatórios" });
+    if (!sessao) {
+      return res.status(400).json({ error: "Nenhum caixa aberto" });
+    }
+
+    if (!itens.length) {
+      return res.status(400).json({ error: "Itens obrigatórios" });
+    }
+
+    if (!pagamentos.length) {
+      return res.status(400).json({ error: "Pagamentos obrigatórios" });
+    }
 
     const total_bruto = round2(Number(req.body?.total_bruto ?? 0));
     const desconto = round2(Number(req.body?.desconto ?? 0));
@@ -200,30 +186,30 @@ if (!sessao) {
     const rv = await db.query(
       `
       INSERT INTO vendas (
-  caixa_numero,
-  total_bruto,
-  desconto,
-  acrescimo,
-  total_final,
-  nfce_status,
-  usuario_id,
-  usuario_email,
-  sessao_caixa_id
-)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-RETURNING id
-    `,
+        caixa_numero,
+        total_bruto,
+        desconto,
+        acrescimo,
+        total_final,
+        nfce_status,
+        usuario_id,
+        usuario_email,
+        sessao_caixa_id
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      RETURNING id
+      `,
       [
-  caixa_numero,
-  total_bruto,
-  desconto,
-  acrescimo,
-  total_final,
-  null,
-  req.user?.id || null,
-  req.user?.email || null,
-  sessao.id
-]
+        caixa_numero,
+        total_bruto,
+        desconto,
+        acrescimo,
+        total_final,
+        null,
+        req.user?.id || null,
+        req.user?.email || null,
+        sessao.id,
+      ]
     );
 
     const venda_id = rv.rows[0].id;
@@ -232,10 +218,15 @@ RETURNING id
       const produto_id = Number(it.produto_id);
       const qtd = Number(it.qtd || 1);
       const preco_unit = round2(Number(it.preco_unit || 0));
+
       if (!produto_id || !qtd) continue;
 
       await db.query(
-        "INSERT INTO venda_itens (venda_id, produto_id, qtd, preco_unit) VALUES ($1,$2,$3,$4)",
+        `
+        INSERT INTO venda_itens
+        (venda_id, produto_id, qtd, preco_unit)
+        VALUES ($1,$2,$3,$4)
+        `,
         [venda_id, produto_id, qtd, preco_unit]
       );
     }
@@ -245,23 +236,32 @@ RETURNING id
     let pagoOutros = 0;
 
     for (const pg of pagamentos) {
-      const tipoRaw = String(pg.tipo || "").trim();
-      const tipo = normTipo(tipoRaw);
+      const tipo = normTipo(pg.tipo);
       const valor = round2(Number(pg.valor || 0));
+
       if (!tipo || valor <= 0) continue;
 
       totalPago += valor;
+
       if (tipo === "dinheiro") pagoDinheiro += valor;
       else pagoOutros += valor;
 
       await db.query(
-        "INSERT INTO venda_pagamentos (venda_id, tipo, valor) VALUES ($1,$2,$3)",
+        `
+        INSERT INTO venda_pagamentos
+        (venda_id, tipo, valor)
+        VALUES ($1,$2,$3)
+        `,
         [venda_id, tipo, valor]
       );
     }
 
     const troco = round2(Math.max(0, totalPago - total_final));
-    await db.query("UPDATE vendas SET troco=$1 WHERE id=$2", [troco, venda_id]);
+
+    await db.query("UPDATE vendas SET troco=$1 WHERE id=$2", [
+      troco,
+      venda_id,
+    ]);
 
     const restante = round2(Math.max(0, total_final - pagoOutros));
     const dinheiroGuardado = round2(Math.min(pagoDinheiro, restante));
@@ -270,20 +270,32 @@ RETURNING id
     if (dinheiroGuardado > 0) {
       await db.query(
         `
-        INSERT INTO caixa_movimentos (tipo, valor, motivo, origem, observacao, usuario_id, usuario_email)
+        INSERT INTO caixa_movimentos
+        (tipo, valor, motivo, origem, observacao, usuario_id, usuario_email)
         VALUES ('entrada', $1, 'venda', 'pdv', $2, $3, $4)
-      `,
-        [dinheiroGuardado, `Venda #${venda_id} (dinheiro)`, req.user?.id || null, req.user?.email || null]
+        `,
+        [
+          dinheiroGuardado,
+          `Venda #${venda_id} (dinheiro)`,
+          req.user?.id || null,
+          req.user?.email || null,
+        ]
       );
     }
 
     if (trocoDinheiro > 0) {
       await db.query(
         `
-        INSERT INTO caixa_movimentos (tipo, valor, motivo, origem, observacao, usuario_id, usuario_email)
+        INSERT INTO caixa_movimentos
+        (tipo, valor, motivo, origem, observacao, usuario_id, usuario_email)
         VALUES ('saida', $1, 'troco', 'pdv', $2, $3, $4)
-      `,
-        [trocoDinheiro, `Troco venda #${venda_id}`, req.user?.id || null, req.user?.email || null]
+        `,
+        [
+          trocoDinheiro,
+          `Troco venda #${venda_id}`,
+          req.user?.id || null,
+          req.user?.email || null,
+        ]
       );
     }
 
@@ -296,313 +308,311 @@ RETURNING id
 
 router.post("/:id/fiscal/emitir", async (req, res) => {
   const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ error: "ID inválido" });
-
-  const rv = await db.query("SELECT * FROM vendas WHERE id=$1", [id]);
-  if (!rv.rows.length) return res.status(404).json({ error: "Venda não encontrada" });
-
-  const venda = rv.rows[0];
-
-  if (venda.nfce_id && String(venda.nfce_status || "").toUpperCase().includes("AUT")) {
-    return res.json({
-      ok: true,
-      status: venda.nfce_status,
-      nfce_numero: venda.nfce_numero,
-      nfce_id: venda.nfce_id,
-      chave: venda.nfce_chave,
-    });
-  }
-
-  const numero = venda.nfce_numero || (await nextNfceNumero());
-  if (!venda.nfce_numero) {
-    await db.query("UPDATE vendas SET nfce_numero=$1 WHERE id=$2", [numero, id]);
-  }
-
-  const itensR = await db.query(
-    `
-    SELECT
-      vi.id,
-      vi.produto_id,
-      p.nome,
-      p.ncm,
-      p.cfop,
-      p.csosn,
-      p.pis_cst,
-      p.cofins_cst,
-      p.cest,
-      p.unidade,
-      vi.qtd,
-      vi.preco_unit
-    FROM venda_itens vi
-    LEFT JOIN produtos p ON p.id = vi.produto_id
-    WHERE vi.venda_id = $1
-    ORDER BY vi.id ASC
-  `,
-    [id]
-  );
-
-  const pagsR = await db.query(
-    `
-    SELECT id, tipo, valor
-    FROM venda_pagamentos
-    WHERE venda_id = $1
-    ORDER BY id ASC
-  `,
-    [id]
-  );
-
-  const { ambiente, tpAmb } = ambienteNF();
-  const total = Number(venda.total_final || 0);
-
-  const det = itensR.rows.map((it, idx) => {
-    const qtd = Number(it.qtd || 1);
-    const vUn = Number(it.preco_unit || 0);
-    const vProd = round2(qtd * vUn);
-
-    const ncm = String(it.ncm || "").trim() || "21069090";
-    const cfop = String(it.cfop || "").trim() || "5102";
-    const csosn = String(it.csosn || "").trim() || "102";
-    const pisCst = String(it.pis_cst || "").trim() || "07";
-    const cofinsCst = String(it.cofins_cst || "").trim() || "07";
-    const unidade = String(it.unidade || "").trim() || "UN";
-    const icms = montarICMS(csosn);
-
-    return {
-      nItem: idx + 1,
-      prod: {
-        cProd: String(it.produto_id),
-        xProd: it.nome || `Produto ${it.produto_id}`,
-        NCM: ncm,
-        CFOP: cfop,
-        uCom: unidade,
-        qCom: qtd,
-        vUnCom: vUn,
-        vProd,
-        cEAN: "SEM GTIN",
-        cEANTrib: "SEM GTIN",
-        uTrib: unidade,
-        qTrib: qtd,
-        vUnTrib: vUn,
-        indTot: 1,
-      },
-      imposto: {
-        ICMS: icms,
-        PIS: { PISNT: { CST: pisCst } },
-        COFINS: { COFINSNT: { CST: cofinsCst } },
-      },
-    };
-  });
-
-  const detPag = pagsR.rows.map((p) => {
-    const tipo = normTipo(p.tipo);
-    const vPag = Number(p.valor || 0);
-
-    const base = {
-      tPag: mapTPag(tipo),
-      vPag,
-    };
-
-    if (
-      tipo === "credito" ||
-      tipo === "debito" ||
-      tipo === "cartao" ||
-      tipo === "pix"
-    ) {
-      base.card = {
-        tpIntegra: 2,
-        cAut: "000000",
-      };
-    }
-
-    return base;
-  });
-
-  const dest = buildDest({
-    cpf: req.body?.cliente?.cpf,
-    cnpj: req.body?.cliente?.cnpj,
-    nome: req.body?.cliente?.nome,
-  });
-
-  const payload = {
-  cnpj_emitente: envOrThrow("NF_CNPJ"),
-  ref: `venda_${id}`,
-  ambiente,
-
-  infNFe: {
-    versao: "4.00",
-
-    ide: {
-      cUF: Number(envOrThrow("NF_CUF")),
-      natOp: "VENDA",
-      mod: 65,
-      serie: 3,
-      nNF: Number(numero),
-      tpNF: 1,
-      idDest: 1,
-      cMunFG: String(envOrThrow("NF_CMUNFG")),
-      tpImp: 4,
-      tpEmis: 1,
-      tpAmb,
-      finNFe: 1,
-      indFinal: 1,
-      indPres: 1,
-      procEmi: 0,
-      verProc: "PUB1005",
-      dhEmi: new Date().toISOString(),
-    },
-
-    emit: {
-      CNPJ: envOrThrow("NF_CNPJ"),
-      IE: envOrThrow("NF_IE"),
-      xNome: envOrThrow("NF_XNOME"),
-      CRT: Number(envOrThrow("NF_CRT")),
-
-      enderEmit: {
-        xLgr: envOrThrow("NF_XLGR"),
-        nro: envOrThrow("NF_NRO"),
-        xBairro: envOrThrow("NF_XBAIRRO"),
-        cMun: envOrThrow("NF_CMUN"),
-        xMun: envOrThrow("NF_XMUN"),
-        UF: envOrThrow("NF_UF"),
-        CEP: envOrThrow("NF_CEP"),
-      },
-    },
-
-    ...(dest ? { dest } : {}),
-
-    det,
-
-    total: {
-      ICMSTot: {
-        vBC: 0,
-        vICMS: 0,
-        vICMSDeson: 0,
-        vFCP: 0,
-        vBCST: 0,
-        vST: 0,
-        vFCPST: 0,
-        vFCPSTRet: 0,
-        vIPIDevol: 0,
-        vProd: total,
-        vNF: total,
-        vPIS: 0,
-        vCOFINS: 0,
-        vDesc: Number(venda.desconto || 0),
-        vOutro: 0,
-        vFrete: 0,
-        vSeg: 0,
-        vII: 0,
-        vIPI: 0,
-      },
-    },
-
-    pag: {
-      detPag,
-      vTroco: Number(venda.troco || 0),
-    },
-
-    transp: {
-      modFrete: 9,
-    },
-  },
-};
 
   try {
-    await db.query("UPDATE vendas SET nfce_status=$1 WHERE id=$2", ["EMITINDO", id]);
+    if (!id) return res.status(400).json({ error: "ID inválido" });
 
-console.log("PAYLOAD FOCUS NFC-e:");
-console.dir(payload, { depth: null });
+    const rv = await db.query("SELECT * FROM vendas WHERE id=$1", [id]);
+
+    if (!rv.rows.length) {
+      return res.status(404).json({ error: "Venda não encontrada" });
+    }
+
+    const venda = rv.rows[0];
+
+    if (
+      venda.nfce_id &&
+      String(venda.nfce_status || "").toLowerCase().includes("autoriz")
+    ) {
+      return res.json({
+        ok: true,
+        status: venda.nfce_status,
+        nfce_numero: venda.nfce_numero,
+        nfce_id: venda.nfce_id,
+        chave: venda.nfce_chave,
+      });
+    }
+
+    const numero = venda.nfce_numero || (await nextNfceNumero());
+
+    if (!venda.nfce_numero) {
+      await db.query("UPDATE vendas SET nfce_numero=$1 WHERE id=$2", [
+        numero,
+        id,
+      ]);
+    }
+
+    const itensR = await db.query(
+      `
+      SELECT
+        vi.id,
+        vi.produto_id,
+        p.nome,
+        p.ncm,
+        p.cfop,
+        p.csosn,
+        p.pis_cst,
+        p.cofins_cst,
+        p.cest,
+        p.unidade,
+        vi.qtd,
+        vi.preco_unit
+      FROM venda_itens vi
+      LEFT JOIN produtos p ON p.id = vi.produto_id
+      WHERE vi.venda_id = $1
+      ORDER BY vi.id ASC
+      `,
+      [id]
+    );
+
+    const pagsR = await db.query(
+      `
+      SELECT id, tipo, valor
+      FROM venda_pagamentos
+      WHERE venda_id = $1
+      ORDER BY id ASC
+      `,
+      [id]
+    );
+
+    const serie = Number(process.env.NF_SERIE || 3);
+
+    const items = itensR.rows.map((it, idx) => {
+      const qtd = Number(it.qtd || 1);
+      const valorUnit = round2(Number(it.preco_unit || 0));
+      const valorBruto = round2(qtd * valorUnit);
+
+      const item = {
+        numero_item: idx + 1,
+        codigo_produto: String(it.produto_id || idx + 1),
+        descricao: String(it.nome || `Produto ${it.produto_id || idx + 1}`).slice(
+          0,
+          120
+        ),
+        codigo_ncm: onlyDigits(it.ncm || "95049010"),
+        cfop: onlyDigits(it.cfop || "5102"),
+        unidade_comercial: String(it.unidade || "UN").slice(0, 6),
+        quantidade_comercial: qtd,
+        valor_unitario_comercial: valorUnit,
+        valor_bruto: valorBruto,
+        unidade_tributavel: String(it.unidade || "UN").slice(0, 6),
+        quantidade_tributavel: qtd,
+        valor_unitario_tributavel: valorUnit,
+        inclui_no_total: 1,
+
+        icms_origem: "0",
+        icms_situacao_tributaria: csosnValido(it.csosn || "102"),
+
+        pis_situacao_tributaria: cstPisCofins(it.pis_cst || "07"),
+        cofins_situacao_tributaria: cstPisCofins(it.cofins_cst || "07"),
+      };
+
+      const cest = onlyDigits(it.cest || "");
+      if (cest.length === 7) item.cest = cest;
+
+      return item;
+    });
+
+    const formas_pagamento = pagsR.rows
+      .map((p) => {
+        const tipo = normTipo(p.tipo);
+        const forma = mapFormaPagamentoFocus(tipo);
+        const valor = round2(Number(p.valor || 0));
+
+        if (valor <= 0) return null;
+
+        const pg = {
+          indicador_pagamento: "0",
+          forma_pagamento: forma,
+          valor_pagamento: valor,
+        };
+
+        if (forma === "99") {
+          pg.descricao_pagamento = "Outros";
+        }
+
+        if (["03", "04", "17", "20"].includes(forma)) {
+          pg.tipo_integracao = "2";
+          pg.numero_autorizacao = "000000";
+        }
+
+        return pg;
+      })
+      .filter(Boolean);
+
+    const dest = buildDestFocus({
+      cpf: req.body?.cliente?.cpf,
+      cnpj: req.body?.cliente?.cnpj,
+      nome: req.body?.cliente?.nome,
+    });
+
+    const payload = {
+      cnpj_emitente: envOrThrow("NF_CNPJ"),
+      ref: `venda_${id}`,
+
+      data_emissao: new Date().toISOString(),
+      natureza_operacao: "VENDA",
+      tipo_documento: "1",
+      local_destino: "1",
+      finalidade_emissao: "1",
+      presenca_comprador: "1",
+      consumidor_final: "1",
+      modalidade_frete: "9",
+      indicador_inscricao_estadual_destinatario: "9",
+
+      serie: String(serie),
+      numero: String(numero),
+
+      items,
+      formas_pagamento,
+
+      ...dest,
+    };
+
+    await db.query("UPDATE vendas SET nfce_status=$1 WHERE id=$2", [
+      "EMITINDO",
+      id,
+    ]);
+
+    console.log("PAYLOAD FOCUS NFC-e:");
+    console.dir(payload, { depth: null });
 
     const resp = await emitirNfce(payload);
 
-    const nfce_id = resp?.id || resp?.nfce?.id || null;
-    const chave = resp?.chave || resp?.nfce?.chave || null;
-
-    const statusRaw = resp?.status || resp?.nfce?.status || "EMITIDA";
+    const statusRaw = resp?.status || "emitida";
     const status = String(statusRaw || "").toLowerCase();
 
+    const chave = resp?.chave_nfe || resp?.chave || null;
+    const nfce_id = resp?.ref || `venda_${id}`;
+    const nfceNumero = resp?.numero || numero;
+
     const motivo =
-      resp?.motivo ||
-      resp?.message ||
+      resp?.mensagem_sefaz ||
       resp?.mensagem ||
-      resp?.nfce?.motivo ||
-      resp?.nfce?.message ||
-      resp?.nfce?.mensagem ||
-      (resp?.autorizacao?.motivo_status
-        ? `(${resp.autorizacao.codigo_status}) ${resp.autorizacao.motivo_status}`
-        : null) ||
-      (resp?.details?.error?.errors?.[0]?.message ?? null) ||
+      resp?.message ||
+      resp?.erro ||
       null;
 
-    if (!nfce_id) throw new Error(`Resposta sem nfce_id: ${JSON.stringify(resp)}`);
-
     let retornoDb = {};
-try {
-  retornoDb = JSON.stringify(resp || {});
-} catch {
-  retornoDb = JSON.stringify({ raw: String(resp) });
-}
+    try {
+      retornoDb = JSON.stringify(resp || {});
+    } catch {
+      retornoDb = JSON.stringify({ raw: String(resp) });
+    }
 
     await db.query(
-      `UPDATE vendas
-       SET nfce_id=$1, nfce_chave=$2, nfce_status=$3, nfce_motivo=$4, nfce_retorno=$5
-       WHERE id=$6`,
-      [nfce_id, chave, status, motivo, retornoDb, id]
+      `
+      UPDATE vendas
+      SET nfce_id=$1,
+          nfce_chave=$2,
+          nfce_status=$3,
+          nfce_motivo=$4,
+          nfce_retorno=$5,
+          nfce_numero=$6
+      WHERE id=$7
+      `,
+      [nfce_id, chave, status, motivo, retornoDb, nfceNumero, id]
     );
 
-    res.json({ ok: true, status, motivo, nfce_numero: numero, nfce_id, chave });
+    res.json({
+      ok: true,
+      status,
+      motivo,
+      nfce_numero: nfceNumero,
+      nfce_id,
+      chave,
+      retorno: resp,
+    });
   } catch (e) {
     console.log("ERRO NFC-e COMPLETO:");
-console.dir(e?.response?.data || e, { depth: null });
-
-const errosValidacao = e?.response?.data?.error?.errors;
-
-const msg = Array.isArray(errosValidacao)
-  ? errosValidacao.map((x) => x.message || JSON.stringify(x)).join(" | ")
-  : String(
-      e?.response?.data?.message ||
-        e?.response?.data?.error?.message ||
-        e?.message ||
-        "Erro ao emitir NFC-e"
-    );
+    console.dir(e?.response?.data || e, { depth: null });
 
     const details = e?.response?.data || null;
+
+    const errosValidacao =
+      details?.error?.errors ||
+      details?.errors ||
+      details?.erros ||
+      details?.mensagens;
+
+    const msg = Array.isArray(errosValidacao)
+      ? errosValidacao.map((x) => x.message || x.mensagem || JSON.stringify(x)).join(" | ")
+      : String(
+          details?.mensagem ||
+            details?.message ||
+            details?.error?.message ||
+            e?.message ||
+            "Erro ao emitir NFC-e"
+        );
+
     let detailsDb = null;
-try {
-  detailsDb = JSON.stringify(details || {});
-} catch {
-  detailsDb = JSON.stringify({ raw: String(details) });
-}
+    try {
+      detailsDb = JSON.stringify(details || {});
+    } catch {
+      detailsDb = JSON.stringify({ raw: String(details) });
+    }
 
     await db.query(
-      `UPDATE vendas
-       SET nfce_status=$1, nfce_motivo=$2, nfce_retorno=$3
-       WHERE id=$4`,
+      `
+      UPDATE vendas
+      SET nfce_status=$1,
+          nfce_motivo=$2,
+          nfce_retorno=$3
+      WHERE id=$4
+      `,
       ["erro", msg, detailsDb, id]
     );
 
-    res.status(400).json({ error: msg, details: e?.response?.data || null });
+    res.status(400).json({
+      error: msg,
+      details,
+    });
   }
 });
 
 router.get("/:id/fiscal/pdf", async (req, res) => {
-  const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ error: "ID inválido" });
-
-  const r = await db.query("SELECT nfce_id FROM vendas WHERE id=$1", [id]);
-  if (!r.rows.length) return res.status(404).json({ error: "Venda não encontrada" });
-
-  const nfce_id = r.rows[0]?.nfce_id;
-  if (!nfce_id) return res.status(400).json({ error: "NFC-e ainda não foi emitida" });
-
   try {
+    const id = Number(req.params.id);
+
+    if (!id) return res.status(400).json({ error: "ID inválido" });
+
+    const r = await db.query(
+      `
+      SELECT nfce_id
+      FROM vendas
+      WHERE id=$1
+      `,
+      [id]
+    );
+
+    if (!r.rows.length) {
+      return res.status(404).json({ error: "Venda não encontrada" });
+    }
+
+    const nfce_id = r.rows[0]?.nfce_id;
+
+    if (!nfce_id) {
+      return res.status(400).json({ error: "NFC-e ainda não foi emitida" });
+    }
+
     const pdf = await baixarPdf(nfce_id);
+
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="nfce_${id}.pdf"`);
+
     return res.send(pdf);
   } catch (e) {
-    const msg = String(e?.response?.data?.message || e?.message || "Erro ao baixar PDF");
-    return res.status(400).json({ error: msg, details: e?.response?.data || null });
+    const msg = String(
+      e?.response?.data?.message ||
+        e?.response?.data?.mensagem ||
+        e?.message ||
+        "Erro ao baixar PDF"
+    );
+
+    return res.status(400).json({
+      error: msg,
+      details: e?.response?.data || null,
+    });
   }
 });
 
