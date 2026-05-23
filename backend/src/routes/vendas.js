@@ -510,12 +510,12 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
 
     if (!nfce_id) throw new Error(`Resposta sem nfce_id: ${JSON.stringify(resp)}`);
 
-    let retornoDb = resp;
-    try {
-      JSON.stringify(resp);
-    } catch {
-      retornoDb = String(resp);
-    }
+    let retornoDb = {};
+try {
+  retornoDb = JSON.stringify(resp || {});
+} catch {
+  retornoDb = JSON.stringify({ raw: String(resp) });
+}
 
     await db.query(
       `UPDATE vendas
@@ -541,12 +541,12 @@ const msg = Array.isArray(errosValidacao)
     );
 
     const details = e?.response?.data || null;
-    let detailsDb = details;
-    try {
-      JSON.stringify(details);
-    } catch {
-      detailsDb = details ? String(details) : null;
-    }
+    let detailsDb = null;
+try {
+  detailsDb = JSON.stringify(details || {});
+} catch {
+  detailsDb = JSON.stringify({ raw: String(details) });
+}
 
     await db.query(
       `UPDATE vendas
