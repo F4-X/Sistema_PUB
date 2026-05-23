@@ -447,10 +447,15 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
     });
 
     const payload = {
-      cnpj_emitente: envOrThrow("NF_CNPJ"),
-      ref: `venda_${id}`,
+  cnpj_emitente: envOrThrow("NF_CNPJ"),
+  ref: `venda_${id}`,
 
-      data_emissao: new Date().toISOString(),
+  homologacao: true,
+
+  mensagem_fisco:
+    "NOTA FISCAL EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL",
+
+  data_emissao: new Date().toISOString(),
       natureza_operacao: "VENDA",
       tipo_documento: "1",
       local_destino: "1",
