@@ -2,7 +2,10 @@ const axios = require("axios");
 
 const ENV = String(process.env.FOCUS_AMBIENTE || "homologacao").toLowerCase();
 
-const BASE_URL = "https://api.focusnfe.com.br/v2";
+const BASE_URL =
+  ENV === "prod" || ENV === "producao" || ENV === "production"
+    ? "https://api.focusnfe.com.br/v2"
+    : "https://homologacao.focusnfe.com.br/v2";
 
 function getToken() {
   const isProd =
