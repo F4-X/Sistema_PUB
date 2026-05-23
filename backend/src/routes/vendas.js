@@ -376,7 +376,7 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
     );
 
     const serie = Number(process.env.NF_SERIE || 3);
-
+const totalNota = round2(Number(venda.total_final || 0));
     const items = itensR.rows.map((it, idx) => {
       const qtd = Number(it.qtd || 1);
       const valorUnit = round2(Number(it.preco_unit || 0));
@@ -446,6 +446,18 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
       nome: req.body?.cliente?.nome,
     });
 
+const totalPagamentos = round2(
+  formas_pagamento.reduce((s, p) => s + Number(p.valor_pagamento || 0), 0)
+);
+
+const valorTroco = round2(Number(venda.troco || 0));
+
+if (totalPagamentos < totalNota) {
+  throw new Error(
+    `Total dos pagamentos menor que o total da nota. Total nota: ${totalNota}, pagamentos: ${totalPagamentos}`
+  );
+}
+
     const payload = {
   cnpj_emitente: envOrThrow("NF_CNPJ"),
   ref: `venda_${id}`,
@@ -466,9 +478,11 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
       numero: String(numero),
 
       items,
-      formas_pagamento,
+formas_pagamento,
 
-      ...dest,
+...(valorTroco > 0 ? { valor_troco: valorTroco } : {}),
+
+...dest,
     };
 
     await db.query("UPDATE vendas SET nfce_status=$1 WHERE id=$2", [
