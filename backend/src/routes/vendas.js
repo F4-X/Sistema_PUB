@@ -517,8 +517,7 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
   try {
     await db.query("UPDATE vendas SET nfce_status=$1 WHERE id=$2", ["EMITINDO", id]);
 
-console.log("PAYLOAD FOCUS NFC-e:");
-console.dir(payload, { depth: null });
+
 
     const resp = await emitirNfce(payload);
 
