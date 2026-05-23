@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const db = require("../db");
-const { emitirNfce, baixarPdf } = require("./nuvemfiscal");
+const { emitirNfce, baixarPdf } = require("./focusnfe");
 
 function round2(n) {
   return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
