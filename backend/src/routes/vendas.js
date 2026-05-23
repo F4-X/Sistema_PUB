@@ -450,11 +450,6 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
   cnpj_emitente: envOrThrow("NF_CNPJ"),
   ref: `venda_${id}`,
 
-  homologacao: true,
-
-  mensagem_fisco:
-    "NOTA FISCAL EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL",
-
   data_emissao: new Date().toLocaleString("sv-SE", {
   timeZone: "America/Sao_Paulo",
 }).replace(" ", "T") + "-03:00",
