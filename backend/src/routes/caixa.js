@@ -95,18 +95,21 @@ async function calcularPeriodo(sessao) {
   const fim = sessao.fechado_em || new Date();
 
   const pagamentos = await db.query(
-    `
-    SELECT
-      COALESCE(SUM(CASE WHEN LOWER(vp.tipo)='dinheiro' THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS dinheiro_pago,
-      COALESCE(SUM(CASE WHEN LOWER(vp.tipo)='pix' THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS pix,
-      COALESCE(SUM(CASE WHEN LOWER(vp.tipo) IN ('credito','debito','cartao') THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS cartao
-    FROM venda_pagamentos vp
-    JOIN vendas v ON v.id = vp.venda_id
-    WHERE v.criado_em >= $1
-      AND v.criado_em <= $2
-    `,
-    [inicio, fim]
-  );
+  `
+  SELECT
+    COALESCE(SUM(CASE WHEN LOWER(vp.tipo)='dinheiro' THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS dinheiro_pago,
+
+    COALESCE(SUM(CASE WHEN LOWER(vp.tipo)='pix' THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS pix,
+
+    COALESCE(SUM(CASE WHEN LOWER(vp.tipo) IN ('credito','debito','cartao') THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS cartao
+
+  FROM venda_pagamentos vp
+  JOIN vendas v ON v.id = vp.venda_id
+
+  WHERE v.sessao_caixa_id = $1
+  `,
+  [sessao.id]
+);
 
   const movimentos = await db.query(
     `
