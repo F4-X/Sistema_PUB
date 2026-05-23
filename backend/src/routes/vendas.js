@@ -424,81 +424,95 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
   });
 
   const payload = {
-    ambiente,
-    infNFe: {
-      versao: "4.00",
-      ide: {
-        cUF: Number(envOrThrow("NF_CUF")),
-        natOp: "VENDA",
-        mod: 65,
-        serie: 3,
-        nNF: Number(numero),
-        tpNF: 1,
-        idDest: 1,
-        cMunFG: String(envOrThrow("NF_CMUNFG")),
-        tpImp: 4,
-        tpEmis: 1,
-        tpAmb,
-        finNFe: 1,
-        indFinal: 1,
-        indPres: 1,
-        procEmi: 0,
-        verProc: "PUB1005",
-        dhEmi: new Date().toISOString(),
-      },
-      emit: {
-        CNPJ: envOrThrow("NF_CNPJ"),
-        IE: envOrThrow("NF_IE"),
-        xNome: envOrThrow("NF_XNOME"),
-        CRT: Number(envOrThrow("NF_CRT")),
-        enderEmit: {
-          xLgr: envOrThrow("NF_XLGR"),
-          nro: envOrThrow("NF_NRO"),
-          xBairro: envOrThrow("NF_XBAIRRO"),
-          cMun: envOrThrow("NF_CMUN"),
-          xMun: envOrThrow("NF_XMUN"),
-          UF: envOrThrow("NF_UF"),
-          CEP: envOrThrow("NF_CEP"),
-        },
-      },
-      ...(dest ? { dest } : {}),
-      det,
-      total: {
-        ICMSTot: {
-          vBC: 0,
-          vICMS: 0,
-          vICMSDeson: 0,
-          vFCP: 0,
-          vBCST: 0,
-          vST: 0,
-          vFCPST: 0,
-          vFCPSTRet: 0,
-          vIPIDevol: 0,
-          vProd: total,
-          vNF: total,
-          vPIS: 0,
-          vCOFINS: 0,
-          vDesc: Number(venda.desconto || 0),
-          vOutro: 0,
-          vFrete: 0,
-          vSeg: 0,
-          vII: 0,
-          vIPI: 0,
-        },
-      },
-      pag: {
-  detPag,
-  vTroco: Number(venda.troco || 0),
-},
-      transp: { modFrete: 9 },
-      infRespTec: {
-        CNPJ: process.env.NF_RT_CNPJ,
-        xContato: process.env.NF_RT_XCONTATO,
-        email: process.env.NF_RT_EMAIL,
-        fone: process.env.NF_RT_FONE,
+  cnpj_emitente: envOrThrow("NF_CNPJ"),
+  ref: `venda_${id}`,
+  ambiente,
+
+  infNFe: {
+    versao: "4.00",
+
+    ide: {
+      cUF: Number(envOrThrow("NF_CUF")),
+      natOp: "VENDA",
+      mod: 65,
+      serie: 3,
+      nNF: Number(numero),
+      tpNF: 1,
+      idDest: 1,
+      cMunFG: String(envOrThrow("NF_CMUNFG")),
+      tpImp: 4,
+      tpEmis: 1,
+      tpAmb,
+      finNFe: 1,
+      indFinal: 1,
+      indPres: 1,
+      procEmi: 0,
+      verProc: "PUB1005",
+      dhEmi: new Date().toISOString(),
+    },
+
+    emit: {
+      CNPJ: envOrThrow("NF_CNPJ"),
+      IE: envOrThrow("NF_IE"),
+      xNome: envOrThrow("NF_XNOME"),
+      CRT: Number(envOrThrow("NF_CRT")),
+
+      enderEmit: {
+        xLgr: envOrThrow("NF_XLGR"),
+        nro: envOrThrow("NF_NRO"),
+        xBairro: envOrThrow("NF_XBAIRRO"),
+        cMun: envOrThrow("NF_CMUN"),
+        xMun: envOrThrow("NF_XMUN"),
+        UF: envOrThrow("NF_UF"),
+        CEP: envOrThrow("NF_CEP"),
       },
     },
-  };
+
+    ...(dest ? { dest } : {}),
+
+    det,
+
+    total: {
+      ICMSTot: {
+        vBC: 0,
+        vICMS: 0,
+        vICMSDeson: 0,
+        vFCP: 0,
+        vBCST: 0,
+        vST: 0,
+        vFCPST: 0,
+        vFCPSTRet: 0,
+        vIPIDevol: 0,
+        vProd: total,
+        vNF: total,
+        vPIS: 0,
+        vCOFINS: 0,
+        vDesc: Number(venda.desconto || 0),
+        vOutro: 0,
+        vFrete: 0,
+        vSeg: 0,
+        vII: 0,
+        vIPI: 0,
+      },
+    },
+
+    pag: {
+      detPag,
+      vTroco: Number(venda.troco || 0),
+    },
+
+    transp: {
+      modFrete: 9,
+    },
+
+    infRespTec: {
+      CNPJ: process.env.NF_RT_CNPJ,
+      xContato: process.env.NF_RT_XCONTATO,
+      email: process.env.NF_RT_EMAIL,
+      fone: process.env.NF_RT_FONE,
+    },
+  },
+};
 
   try {
     await db.query("UPDATE vendas SET nfce_status=$1 WHERE id=$2", ["EMITINDO", id]);
