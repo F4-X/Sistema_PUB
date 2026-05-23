@@ -504,13 +504,6 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
     transp: {
       modFrete: 9,
     },
-
-    infRespTec: {
-      CNPJ: process.env.NF_RT_CNPJ,
-      xContato: process.env.NF_RT_XCONTATO,
-      email: process.env.NF_RT_EMAIL,
-      fone: process.env.NF_RT_FONE,
-    },
   },
 };
 
