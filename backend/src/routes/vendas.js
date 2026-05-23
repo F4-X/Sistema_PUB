@@ -455,7 +455,9 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
   mensagem_fisco:
     "NOTA FISCAL EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL",
 
-  data_emissao: new Date().toISOString(),
+  data_emissao: new Date().toLocaleString("sv-SE", {
+  timeZone: "America/Sao_Paulo",
+}).replace(" ", "T") + "-03:00",
       natureza_operacao: "VENDA",
       tipo_documento: "1",
       local_destino: "1",
