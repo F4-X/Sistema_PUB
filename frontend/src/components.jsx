@@ -142,8 +142,10 @@ export function TopbarFuncionarios({
   onLogout,
 }) {
   const user = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
+  sessionStorage.getItem("user") ||
+  localStorage.getItem("user") ||
+  "{}"
+);
 
   const tipo = String(
     user?.tipo || ""
