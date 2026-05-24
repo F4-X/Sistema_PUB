@@ -741,8 +741,9 @@ if (!descricao.trim()) {
   setPage={setPaginaFuncionarios}
   onBack={() => setTela("menu")}
   onLogout={() => {
-    localStorage.removeItem("token");
-    location.reload();
+    sessionStorage.clear();
+localStorage.clear();
+location.reload();
   }}
 />
 

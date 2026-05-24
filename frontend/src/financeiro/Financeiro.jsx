@@ -193,8 +193,9 @@ export default function Financeiro({ setTela }) {
         setPage={setPage}
         onBack={() => setTela("menu")}
         onLogout={() => {
-          localStorage.removeItem("token");
-          location.reload();
+          sessionStorage.clear();
+localStorage.clear();
+location.reload();
         }}
       />
     );

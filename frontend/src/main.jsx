@@ -7,7 +7,10 @@ import App from "./App.jsx";
 
 // ✅ Sempre pedir login no Desktop (Electron), mesmo em dev (http://localhost:5173)
 const isElectron = navigator.userAgent.includes("Electron");
-if (isElectron) localStorage.removeItem("token");
+if (isElectron) {
+  sessionStorage.clear();
+  localStorage.clear();
+}
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

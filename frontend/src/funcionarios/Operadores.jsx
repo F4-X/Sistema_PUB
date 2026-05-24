@@ -12,7 +12,11 @@ export default function Operadores() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = JSON.parse(
+  sessionStorage.getItem("user") ||
+  localStorage.getItem("user") ||
+  "{}"
+);
   const tipoUser = String(user?.tipo || "").toLowerCase();
 
   const podeCadastrar =
