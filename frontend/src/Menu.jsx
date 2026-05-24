@@ -1,6 +1,13 @@
 export default function Menu({ setTela, onLogout }) {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-const tipo = String(user?.tipo || "comum").toLowerCase();
+  const user = JSON.parse(
+    sessionStorage.getItem("user") ||
+      localStorage.getItem("user") ||
+      "{}"
+  );
+
+  const tipo = String(
+    user?.tipo || "comum"
+  ).toLowerCase();
 
   const cards = [
     {
@@ -9,6 +16,7 @@ const tipo = String(user?.tipo || "comum").toLowerCase();
       label: "Funcionários",
       desc: "Cadastros, pagamentos e controle da equipe.",
     },
+
     {
       key: "financeiro",
       icon: "💰",
@@ -16,13 +24,15 @@ const tipo = String(user?.tipo || "comum").toLowerCase();
       desc: "XMLs, contas a pagar e contas pagas.",
       adminOnly: true,
     },
+
     {
-  key: "fiscal",
-  icon: "🧾",
-  label: "Fiscal",
-  desc: "Impostos, NFC-e, tributação e dados fiscais.",
-  adminOnly: true,
-},
+      key: "fiscal",
+      icon: "🧾",
+      label: "Fiscal",
+      desc: "Impostos, NFC-e, tributação e dados fiscais.",
+      adminOnly: true,
+    },
+
     {
       key: "pdv",
       icon: "🛒",
@@ -31,15 +41,16 @@ const tipo = String(user?.tipo || "comum").toLowerCase();
     },
   ];
 
- const cardsVisiveis = cards.filter((item) => {
-  if (!item.adminOnly) return true;
+  const cardsVisiveis = cards.filter(
+    (item) => {
+      if (!item.adminOnly) return true;
 
-  return (
-    tipo === "admin" ||
-    tipo === "geral" ||
-    tipo === "funcional"
+      return (
+        tipo === "admin" ||
+        tipo === "geral"
+      );
+    }
   );
-});
 
   return (
     <div className="menu-page">
@@ -48,16 +59,28 @@ const tipo = String(user?.tipo || "comum").toLowerCase();
 
       <header className="pdv-topbar">
         <div className="pdv-brand">
-          <div className="pdv-title">1005 PUB</div>
-          <div className="pdv-sub">Selecione um módulo do sistema</div>
+          <div className="pdv-title">
+            1005 PUB
+          </div>
+
+          <div className="pdv-sub">
+            Selecione um módulo do sistema
+          </div>
         </div>
 
         <div className="pdv-controls">
           <div className="pdv-toggle">
-            <button className="active" type="button">
+            <button
+              className="active"
+              type="button"
+            >
               Menu
             </button>
-            <button type="button" onClick={onLogout}>
+
+            <button
+              type="button"
+              onClick={onLogout}
+            >
               Sair
             </button>
           </div>
@@ -66,14 +89,19 @@ const tipo = String(user?.tipo || "comum").toLowerCase();
 
       <main className="menu-main">
         <section className="menu-hero">
-          <span className="menu-badge">Sistema interno</span>
+          <span className="menu-badge">
+            Sistema interno
+          </span>
 
           <h1 className="menu-heading">
-            Escolha o módulo que deseja acessar
+            Escolha o módulo que deseja
+            acessar
           </h1>
 
           <p className="menu-text">
-            Um acesso rápido, bonito e organizado para as áreas principais do sistema.
+            Um acesso rápido, bonito e
+            organizado para as áreas
+            principais do sistema.
           </p>
         </section>
 
@@ -83,20 +111,31 @@ const tipo = String(user?.tipo || "comum").toLowerCase();
               key={item.key}
               type="button"
               className="menu-box"
-              onClick={() => setTela(item.key)}
+              onClick={() =>
+                setTela(item.key)
+              }
             >
               <div className="menu-box-top">
                 <div className="menu-icon-wrap">
-                  <div className="menu-icon">{item.icon}</div>
+                  <div className="menu-icon">
+                    {item.icon}
+                  </div>
                 </div>
               </div>
 
               <div className="menu-content">
-                <div className="menu-label">{item.label}</div>
-                <div className="menu-desc">{item.desc}</div>
+                <div className="menu-label">
+                  {item.label}
+                </div>
+
+                <div className="menu-desc">
+                  {item.desc}
+                </div>
               </div>
 
-              <div className="menu-arrow">Abrir módulo →</div>
+              <div className="menu-arrow">
+                Abrir módulo →
+              </div>
             </button>
           ))}
         </section>
