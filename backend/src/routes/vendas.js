@@ -16,6 +16,17 @@ function envOrThrow(k) {
   return v;
 }
 
+function safeJson(value) {
+  try {
+    return JSON.stringify(value ?? {});
+  } catch (err) {
+    return JSON.stringify({
+      erro_serializacao: true,
+      mensagem: String(err?.message || err),
+    });
+  }
+}
+
 function normTipo(t) {
   const s = String(t || "").trim().toLowerCase();
   if (s.includes("din")) return "dinheiro";
@@ -376,7 +387,8 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
     );
 
     const serie = Number(process.env.NF_SERIE || 3);
-const totalNota = round2(Number(venda.total_final || 0));
+    const totalNota = round2(Number(venda.total_final || 0));
+
     const items = itensR.rows.map((it, idx) => {
       const qtd = Number(it.qtd || 1);
       const valorUnit = round2(Number(it.preco_unit || 0));
@@ -385,10 +397,7 @@ const totalNota = round2(Number(venda.total_final || 0));
       const item = {
         numero_item: idx + 1,
         codigo_produto: String(it.produto_id || idx + 1),
-        descricao: String(it.nome || `Produto ${it.produto_id || idx + 1}`).slice(
-          0,
-          120
-        ),
+        descricao: String(it.nome || `Produto ${it.produto_id || idx + 1}`).slice(0, 120),
         codigo_ncm: onlyDigits(it.ncm || "95049010"),
         cfop: onlyDigits(it.cfop || "5102"),
         unidade_comercial: String(it.unidade || "UN").slice(0, 6),
@@ -446,25 +455,27 @@ const totalNota = round2(Number(venda.total_final || 0));
       nome: req.body?.cliente?.nome,
     });
 
-const totalPagamentos = round2(
-  formas_pagamento.reduce((s, p) => s + Number(p.valor_pagamento || 0), 0)
-);
+    const totalPagamentos = round2(
+      formas_pagamento.reduce((s, p) => s + Number(p.valor_pagamento || 0), 0)
+    );
 
-const valorTroco = round2(Number(venda.troco || 0));
+    const valorTroco = round2(Number(venda.troco || 0));
 
-if (totalPagamentos < totalNota) {
-  throw new Error(
-    `Total dos pagamentos menor que o total da nota. Total nota: ${totalNota}, pagamentos: ${totalPagamentos}`
-  );
-}
+    if (totalPagamentos < totalNota) {
+      throw new Error(
+        `Total dos pagamentos menor que o total da nota. Total nota: ${totalNota}, pagamentos: ${totalPagamentos}`
+      );
+    }
 
     const payload = {
-  cnpj_emitente: envOrThrow("NF_CNPJ"),
-  ref: `venda_${id}`,
+      cnpj_emitente: envOrThrow("NF_CNPJ"),
+      ref: `venda_${id}`,
 
-  data_emissao: new Date().toLocaleString("sv-SE", {
-  timeZone: "America/Sao_Paulo",
-}).replace(" ", "T") + "-03:00",
+      data_emissao:
+        new Date()
+          .toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" })
+          .replace(" ", "T") + "-03:00",
+
       natureza_operacao: "VENDA",
       tipo_documento: "1",
       local_destino: "1",
@@ -478,11 +489,11 @@ if (totalPagamentos < totalNota) {
       numero: String(numero),
 
       items,
-formas_pagamento,
+      formas_pagamento,
 
-...(valorTroco > 0 ? { valor_troco: valorTroco } : {}),
+      ...(valorTroco > 0 ? { valor_troco: valorTroco } : {}),
 
-...dest,
+      ...dest,
     };
 
     await db.query("UPDATE vendas SET nfce_status=$1 WHERE id=$2", [
@@ -509,12 +520,7 @@ formas_pagamento,
       resp?.erro ||
       null;
 
-    let retornoDb = {};
-    try {
-      retornoDb = JSON.stringify(resp || {});
-    } catch {
-      retornoDb = JSON.stringify({ raw: String(resp) });
-    }
+    const retornoDb = safeJson(resp);
 
     await db.query(
       `
@@ -523,7 +529,7 @@ formas_pagamento,
           nfce_chave=$2,
           nfce_status=$3,
           nfce_motivo=$4,
-          nfce_retorno=$5,
+          nfce_retorno=$5::jsonb,
           nfce_numero=$6
       WHERE id=$7
       `,
@@ -561,19 +567,14 @@ formas_pagamento,
             "Erro ao emitir NFC-e"
         );
 
-    let detailsDb = null;
-    try {
-      detailsDb = JSON.stringify(details || {});
-    } catch {
-      detailsDb = JSON.stringify({ raw: String(details) });
-    }
+    const detailsDb = safeJson(details || { erro: msg });
 
     await db.query(
       `
       UPDATE vendas
       SET nfce_status=$1,
           nfce_motivo=$2,
-          nfce_retorno=$3
+          nfce_retorno=$3::jsonb
       WHERE id=$4
       `,
       ["erro", msg, detailsDb, id]
