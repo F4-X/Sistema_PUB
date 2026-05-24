@@ -9,22 +9,28 @@ import Fiscal from "./gestao/Fiscal.jsx";
 export default function App() {
   const isElectron = navigator.userAgent.includes("Electron");
 
+  const getToken = () =>
+    sessionStorage.getItem("token") ||
+    localStorage.getItem("token");
+
   const [ok, setOk] = useState(() => {
     if (isElectron) return false;
-    return !!localStorage.getItem("token");
+    return !!getToken();
   });
 
   const [tela, setTela] = useState("menu");
 
   useEffect(() => {
     if (isElectron) {
-      localStorage.removeItem("token");
+      sessionStorage.clear();
+      localStorage.clear();
       setOk(false);
     }
   }, [isElectron]);
 
   function sair() {
-    localStorage.removeItem("token");
+    sessionStorage.clear();
+    localStorage.clear();
     setOk(false);
     setTela("menu");
   }
@@ -49,15 +55,16 @@ export default function App() {
   }
 
   if (tela === "funcionarios") {
-    return <Marcados setTela={setTela} />;
+    return <Marcados setTela={setTela} onLogout={sair} />;
   }
 
   if (tela === "financeiro") {
-    return <Financeiro setTela={setTela} />;
+    return <Financeiro setTela={setTela} onLogout={sair} />;
   }
+
   if (tela === "fiscal") {
-  return <Fiscal setTela={setTela} />;
-}
+    return <Fiscal setTela={setTela} onLogout={sair} />;
+  }
 
   return <Menu setTela={setTela} onLogout={sair} />;
 }
