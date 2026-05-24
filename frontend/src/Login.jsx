@@ -22,8 +22,15 @@ export default function Login({ onLogin }) {
         senha,
       });
 
-      // sessão temporária
-      sessionStorage.setItem("token", data.token);
+      // limpa sessões antigas
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // salva nova sessão
+      sessionStorage.setItem(
+        "token",
+        data.token
+      );
 
       sessionStorage.setItem(
         "user",

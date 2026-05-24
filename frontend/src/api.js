@@ -9,7 +9,9 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token =
+    sessionStorage.getItem("token") ||
+    localStorage.getItem("token");
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -24,7 +26,15 @@ api.interceptors.response.use(
     const status = err?.response?.status;
 
     if (status === 401) {
-      console.warn("Requisição não autorizada:", err?.response?.data);
+      console.warn(
+        "Não autorizado:",
+        err?.response?.data
+      );
+
+      sessionStorage.clear();
+      localStorage.clear();
+
+      location.reload();
     }
 
     return Promise.reject(err);
