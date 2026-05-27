@@ -379,66 +379,94 @@ export default function Fiscal({ setTela }) {
             )}
 
             {selectCampo(
-              "PIS CST",
-              "pis_cst",
-              [
-                {
-                  value: "01",
-                  label: "01",
-                },
-                {
-                  value: "04",
-                  label: "04",
-                },
-                {
-                  value: "06",
-                  label: "06",
-                },
-                {
-                  value: "07",
-                  label: "07",
-                },
-                {
-                  value: "08",
-                  label: "08",
-                },
-                {
-                  value: "09",
-                  label: "09",
-                },
-              ]
-            )}
+  "PIS CST",
+  "pis_cst",
+  [
+    { value: "01", label: "01" },
+    { value: "02", label: "02" },
+    { value: "03", label: "03" },
+    { value: "04", label: "04" },
+    { value: "05", label: "05" },
+    { value: "06", label: "06" },
+    { value: "07", label: "07" },
+    { value: "08", label: "08" },
+    { value: "09", label: "09" },
+
+    { value: "49", label: "49" },
+
+    { value: "50", label: "50" },
+    { value: "51", label: "51" },
+    { value: "52", label: "52" },
+    { value: "53", label: "53" },
+    { value: "54", label: "54" },
+    { value: "55", label: "55" },
+    { value: "56", label: "56" },
+
+    { value: "60", label: "60" },
+    { value: "61", label: "61" },
+    { value: "62", label: "62" },
+    { value: "63", label: "63" },
+    { value: "64", label: "64" },
+    { value: "65", label: "65" },
+    { value: "66", label: "66" },
+    { value: "67", label: "67" },
+
+    { value: "70", label: "70" },
+    { value: "71", label: "71" },
+    { value: "72", label: "72" },
+    { value: "73", label: "73" },
+    { value: "74", label: "74" },
+    { value: "75", label: "75" },
+
+    { value: "98", label: "98" },
+    { value: "99", label: "99" },
+  ]
+)}
 
             {selectCampo(
-              "COFINS CST",
-              "cofins_cst",
-              [
-                {
-                  value: "01",
-                  label: "01",
-                },
-                {
-                  value: "04",
-                  label: "04",
-                },
-                {
-                  value: "06",
-                  label: "06",
-                },
-                {
-                  value: "07",
-                  label: "07",
-                },
-                {
-                  value: "08",
-                  label: "08",
-                },
-                {
-                  value: "09",
-                  label: "09",
-                },
-              ]
-            )}
+  "COFINS CST",
+  "cofins_cst",
+  [
+    { value: "01", label: "01" },
+    { value: "02", label: "02" },
+    { value: "03", label: "03" },
+    { value: "04", label: "04" },
+    { value: "05", label: "05" },
+    { value: "06", label: "06" },
+    { value: "07", label: "07" },
+    { value: "08", label: "08" },
+    { value: "09", label: "09" },
+
+    { value: "49", label: "49" },
+
+    { value: "50", label: "50" },
+    { value: "51", label: "51" },
+    { value: "52", label: "52" },
+    { value: "53", label: "53" },
+    { value: "54", label: "54" },
+    { value: "55", label: "55" },
+    { value: "56", label: "56" },
+
+    { value: "60", label: "60" },
+    { value: "61", label: "61" },
+    { value: "62", label: "62" },
+    { value: "63", label: "63" },
+    { value: "64", label: "64" },
+    { value: "65", label: "65" },
+    { value: "66", label: "66" },
+    { value: "67", label: "67" },
+
+    { value: "70", label: "70" },
+    { value: "71", label: "71" },
+    { value: "72", label: "72" },
+    { value: "73", label: "73" },
+    { value: "74", label: "74" },
+    { value: "75", label: "75" },
+
+    { value: "98", label: "98" },
+    { value: "99", label: "99" },
+  ]
+)}
 
             {selectCampo(
               "Unidade",
