@@ -58,6 +58,13 @@ const fiscaisPorNcm = {
     cofins_cst: "99",
     unidade: "UN",
   },
+  "17049020": {
+  cfop: "5405",
+  csosn: "500",
+  pis_cst: "04",
+  cofins_cst: "04",
+  unidade: "UN",
+},
 };
 
 export default function Fiscal({ setTela }) {
@@ -310,6 +317,10 @@ export default function Fiscal({ setTela }) {
               { value: "22029900", label: "22029900 - Energético" },
               { value: "22083020", label: "22083020 - Whisky" },
               { value: "22089000", label: "22089000 - Drinks / Caipirinha" },
+               {
+    value: "17049020",
+    label: "17049020 - Bala / Chiclete",
+  }
             ])}
 
             {selectCampo("CFOP", "cfop", [
