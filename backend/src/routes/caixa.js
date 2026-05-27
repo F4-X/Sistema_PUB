@@ -23,6 +23,36 @@ async function garantirColunas() {
   `);
 
   await db.query(`
+    ALTER TABLE caixa_sessoes
+    ADD COLUMN IF NOT EXISTS dinheiro_sistema NUMERIC(10,2) DEFAULT 0
+  `);
+
+  await db.query(`
+    ALTER TABLE caixa_sessoes
+    ADD COLUMN IF NOT EXISTS pix_sistema NUMERIC(10,2) DEFAULT 0
+  `);
+
+  await db.query(`
+    ALTER TABLE caixa_sessoes
+    ADD COLUMN IF NOT EXISTS cartao_sistema NUMERIC(10,2) DEFAULT 0
+  `);
+
+  await db.query(`
+    ALTER TABLE caixa_sessoes
+    ADD COLUMN IF NOT EXISTS dif_dinheiro NUMERIC(10,2) DEFAULT 0
+  `);
+
+  await db.query(`
+    ALTER TABLE caixa_sessoes
+    ADD COLUMN IF NOT EXISTS dif_pix NUMERIC(10,2) DEFAULT 0
+  `);
+
+  await db.query(`
+    ALTER TABLE caixa_sessoes
+    ADD COLUMN IF NOT EXISTS dif_cartao NUMERIC(10,2) DEFAULT 0
+  `);
+
+  await db.query(`
     ALTER TABLE caixa_movimentos
     ADD COLUMN IF NOT EXISTS sessao_id INTEGER
   `);
@@ -95,21 +125,17 @@ async function calcularPeriodo(sessao) {
   const fim = sessao.fechado_em || new Date();
 
   const pagamentos = await db.query(
-  `
-  SELECT
-    COALESCE(SUM(CASE WHEN LOWER(vp.tipo)='dinheiro' THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS dinheiro_pago,
-
-    COALESCE(SUM(CASE WHEN LOWER(vp.tipo)='pix' THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS pix,
-
-    COALESCE(SUM(CASE WHEN LOWER(vp.tipo) IN ('credito','debito','cartao') THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS cartao
-
-  FROM venda_pagamentos vp
-  JOIN vendas v ON v.id = vp.venda_id
-
-  WHERE v.sessao_caixa_id = $1
-  `,
-  [sessao.id]
-);
+    `
+    SELECT
+      COALESCE(SUM(CASE WHEN LOWER(vp.tipo)='dinheiro' THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS dinheiro_pago,
+      COALESCE(SUM(CASE WHEN LOWER(vp.tipo)='pix' THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS pix,
+      COALESCE(SUM(CASE WHEN LOWER(vp.tipo) IN ('credito','debito','cartao') THEN vp.valor ELSE 0 END),0)::numeric(10,2) AS cartao
+    FROM venda_pagamentos vp
+    JOIN vendas v ON v.id = vp.venda_id
+    WHERE v.sessao_caixa_id = $1
+    `,
+    [sessao.id]
+  );
 
   const movimentos = await db.query(
     `
@@ -388,6 +414,21 @@ router.post("/fechar", async (req, res) => {
       ? moneyNumber(req.body?.cartao)
       : Number(dados.cartao || 0);
 
+    const pixSistema = Number(dados.pix || 0);
+    const cartaoSistema = Number(dados.cartao || 0);
+
+    const dif_dinheiro = Number(
+      (dinheiro_conferencia - dinheiroSistema).toFixed(2)
+    );
+
+    const dif_pix = Number(
+      (pix_conferencia - pixSistema).toFixed(2)
+    );
+
+    const dif_cartao = Number(
+      (cartao_conferencia - cartaoSistema).toFixed(2)
+    );
+
     const valor_fechamento =
       req.body?.valor_fechamento !== undefined
         ? moneyNumber(req.body?.valor_fechamento)
@@ -406,9 +447,15 @@ router.post("/fechar", async (req, res) => {
           dinheiro_conferencia=$2,
           pix_conferencia=$3,
           cartao_conferencia=$4,
+          dinheiro_sistema=$5,
+          pix_sistema=$6,
+          cartao_sistema=$7,
+          dif_dinheiro=$8,
+          dif_pix=$9,
+          dif_cartao=$10,
           fechado_em=NOW(),
           status='fechado'
-      WHERE id=$5
+      WHERE id=$11
       RETURNING *
       `,
       [
@@ -416,6 +463,12 @@ router.post("/fechar", async (req, res) => {
         dinheiro_conferencia,
         pix_conferencia,
         cartao_conferencia,
+        dinheiroSistema,
+        pixSistema,
+        cartaoSistema,
+        dif_dinheiro,
+        dif_pix,
+        dif_cartao,
         sessao.id,
       ]
     );
@@ -425,9 +478,14 @@ router.post("/fechar", async (req, res) => {
       sessao: r.rows[0],
       sistema: {
         dinheiro_sistema: dinheiroSistema,
-        pix_sistema: dados.pix,
-        cartao_sistema: dados.cartao,
+        pix_sistema: pixSistema,
+        cartao_sistema: cartaoSistema,
         total_sistema: totalSistema,
+      },
+      diferencas: {
+        dif_dinheiro,
+        dif_pix,
+        dif_cartao,
       },
     });
   } catch (e) {
@@ -486,6 +544,12 @@ router.get("/fechamentos", async (req, res) => {
         dinheiro_conferencia,
         pix_conferencia,
         cartao_conferencia,
+        dinheiro_sistema,
+        pix_sistema,
+        cartao_sistema,
+        dif_dinheiro,
+        dif_pix,
+        dif_cartao,
         usuario_email,
         aberto_em,
         fechado_em,
@@ -505,9 +569,6 @@ router.get("/fechamentos", async (req, res) => {
     const items = [];
 
     for (const s of sessoes.rows) {
-      const dados = await calcularPeriodo(s);
-      const { abertura, dinheiroSistema, totalSistema } = calcularTotais(s, dados);
-
       const fechado = String(s.status || "") === "fechado";
 
       const dinheiroConferencia = fechado
@@ -522,45 +583,66 @@ router.get("/fechamentos", async (req, res) => {
         ? Number(s.cartao_conferencia || 0)
         : 0;
 
-      const totalDeclarado = fechado ? Number(s.valor_fechamento || 0) : null;
+      const dinheiroSistema = fechado
+        ? Number(s.dinheiro_sistema || 0)
+        : 0;
+
+      const pixSistema = fechado
+        ? Number(s.pix_sistema || 0)
+        : 0;
+
+      const cartaoSistema = fechado
+        ? Number(s.cartao_sistema || 0)
+        : 0;
 
       const difDinheiro = fechado
-        ? dinheiroConferencia - dinheiroSistema
+        ? Number(s.dif_dinheiro || 0)
         : 0;
 
-      const difPix = fechado ? pixConferencia - dados.pix : 0;
-      const difCartao = fechado ? cartaoConferencia - dados.cartao : 0;
-
-      const diferenca = fechado
-        ? Number((difDinheiro + difPix + difCartao).toFixed(2))
+      const difPix = fechado
+        ? Number(s.dif_pix || 0)
         : 0;
+
+      const difCartao = fechado
+        ? Number(s.dif_cartao || 0)
+        : 0;
+
+      const totalSistema = Number(
+        (dinheiroSistema + pixSistema + cartaoSistema).toFixed(2)
+      );
+
+      const totalDeclarado = fechado ? Number(s.valor_fechamento || 0) : null;
+
+      const diferenca = Number(
+        (difDinheiro + difPix + difCartao).toFixed(2)
+      );
 
       items.push({
         ...s,
 
-        dinheiro: dados.dinheiro,
-        pix: dados.pix,
-        cartao: dados.cartao,
-        credito: dados.credito,
-        debito: dados.debito,
-        troco: dados.troco,
-        entradas: dados.entradas,
-        sangrias: dados.sangrias,
-        saidas: dados.saidas,
+        abertura: Number(s.valor_abertura || 0),
 
-        abertura,
+        dinheiro: dinheiroSistema,
+        pix: pixSistema,
+        cartao: cartaoSistema,
+        credito: 0,
+        debito: cartaoSistema,
+        troco: 0,
+        entradas: 0,
+        sangrias: 0,
+        saidas: 0,
 
         dinheiro_sistema: dinheiroSistema,
-        pix_sistema: Number(dados.pix.toFixed(2)),
-        cartao_sistema: Number(dados.cartao.toFixed(2)),
+        pix_sistema: pixSistema,
+        cartao_sistema: cartaoSistema,
 
         dinheiro_conferencia: dinheiroConferencia,
         pix_conferencia: pixConferencia,
         cartao_conferencia: cartaoConferencia,
 
-        dif_dinheiro: Number(difDinheiro.toFixed(2)),
-        dif_pix: Number(difPix.toFixed(2)),
-        dif_cartao: Number(difCartao.toFixed(2)),
+        dif_dinheiro: difDinheiro,
+        dif_pix: difPix,
+        dif_cartao: difCartao,
 
         total_sistema: totalSistema,
         total: totalDeclarado ?? totalSistema,
