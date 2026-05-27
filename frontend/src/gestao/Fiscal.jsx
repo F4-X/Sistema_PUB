@@ -71,6 +71,12 @@ const fiscaisPorNcm = {
   pis_cst: "04",
   cofins_cst: "04",
   unidade: "UN",
+},"70133700": {
+  cfop: "5405",
+  csosn: "102",
+  pis_cst: "99",
+  cofins_cst: "99",
+  unidade: "UN",
 },
 };
 
@@ -330,6 +336,10 @@ export default function Fiscal({ setTela }) {
   }, {
   value: "95044000",
   label: "95044000 - Baralho",
+},
+{
+  value: "70133700",
+  label: "70133700 - Copo / Taça",
 },
             ])}
 
