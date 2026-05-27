@@ -65,6 +65,13 @@ const fiscaisPorNcm = {
   cofins_cst: "04",
   unidade: "UN",
 },
+"95044000": {
+  cfop: "5405",
+  csosn: "500",
+  pis_cst: "04",
+  cofins_cst: "04",
+  unidade: "UN",
+},
 };
 
 export default function Fiscal({ setTela }) {
@@ -320,7 +327,10 @@ export default function Fiscal({ setTela }) {
                {
     value: "17049020",
     label: "17049020 - Bala / Chiclete",
-  }
+  }, {
+  value: "95044000",
+  label: "95044000 - Baralho",
+},
             ])}
 
             {selectCampo("CFOP", "cfop", [
