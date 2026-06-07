@@ -45,7 +45,7 @@ const fiscaisPorNcm = {
 
   "22083020": {
     cfop: "5405",
-    csosn: "102",
+    csosn: "500",
     pis_cst: "99",
     cofins_cst: "99",
     unidade: "UN",
