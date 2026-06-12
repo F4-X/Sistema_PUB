@@ -646,22 +646,23 @@ router.get("/fiscal/xmls/exportar", async (req, res) => {
     }
 
     const r = await db.query(
-      `
-      SELECT
-        id,
-        nfce_id,
-        nfce_numero,
-        nfce_chave,
-        criado_em
-      FROM vendas
-      WHERE nfce_status = 'autorizado'
-        AND nfce_id IS NOT NULL
-        AND criado_em >= $1::date
-        AND criado_em < ($2::date + INTERVAL '1 day')
-      ORDER BY id ASC
-      `,
-      [inicio, fim]
-    );
+  `
+  SELECT
+    id,
+    nfce_id,
+    nfce_numero,
+    nfce_chave,
+    criado_em,
+    nfce_retorno->>'caminho_xml_nota_fiscal' AS caminho_xml
+  FROM vendas
+  WHERE nfce_status = 'autorizado'
+    AND nfce_retorno->>'caminho_xml_nota_fiscal' IS NOT NULL
+    AND criado_em >= $1::date
+    AND criado_em < ($2::date + INTERVAL '1 day')
+  ORDER BY id ASC
+  `,
+  [inicio, fim]
+);
 
     if (!r.rows.length) {
       return res.status(404).json({
@@ -681,7 +682,7 @@ router.get("/fiscal/xmls/exportar", async (req, res) => {
 
     for (const venda of r.rows) {
       try {
-        const xml = await baixarXml(venda.nfce_id);
+        const xml = await baixarXml(venda.caminho_xml);
 
         const nomeArquivo =
           `NFCe_${venda.nfce_numero || venda.id}_${venda.nfce_chave || venda.nfce_id}.xml`;
