@@ -124,6 +124,40 @@ export default function XMLs() {
     }
   }
 
+  async function exportarXmlsNfce() {
+  try {
+    setErro("");
+
+    const response = await api.get(
+      "/vendas/fiscal/xmls/exportar?inicio=2026-05-01&fim=2026-05-31",
+      {
+        responseType: "blob",
+      }
+    );
+
+    const blob = new Blob([response.data], {
+      type: "application/zip",
+    });
+
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "xmls_nfce_maio_2026.zip";
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (e) {
+    setErro(
+      e?.response?.data?.error ||
+      "Erro ao exportar XMLs"
+    );
+  }
+}
+
   async function excluir(id) {
     if (!window.confirm("Excluir este XML?")) return;
 
@@ -233,6 +267,14 @@ export default function XMLs() {
               >
                 {loading ? "Atualizando..." : "Atualizar"}
               </button>
+
+              <button
+  className="btn-primary"
+  onClick={exportarXmlsNfce}
+  type="button"
+>
+  Exportar XMLs NFC-e
+</button>
             </div>
 
             <div style={{ minWidth: 280, flex: 1, maxWidth: 420 }}>
