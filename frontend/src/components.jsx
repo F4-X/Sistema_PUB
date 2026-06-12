@@ -79,8 +79,10 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
     : page === "contas-pagas"
     ? "Contas Pagas"
     : page === "fechamentos"
-    ? "Fechamentos"
-    : "Financeiro";
+? "Fechamentos"
+: page === "exportacoes"
+? "Exportações"
+: "Financeiro";
 
   return (
     <header className="pdv-topbar">
@@ -128,7 +130,14 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
   Fechamentos
 </button>
 
-          <button onClick={onLogout}>Sair</button>
+<button
+  className={page === "exportacoes" ? "active" : ""}
+  onClick={() => setPage("exportacoes")}
+>
+  Exportações
+</button>
+
+<button onClick={onLogout}>Sair</button>
         </div>
       </div>
     </header>

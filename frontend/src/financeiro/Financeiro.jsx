@@ -5,6 +5,7 @@ import XMLs from "./XMLs.jsx";
 import ContasPagar from "./ContasPagar.jsx";
 import ContasPagas from "./ContasPagas.jsx";
 import Fechamento from "./Fechamento.jsx";
+import Exportacoes from "./Exportacoes.jsx";
 
 const isoDate = (d) => d.toISOString().slice(0, 10);
 const startOfDay = (dateStr) => `${dateStr}T00:00:00`;
@@ -244,6 +245,17 @@ location.reload();
       </>
     );
   }
+
+if (page === "exportacoes") {
+  return (
+    <>
+      <TopbarPadrao />
+      <main className="fin-wrap" style={{ gap: 10, paddingTop: 10 }}>
+        <Exportacoes />
+      </main>
+    </>
+  );
+}
 
   return (
     <>
