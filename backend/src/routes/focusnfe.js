@@ -138,3 +138,10 @@ async function baixarXml(refOuId) {
 
   return Buffer.from(r.data);
 }
+
+module.exports = {
+  emitirNfce,
+  consultarNfce,
+  baixarPdf,
+  baixarXml,
+};
