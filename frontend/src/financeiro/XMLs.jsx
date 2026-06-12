@@ -129,7 +129,7 @@ export default function XMLs() {
     setErro("");
 
     const response = await api.get(
-  "/vendas/fiscal/xmls/exportar?inicio=2026-05-01&fim=2026-05-01",
+  "/vendas/fiscal/xmls/exportar?inicio=2026-06-12&fim=2026-06-12",
   {
     responseType: "blob",
   }
