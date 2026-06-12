@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const db = require("../db");
-const { emitirNfce, baixarPdf } = require("./focusnfe");
+const archiver = require("archiver");
+const { emitirNfce, baixarPdf, baixarXml } = require("./focusnfe");
 
 function round2(n) {
   return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
@@ -630,6 +631,102 @@ router.get("/:id/fiscal/pdf", async (req, res) => {
       error: msg,
       details: e?.response?.data || null,
     });
+  }
+});
+
+router.get("/fiscal/xmls/exportar", async (req, res) => {
+  try {
+    const inicio = String(req.query.inicio || "").trim();
+    const fim = String(req.query.fim || "").trim();
+
+    if (!inicio || !fim) {
+      return res.status(400).json({
+        error: "Informe inicio e fim. Ex: ?inicio=2026-05-01&fim=2026-05-31",
+      });
+    }
+
+    const r = await db.query(
+      `
+      SELECT
+        id,
+        nfce_id,
+        nfce_numero,
+        nfce_chave,
+        criado_em
+      FROM vendas
+      WHERE nfce_status = 'autorizado'
+        AND nfce_id IS NOT NULL
+        AND criado_em >= $1::date
+        AND criado_em < ($2::date + INTERVAL '1 day')
+      ORDER BY id ASC
+      `,
+      [inicio, fim]
+    );
+
+    if (!r.rows.length) {
+      return res.status(404).json({
+        error: "Nenhuma NFC-e autorizada encontrada nesse período",
+      });
+    }
+
+    const nomeZip = `xmls_nfce_${inicio}_a_${fim}.zip`;
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${nomeZip}"`
+    );
+
+    const archive = archiver("zip", {
+      zlib: { level: 9 },
+    });
+
+    archive.on("error", (err) => {
+      throw err;
+    });
+
+    archive.pipe(res);
+
+    for (const venda of r.rows) {
+      try {
+        const xml = await baixarXml(venda.nfce_id);
+
+        const nomeArquivo =
+          `NFCe_${venda.nfce_numero || venda.id}_${venda.nfce_chave || venda.nfce_id}.xml`;
+
+        archive.append(xml, {
+          name: nomeArquivo.replace(/[^\w.-]/g, "_"),
+        });
+      } catch (e) {
+        const erroTxt = [
+          `Venda: ${venda.id}`,
+          `NFC-e ID: ${venda.nfce_id}`,
+          `Numero: ${venda.nfce_numero || ""}`,
+          `Erro: ${
+            e?.response?.data?.mensagem ||
+            e?.response?.data?.message ||
+            e?.message ||
+            "Erro ao baixar XML"
+          }`,
+        ].join("\n");
+
+        archive.append(erroTxt, {
+          name: `ERRO_venda_${venda.id}.txt`,
+        });
+      }
+    }
+
+    await archive.finalize();
+  } catch (e) {
+    console.error("ERRO exportar XMLs:", e);
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: e?.message || "Erro ao exportar XMLs",
+      });
+    }
+
+    res.end();
   }
 });
 
