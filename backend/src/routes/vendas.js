@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const db = require("../db");
 const archiverPkg = require("archiver");
-const Archiver = require("archiver");
+const AdmZip = require("adm-zip");
 const { emitirNfce, baixarPdf, baixarXml } = require("./focusnfe");
 
 function round2(n) {
@@ -678,15 +678,7 @@ router.get("/fiscal/xmls/exportar", async (req, res) => {
       `attachment; filename="${nomeZip}"`
     );
 
-   const archive = Archiver.create("zip", {
-  zlib: { level: 9 },
-});
-
-    archive.on("error", (err) => {
-      throw err;
-    });
-
-    archive.pipe(res);
+   const zip = new AdmZip();
 
     for (const venda of r.rows) {
       try {
@@ -695,9 +687,10 @@ router.get("/fiscal/xmls/exportar", async (req, res) => {
         const nomeArquivo =
           `NFCe_${venda.nfce_numero || venda.id}_${venda.nfce_chave || venda.nfce_id}.xml`;
 
-        archive.append(xml, {
-          name: nomeArquivo.replace(/[^\w.-]/g, "_"),
-        });
+        zip.addFile(
+  nomeArquivo.replace(/[^\w.-]/g, "_"),
+  Buffer.isBuffer(xml) ? xml : Buffer.from(xml)
+);
       } catch (e) {
         const erroTxt = [
           `Venda: ${venda.id}`,
@@ -711,13 +704,22 @@ router.get("/fiscal/xmls/exportar", async (req, res) => {
           }`,
         ].join("\n");
 
-        archive.append(erroTxt, {
-          name: `ERRO_venda_${venda.id}.txt`,
-        });
+        zip.addFile(
+  `ERRO_venda_${venda.id}.txt`,
+  Buffer.from(erroTxt)
+);
       }
     }
 
-    await archive.finalize();
+    const zipBuffer = zip.toBuffer();
+
+res.setHeader("Content-Type", "application/zip");
+res.setHeader(
+  "Content-Disposition",
+  `attachment; filename="${nomeZip}"`
+);
+
+return res.send(zipBuffer);
   } catch (e) {
     console.error("ERRO exportar XMLs:", e);
 
