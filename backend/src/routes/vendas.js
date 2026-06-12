@@ -1,6 +1,5 @@
 const router = require("express").Router();
 const db = require("../db");
-const archiverPkg = require("archiver");
 const AdmZip = require("adm-zip");
 const { emitirNfce, baixarPdf, baixarXml } = require("./focusnfe");
 
