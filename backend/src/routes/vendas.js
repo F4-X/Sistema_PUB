@@ -1,6 +1,10 @@
 const router = require("express").Router();
 const db = require("../db");
-const archiver = require("archiver");
+const archiverPkg = require("archiver");
+const archiver =
+  typeof archiverPkg === "function"
+    ? archiverPkg
+    : archiverPkg.default;
 const { emitirNfce, baixarPdf, baixarXml } = require("./focusnfe");
 
 function round2(n) {
