@@ -106,8 +106,27 @@ async function baixarXml(refOuId) {
     throw new Error("Referência/ID da NFC-e não informado");
   }
 
+  const dados = await consultarNfce(refOuId);
+
+  const caminhoXml =
+    dados?.caminho_xml_nota_fiscal ||
+    dados?.caminho_xml ||
+    dados?.xml;
+
+  if (!caminhoXml) {
+    throw new Error("XML não encontrado na resposta da Focus");
+  }
+
+  if (String(caminhoXml).trim().startsWith("<")) {
+    return Buffer.from(caminhoXml);
+  }
+
+  const url = String(caminhoXml).startsWith("http")
+    ? caminhoXml
+    : `${BASE_URL}${caminhoXml}`;
+
   const r = await axios.get(
-    `${BASE_URL}/nfce/${encodeURIComponent(refOuId)}.xml`,
+    url,
     authConfig({
       responseType: "arraybuffer",
       headers: {
@@ -119,10 +138,3 @@ async function baixarXml(refOuId) {
 
   return Buffer.from(r.data);
 }
-
-module.exports = {
-  emitirNfce,
-  consultarNfce,
-  baixarPdf,
-  baixarXml,
-};
