@@ -1,10 +1,7 @@
 const router = require("express").Router();
 const db = require("../db");
 const archiverPkg = require("archiver");
-const archiver =
-  typeof archiverPkg === "function"
-    ? archiverPkg
-    : archiverPkg.default;
+const Archiver = require("archiver");
 const { emitirNfce, baixarPdf, baixarXml } = require("./focusnfe");
 
 function round2(n) {
@@ -681,9 +678,9 @@ router.get("/fiscal/xmls/exportar", async (req, res) => {
       `attachment; filename="${nomeZip}"`
     );
 
-    const archive = archiver("zip", {
-      zlib: { level: 9 },
-    });
+   const archive = Archiver.create("zip", {
+  zlib: { level: 9 },
+});
 
     archive.on("error", (err) => {
       throw err;
