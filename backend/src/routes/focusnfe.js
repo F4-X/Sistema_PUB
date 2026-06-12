@@ -7,6 +7,11 @@ const BASE_URL =
     ? "https://api.focusnfe.com.br/v2"
     : "https://homologacao.focusnfe.com.br/v2";
 
+const FILE_BASE_URL =
+  ENV === "prod" || ENV === "producao" || ENV === "production"
+    ? "https://api.focusnfe.com.br"
+    : "https://homologacao.focusnfe.com.br";
+
 function isProdEnv() {
   return (
     ENV === "prod" ||
@@ -108,10 +113,9 @@ async function baixarXml(refOuCaminho) {
 
   const valor = String(refOuCaminho).trim();
 
-  // Já recebeu o caminho salvo no banco
   if (valor.startsWith("/arquivos/")) {
     const r = await axios.get(
-      `${BASE_URL}${valor}`,
+      `${FILE_BASE_URL}${valor}`,
       authConfig({
         responseType: "arraybuffer",
         headers: {
@@ -124,7 +128,6 @@ async function baixarXml(refOuCaminho) {
     return Buffer.from(r.data);
   }
 
-  // Recebeu referência da NFC-e
   const dados = await consultarNfce(valor);
 
   const caminhoXml =
@@ -142,7 +145,7 @@ async function baixarXml(refOuCaminho) {
 
   const url = String(caminhoXml).startsWith("http")
     ? caminhoXml
-    : `${BASE_URL}${caminhoXml}`;
+    : `${FILE_BASE_URL}${caminhoXml}`;
 
   const r = await axios.get(
     url,
