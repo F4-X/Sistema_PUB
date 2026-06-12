@@ -101,12 +101,31 @@ async function baixarPdf(refOuId) {
   return Buffer.from(r.data);
 }
 
-async function baixarXml(refOuId) {
-  if (!refOuId) {
-    throw new Error("Referência/ID da NFC-e não informado");
+async function baixarXml(refOuCaminho) {
+  if (!refOuCaminho) {
+    throw new Error("Referência/caminho do XML não informado");
   }
 
-  const dados = await consultarNfce(refOuId);
+  const valor = String(refOuCaminho).trim();
+
+  // Já recebeu o caminho salvo no banco
+  if (valor.startsWith("/arquivos/")) {
+    const r = await axios.get(
+      `${BASE_URL}${valor}`,
+      authConfig({
+        responseType: "arraybuffer",
+        headers: {
+          Accept: "application/xml",
+        },
+        timeout: 30000,
+      })
+    );
+
+    return Buffer.from(r.data);
+  }
+
+  // Recebeu referência da NFC-e
+  const dados = await consultarNfce(valor);
 
   const caminhoXml =
     dados?.caminho_xml_nota_fiscal ||
