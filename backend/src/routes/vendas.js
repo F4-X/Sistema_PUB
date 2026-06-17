@@ -390,10 +390,21 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
     const serie = Number(process.env.NF_SERIE || 3);
     const totalNota = round2(Number(venda.total_final || 0));
 
+const descontoVenda = round2(Number(venda.desconto || 0));
+const totalBrutoVenda = round2(Number(venda.total_bruto || 0));
+
     const items = itensR.rows.map((it, idx) => {
       const qtd = Number(it.qtd || 1);
-      const valorUnit = round2(Number(it.preco_unit || 0));
-      const valorBruto = round2(qtd * valorUnit);
+const valorUnit = round2(Number(it.preco_unit || 0));
+const valorBruto = round2(qtd * valorUnit);
+
+let valorDesconto = 0;
+
+if (descontoVenda > 0 && totalBrutoVenda > 0) {
+  valorDesconto = round2(
+    (valorBruto / totalBrutoVenda) * descontoVenda
+  );
+}
 
       const item = {
         numero_item: idx + 1,
@@ -405,7 +416,8 @@ router.post("/:id/fiscal/emitir", async (req, res) => {
         quantidade_comercial: qtd,
         valor_unitario_comercial: valorUnit,
         valor_bruto: valorBruto,
-        unidade_tributavel: String(it.unidade || "UN").slice(0, 6),
+...(valorDesconto > 0 ? { valor_desconto: valorDesconto } : {}),
+unidade_tributavel: String(it.unidade || "UN").slice(0, 6),
         quantidade_tributavel: qtd,
         valor_unitario_tributavel: valorUnit,
         inclui_no_total: 1,
