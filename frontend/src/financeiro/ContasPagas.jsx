@@ -76,7 +76,7 @@ export default function ContasPagar() {
   const [msg, setMsg] = useState("");
 
   const [busca, setBusca] = useState("");
-  const [statusFiltro, setStatusFiltro] = useState("aberto");
+  const [statusFiltro, setStatusFiltro] = useState("pago");
 
   const [fornecedor, setFornecedor] = useState("");
   const [numeroNF, setNumeroNF] = useState("");
