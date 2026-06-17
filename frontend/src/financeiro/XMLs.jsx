@@ -20,8 +20,8 @@ function norm(s) {
 function formatDateBR(v) {
   if (!v) return "—";
   try {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) {
-      const [yyyy, mm, dd] = String(v).split("-");
+    if (/^\d{4}-\d{2}-\d{2}/.test(String(v))) {
+      const [yyyy, mm, dd] = String(v).slice(0, 10).split("-");
       return `${dd}/${mm}/${yyyy}`;
     }
     return new Date(v).toLocaleString("pt-BR");
@@ -52,6 +52,9 @@ export default function XMLs() {
   const [erro, setErro] = useState("");
   const [msg, setMsg] = useState("");
   const [busca, setBusca] = useState("");
+  const [inicio, setInicio] = useState("");
+  const [fim, setFim] = useState("");
+
   const inputRef = useRef(null);
 
   const [page, setPage] = useState(1);
@@ -125,38 +128,48 @@ export default function XMLs() {
   }
 
   async function exportarXmlsNfce() {
-  try {
-    setErro("");
+    try {
+      setErro("");
 
-    const response = await api.get(
-  "/vendas/fiscal/xmls/exportar?inicio=2026-06-12&fim=2026-06-12",
-  {
-    responseType: "blob",
+      const i = inicio || "";
+      const f = fim || "";
+
+      const params = new URLSearchParams();
+
+      if (i) params.set("inicio", i);
+      if (f) params.set("fim", f);
+
+      const qs = params.toString();
+
+      const response = await api.get(
+        `/vendas/fiscal/xmls/exportar${qs ? `?${qs}` : ""}`,
+        {
+          responseType: "blob",
+        }
+      );
+
+      const blob = new Blob([response.data], {
+        type: "application/zip",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        inicio || fim
+          ? `xmls_nfce_${inicio || "inicio"}_a_${fim || "fim"}.zip`
+          : "xmls_nfce.zip";
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      setErro(e?.response?.data?.error || "Erro ao exportar XMLs");
+    }
   }
-);
-
-    const blob = new Blob([response.data], {
-      type: "application/zip",
-    });
-
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "xmls_nfce_maio_2026.zip";
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    window.URL.revokeObjectURL(url);
-  } catch (e) {
-    setErro(
-      e?.response?.data?.error ||
-      "Erro ao exportar XMLs"
-    );
-  }
-}
 
   async function excluir(id) {
     if (!window.confirm("Excluir este XML?")) return;
@@ -180,6 +193,14 @@ export default function XMLs() {
       const criadoBR = formatDateBR(item.criado_em);
       const valorTxt = valueSearch(item.valor_documento);
 
+      const dataBase = String(
+        item.data_vencimento || item.criado_em || ""
+      ).slice(0, 10);
+
+      const okPeriodo =
+        (!inicio || dataBase >= inicio) &&
+        (!fim || dataBase <= fim);
+
       const texto = norm(`
         ${item.nome_arquivo || ""}
         ${item.numero_documento || ""}
@@ -193,9 +214,9 @@ export default function XMLs() {
         ${valorTxt || ""}
       `);
 
-      return !termo || texto.includes(termo);
+      return okPeriodo && (!termo || texto.includes(termo));
     });
-  }, [items, busca]);
+  }, [items, busca, inicio, fim]);
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PER_PAGE));
 
@@ -206,7 +227,7 @@ export default function XMLs() {
 
   useEffect(() => {
     setPage(1);
-  }, [busca]);
+  }, [busca, inicio, fim]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -269,12 +290,12 @@ export default function XMLs() {
               </button>
 
               <button
-  className="btn-primary"
-  onClick={exportarXmlsNfce}
-  type="button"
->
-  Exportar XMLs NFC-e
-</button>
+                className="btn-primary"
+                onClick={exportarXmlsNfce}
+                type="button"
+              >
+                Exportar XMLs NFC-e
+              </button>
             </div>
 
             <div style={{ minWidth: 280, flex: 1, maxWidth: 420 }}>
@@ -285,6 +306,26 @@ export default function XMLs() {
                 placeholder="Pesquisar XML, data, valor..."
               />
             </div>
+          </div>
+        </div>
+
+        <div className="fin-date">
+          <div className="fin-datebox">
+            <span className="tag">Início</span>
+            <input
+              type="date"
+              value={inicio}
+              onChange={(e) => setInicio(e.target.value)}
+            />
+          </div>
+
+          <div className="fin-datebox">
+            <span className="tag">Fim</span>
+            <input
+              type="date"
+              value={fim}
+              onChange={(e) => setFim(e.target.value)}
+            />
           </div>
         </div>
 
@@ -334,7 +375,9 @@ export default function XMLs() {
                     <td style={{ maxWidth: 220, wordBreak: "break-word" }}>
                       {x.sacado || "—"}
                     </td>
-                    <td>{x.valor_documento == null ? "—" : money(x.valor_documento)}</td>
+                    <td>
+                      {x.valor_documento == null ? "—" : money(x.valor_documento)}
+                    </td>
                     <td>{formatDateBR(x.data_vencimento)}</td>
                     <td>{formatDateBR(x.criado_em)}</td>
                     <td>
