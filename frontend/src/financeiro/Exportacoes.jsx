@@ -42,7 +42,11 @@ export default function Exportacoes() {
         { responseType: "blob" }
       );
 
-      baixarBlob(response, "application/zip", `xmls_nfce_${inicio}_a_${fim}.zip`);
+      baixarBlob(
+        response,
+        "application/zip",
+        `xmls_nfce_${inicio}_a_${fim}.zip`
+      );
     } catch (e) {
       setErro(e?.response?.data?.error || "Erro ao exportar XMLs");
     } finally {
@@ -60,7 +64,11 @@ export default function Exportacoes() {
         { responseType: "blob" }
       );
 
-      baixarBlob(response, "text/csv;charset=utf-8;", `vendas_${inicio}_a_${fim}.csv`);
+      baixarBlob(
+        response,
+        "text/csv;charset=utf-8;",
+        `vendas_${inicio}_a_${fim}.csv`
+      );
     } catch (e) {
       setErro(e?.response?.data?.error || "Erro ao exportar CSV");
     } finally {
@@ -73,26 +81,30 @@ export default function Exportacoes() {
       setErro("");
       setLoading("sintetico");
 
+      const { data } = await api.get(`/financeiro/resumo?${query}`);
+
+      const pg = data?.por_pagamento || {};
+
       console.log("RESUMO FINANCEIRO:", data);
 
-const dinheiro = Number(pg.dinheiro || 0);
-const pix = Number(pg.pix || 0);
+      const dinheiro = Number(pg.dinheiro || 0);
+      const pix = Number(pg.pix || 0);
 
-const cartao =
-  Number(pg.cartao || 0) +
-  Number(pg.credito || 0) +
-  Number(pg.debito || 0) +
-  Number(pg.cartao_credito || 0) +
-  Number(pg.cartao_debito || 0);
+      const cartao =
+        Number(pg.cartao || 0) +
+        Number(pg.credito || 0) +
+        Number(pg.debito || 0) +
+        Number(pg.cartao_credito || 0) +
+        Number(pg.cartao_debito || 0);
 
-const liquido = dinheiro + pix + cartao;
+      const liquido = dinheiro + pix + cartao;
 
-const desconto =
-  Number(data?.desconto || 0) ||
-  Number(data?.desconto_concedido || 0) ||
-  0;
+      const desconto =
+        Number(data?.desconto || 0) ||
+        Number(data?.desconto_concedido || 0) ||
+        0;
 
-const bruto = liquido + desconto;
+      const bruto = liquido + desconto;
 
       const html = `
 <!DOCTYPE html>
@@ -119,9 +131,20 @@ h2{text-align:center;margin:0 0 35px;font-size:24px}
   <div class="print">🖨️</div>
   <h2>Faturamento Sintético</h2>
 
-  <div class="row"><span>Dinheiro</span><strong>${money(dinheiro)}</strong></div>
-  <div class="row"><span>PIX</span><strong>${money(pix)}</strong></div>
-  <div class="row"><span>Cartão</span><strong>${money(cartao)}</strong></div>
+  <div class="row">
+    <span>Dinheiro</span>
+    <strong>${money(dinheiro)}</strong>
+  </div>
+
+  <div class="row">
+    <span>PIX</span>
+    <strong>${money(pix)}</strong>
+  </div>
+
+  <div class="row">
+    <span>Cartão</span>
+    <strong>${money(cartao)}</strong>
+  </div>
 
   <div class="sep"></div>
 
@@ -153,11 +176,25 @@ window.onload = () => setTimeout(() => window.print(), 300);
 `;
 
       const w = window.open("", "_blank", "width=900,height=900");
+
+      if (!w) {
+        alert("Pop-up bloqueado. Libere pop-up para imprimir.");
+        return;
+      }
+
       w.document.open();
       w.document.write(html);
       w.document.close();
     } catch (e) {
-      setErro(e?.response?.data?.error || "Erro ao gerar faturamento sintético");
+      console.log("ERRO FATURAMENTO:", e);
+      console.log("ERRO RESPONSE:", e?.response?.data);
+
+      setErro(
+        e?.response?.data?.error ||
+          e?.response?.data?.message ||
+          e?.message ||
+          "Erro ao gerar faturamento sintético"
+      );
     } finally {
       setLoading("");
     }
@@ -179,27 +216,50 @@ window.onload = () => setTimeout(() => window.print(), 300);
       <div className="fin-date">
         <div className="fin-datebox">
           <span className="tag">Início</span>
-          <input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+          <input
+            type="date"
+            value={inicio}
+            onChange={(e) => setInicio(e.target.value)}
+          />
         </div>
 
         <div className="fin-datebox">
           <span className="tag">Fim</span>
-          <input type="date" value={fim} onChange={(e) => setFim(e.target.value)} />
+          <input
+            type="date"
+            value={fim}
+            onChange={(e) => setFim(e.target.value)}
+          />
         </div>
       </div>
 
       {erro ? <div className="empty">{erro}</div> : null}
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <button className="btn-primary" onClick={faturamentoSintetico} disabled={!!loading}>
+        <button
+          className="btn-primary"
+          onClick={faturamentoSintetico}
+          disabled={!!loading}
+          type="button"
+        >
           {loading === "sintetico" ? "Gerando..." : "Faturamento Sintético"}
         </button>
 
-        <button className="btn-primary" onClick={exportarXmls} disabled={!!loading}>
+        <button
+          className="btn-primary"
+          onClick={exportarXmls}
+          disabled={!!loading}
+          type="button"
+        >
           {loading === "xml" ? "Exportando..." : "Exportar XMLs NFC-e"}
         </button>
 
-        <button className="btn-secondary" onClick={exportarCSV} disabled={!!loading}>
+        <button
+          className="btn-secondary"
+          onClick={exportarCSV}
+          disabled={!!loading}
+          type="button"
+        >
           {loading === "csv" ? "Exportando..." : "Exportar CSV"}
         </button>
       </div>
