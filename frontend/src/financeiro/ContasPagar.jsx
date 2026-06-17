@@ -29,8 +29,8 @@ function formatDateBR(v) {
   if (!v) return "—";
 
   const s = String(v).trim();
-
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
   if (m) {
     const [, yyyy, mm, dd] = m;
     return `${dd}/${mm}/${yyyy}`;
@@ -48,17 +48,14 @@ function valueSearch(v) {
     maximumFractionDigits: 2,
   });
 
-  const simple = String(n);
-  const fixed = n.toFixed(2);
-
-  return `${br} ${simple} ${fixed} ${br.replace(/\./g, "").replace(",", ".")}`;
+  return `${br} ${String(n)} ${n.toFixed(2)} ${br.replace(/\./g, "").replace(",", ".")}`;
 }
 
 function statusInfo(item) {
   const st = String(item.status || "pendente").toLowerCase();
   if (st === "pago") return { text: "Pago", cls: "ok" };
 
-  const venc = String(item.vencimento || "");
+  const venc = String(item.vencimento || "").slice(0, 10);
   if (venc) {
     const hoje = todayISO();
     if (venc < hoje) return { text: "Vencido", cls: "vencido" };
@@ -84,12 +81,12 @@ export default function ContasPagar() {
   const [valor, setValor] = useState("");
   const [vencimento, setVencimento] = useState(todayISO());
 
+  const hoje = todayISO();
+  const [inicio, setInicio] = useState(hoje);
+  const [fim, setFim] = useState(hoje);
+
   const [page, setPage] = useState(1);
   const PER_PAGE = 6;
-
-  const hoje = new Date().toISOString().slice(0, 10);
-const [inicio, setInicio] = useState(hoje);
-const [fim, setFim] = useState(hoje);
 
   async function carregar() {
     try {
@@ -110,6 +107,7 @@ const [fim, setFim] = useState(hoje);
 
   async function salvar(e) {
     e.preventDefault();
+
     try {
       setSaving(true);
       setErro("");
@@ -174,6 +172,12 @@ const [fim, setFim] = useState(hoje);
       const st = String(item.status || "pendente").toLowerCase();
       const pago = st === "pago";
 
+      const dataBase = String(item.vencimento || item.pago_em || "").slice(0, 10);
+
+      const okPeriodo =
+        (!inicio || dataBase >= inicio) &&
+        (!fim || dataBase <= fim);
+
       const descricao = item.numero_nf
         ? `XML - NF ${item.numero_nf}`
         : item.fornecedor || "Conta sem descrição";
@@ -204,9 +208,9 @@ const [fim, setFim] = useState(hoje);
       if (statusFiltro === "vencido") okStatus = st !== "pago" && info.cls === "vencido";
       if (statusFiltro === "todos") okStatus = true;
 
-      return okBusca && okStatus;
+      return okBusca && okStatus && okPeriodo;
     });
-  }, [items, busca, statusFiltro]);
+  }, [items, busca, statusFiltro, inicio, fim]);
 
   const totais = useMemo(() => {
     let aberto = 0;
@@ -240,7 +244,7 @@ const [fim, setFim] = useState(hoje);
 
   useEffect(() => {
     setPage(1);
-  }, [busca, statusFiltro]);
+  }, [busca, statusFiltro, inicio, fim]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -366,6 +370,26 @@ const [fim, setFim] = useState(hoje);
           </div>
         </form>
 
+        <div className="fin-date">
+          <div className="fin-datebox">
+            <span className="tag">Início</span>
+            <input
+              type="date"
+              value={inicio}
+              onChange={(e) => setInicio(e.target.value)}
+            />
+          </div>
+
+          <div className="fin-datebox">
+            <span className="tag">Fim</span>
+            <input
+              type="date"
+              value={fim}
+              onChange={(e) => setFim(e.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="cp-card">
           <div className="cp-toolbar">
             <input
@@ -424,6 +448,7 @@ const [fim, setFim] = useState(hoje);
                 paginados.map((c) => {
                   const info = statusInfo(c);
                   const pago = String(c.status || "").toLowerCase() === "pago";
+
                   const descricao = c.numero_nf
                     ? `XML - NF ${c.numero_nf}`
                     : c.fornecedor || "Conta sem descrição";
@@ -436,7 +461,9 @@ const [fim, setFim] = useState(hoje);
                       <td>{money(c.valor)}</td>
                       <td>{pago ? money(0) : money(c.valor)}</td>
                       <td>
-                        <span className={`cp-tag ${info.cls}`}>{info.text}</span>
+                        <span className={`cp-tag ${info.cls}`}>
+                          {info.text}
+                        </span>
                       </td>
                       <td>{c.numero_nf || "—"}</td>
                       <td style={{ maxWidth: 220, wordBreak: "break-word" }}>
