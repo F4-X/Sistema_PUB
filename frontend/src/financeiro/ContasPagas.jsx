@@ -186,9 +186,6 @@ const okPeriodo =
   (!inicio || dataBase >= inicio) &&
   (!fim || dataBase <= fim);
 
-      const okPeriodo =
-        (!inicio || dataBase >= inicio) && (!fim || dataBase <= fim);
-
       const descricao = item.numero_nf
         ? `XML - NF ${item.numero_nf}`
         : item.fornecedor || "Conta sem descrição";
