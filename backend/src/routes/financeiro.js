@@ -111,19 +111,62 @@ router.get("/resumo", async (req, res) => {
       [inicio, fim]
     );
 
-    const por_pagamento = { dinheiro: "0.00", pix: "0.00", cartao: "0.00" };
-    for (const row of pg.rows) {
-      const k = String(row.tipo || "").toLowerCase();
-      if (k.includes("din")) por_pagamento.dinheiro = Number(row.total).toFixed(2);
-      else if (k.includes("pix")) por_pagamento.pix = Number(row.total).toFixed(2);
-      else por_pagamento.cartao = Number(row.total).toFixed(2);
-    }
+    const trocoQuery = await db.query(
+  `
+  SELECT
+    COALESCE(SUM(p.total_pago - v.total_final),0)::numeric(10,2) AS troco
+  FROM vendas v
+  JOIN (
+    SELECT venda_id, SUM(valor) AS total_pago
+    FROM venda_pagamentos
+    GROUP BY venda_id
+  ) p ON p.venda_id = v.id
+  WHERE v.criado_em >= $1
+    AND v.criado_em < $2
+    AND p.total_pago > v.total_final
+  `,
+  [inicio, fim]
+);
+
+const trocoTotal = Number(trocoQuery.rows?.[0]?.troco || 0);
+
+const por_pagamento = {
+  dinheiro: 0,
+  pix: 0,
+  cartao: 0,
+};
+
+for (const row of pg.rows) {
+  const k = String(row.tipo || "").toLowerCase();
+  const total = Number(row.total || 0);
+
+  if (k.includes("din")) {
+    por_pagamento.dinheiro += total;
+  } else if (k.includes("pix")) {
+    por_pagamento.pix += total;
+  } else if (
+    k.includes("credito") ||
+    k.includes("debito") ||
+    k.includes("cartao")
+  ) {
+    por_pagamento.cartao += total;
+  }
+}
+
+por_pagamento.dinheiro = Math.max(
+  0,
+  por_pagamento.dinheiro - trocoTotal
+);
 
     res.json({
       faturamento: faturamento.toFixed(2),
       qtd_vendas,
       ticket_medio: ticket_medio.toFixed(2),
-      por_pagamento,
+      por_pagamento: {
+  dinheiro: por_pagamento.dinheiro.toFixed(2),
+  pix: por_pagamento.pix.toFixed(2),
+  cartao: por_pagamento.cartao.toFixed(2),
+},
     });
   } catch (e) {
     res.status(500).json({ error: e?.message || "Erro ao carregar resumo financeiro" });
