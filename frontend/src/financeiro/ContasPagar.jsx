@@ -81,9 +81,8 @@ export default function ContasPagar() {
   const [valor, setValor] = useState("");
   const [vencimento, setVencimento] = useState(todayISO());
 
-  const hoje = todayISO();
-  const [inicio, setInicio] = useState(hoje);
-  const [fim, setFim] = useState(hoje);
+  const [inicio, setInicio] = useState("");
+const [fim, setFim] = useState("");
 
   const [page, setPage] = useState(1);
   const PER_PAGE = 6;
@@ -174,9 +173,9 @@ export default function ContasPagar() {
 
       const dataBase = String(item.vencimento || item.pago_em || "").slice(0, 10);
 
-      const okPeriodo =
-        (!inicio || dataBase >= inicio) &&
-        (!fim || dataBase <= fim);
+const okPeriodo =
+  (!inicio || dataBase >= inicio) &&
+  (!fim || dataBase <= fim);
 
       const descricao = item.numero_nf
         ? `XML - NF ${item.numero_nf}`
