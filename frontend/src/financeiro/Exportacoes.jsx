@@ -73,17 +73,26 @@ export default function Exportacoes() {
       setErro("");
       setLoading("sintetico");
 
-      const { data } = await api.get(`/financeiro/resumo?${query}`);
+      console.log("RESUMO FINANCEIRO:", data);
 
-      const pg = data?.por_pagamento || {};
+const dinheiro = Number(pg.dinheiro || 0);
+const pix = Number(pg.pix || 0);
 
-      const dinheiro = Number(pg.dinheiro || 0);
-      const pix = Number(pg.pix || 0);
-      const cartao = Number(pg.cartao || 0);
+const cartao =
+  Number(pg.cartao || 0) +
+  Number(pg.credito || 0) +
+  Number(pg.debito || 0) +
+  Number(pg.cartao_credito || 0) +
+  Number(pg.cartao_debito || 0);
 
-      const liquido = Number(data?.faturamento || 0);
-      const desconto = Number(data?.desconto || 0);
-      const bruto = liquido + desconto;
+const liquido = dinheiro + pix + cartao;
+
+const desconto =
+  Number(data?.desconto || 0) ||
+  Number(data?.desconto_concedido || 0) ||
+  0;
+
+const bruto = liquido + desconto;
 
       const html = `
 <!DOCTYPE html>
