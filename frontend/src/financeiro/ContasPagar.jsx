@@ -87,6 +87,10 @@ export default function ContasPagar() {
   const [page, setPage] = useState(1);
   const PER_PAGE = 6;
 
+  const hoje = new Date().toISOString().slice(0, 10);
+const [inicio, setInicio] = useState(hoje);
+const [fim, setFim] = useState(hoje);
+
   async function carregar() {
     try {
       setLoading(true);
