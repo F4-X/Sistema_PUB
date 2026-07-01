@@ -41,27 +41,27 @@ export default function Exportacoes() {
     inicioCompleto
   )}&fim=${encodeURIComponent(fimCompleto)}`;
 
-  async function exportarXmls() {
-    try {
-      setErro("");
-      setLoading("xml");
+ async function exportarXmls() {
+  try {
+    setErro("");
+    setLoading("xml");
 
-      const response = await api.get(
-        `/vendas/fiscal/xmls/exportar?${query}`,
-        { responseType: "blob" }
-      );
+    const response = await api.get(
+      `/vendas/fiscal/xmls/exportar?inicio=${inicio}&fim=${fim}`,
+      { responseType: "blob" }
+    );
 
-      baixarBlob(
-        response,
-        "application/zip",
-        `xmls_nfce_${inicio}_${horaInicio}_a_${fim}_${horaFim}.zip`
-      );
-    } catch (e) {
-      setErro(e?.response?.data?.error || "Erro ao exportar XMLs");
-    } finally {
-      setLoading("");
-    }
+    baixarBlob(
+      response,
+      "application/zip",
+      `xmls_nfce_${inicio}_a_${fim}.zip`
+    );
+  } catch (e) {
+    setErro(e?.response?.data?.error || "Erro ao exportar XMLs");
+  } finally {
+    setLoading("");
   }
+}
 
   async function exportarCSV() {
     try {
