@@ -48,7 +48,9 @@ function valueSearch(v) {
     maximumFractionDigits: 2,
   });
 
-  return `${br} ${String(n)} ${n.toFixed(2)} ${br.replace(/\./g, "").replace(",", ".")}`;
+  return `${br} ${String(n)} ${n.toFixed(2)} ${br
+    .replace(/\./g, "")
+    .replace(",", ".")}`;
 }
 
 function statusInfo(item) {
@@ -64,6 +66,86 @@ function statusInfo(item) {
   return { text: "Aberto", cls: "aberto" };
 }
 
+function StatusMultiSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+
+  const options = [
+    { value: "aberto", label: "Em aberto" },
+    { value: "vencido", label: "Vencidos" },
+    { value: "pago", label: "Pagos" },
+  ];
+
+  const selecionados = Array.isArray(value) ? value : [];
+
+  const todosSelecionados = options.every((op) =>
+    selecionados.includes(op.value)
+  );
+
+  function toggleStatus(v) {
+    if (selecionados.includes(v)) {
+      const novo = selecionados.filter((x) => x !== v);
+      onChange(novo.length ? novo : ["aberto"]);
+      return;
+    }
+
+    onChange([...selecionados, v]);
+  }
+
+  function toggleTodos() {
+    if (todosSelecionados) {
+      onChange(["aberto"]);
+      return;
+    }
+
+    onChange(options.map((op) => op.value));
+  }
+
+  const label = todosSelecionados
+    ? "Todos"
+    : selecionados.length === 1
+    ? options.find((op) => op.value === selecionados[0])?.label || "Status"
+    : `${selecionados.length} selecionados`;
+
+  return (
+    <div className="cp-multi">
+      <button
+        type="button"
+        className="cp-multi-btn"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span>{label}</span>
+        <span>▼</span>
+      </button>
+
+      {open ? (
+        <div className="cp-multi-menu">
+          <label className="cp-check">
+            <input
+              type="checkbox"
+              checked={todosSelecionados}
+              onChange={toggleTodos}
+            />
+            <span>Todos</span>
+          </label>
+
+          <div className="cp-multi-line" />
+
+          {options.map((op) => (
+            <label key={op.value} className="cp-check">
+              <input
+                type="checkbox"
+                checked={selecionados.includes(op.value)}
+                onChange={() => toggleStatus(op.value)}
+              />
+              <span>{op.label}</span>
+            </label>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function ContasPagar() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -73,7 +155,7 @@ export default function ContasPagar() {
   const [msg, setMsg] = useState("");
 
   const [busca, setBusca] = useState("");
-  const [statusFiltro, setStatusFiltro] = useState("aberto");
+  const [statusFiltro, setStatusFiltro] = useState(["aberto"]);
 
   const [fornecedor, setFornecedor] = useState("");
   const [numeroNF, setNumeroNF] = useState("");
@@ -82,7 +164,7 @@ export default function ContasPagar() {
   const [vencimento, setVencimento] = useState(todayISO());
 
   const [inicio, setInicio] = useState("");
-const [fim, setFim] = useState("");
+  const [fim, setFim] = useState("");
 
   const [page, setPage] = useState(1);
   const PER_PAGE = 6;
@@ -171,11 +253,13 @@ const [fim, setFim] = useState("");
       const st = String(item.status || "pendente").toLowerCase();
       const pago = st === "pago";
 
-      const dataBase = String(item.vencimento || item.pago_em || "").slice(0, 10);
+      const dataBase = String(item.vencimento || item.pago_em || "").slice(
+        0,
+        10
+      );
 
-const okPeriodo =
-  (!inicio || dataBase >= inicio) &&
-  (!fim || dataBase <= fim);
+      const okPeriodo =
+        (!inicio || dataBase >= inicio) && (!fim || dataBase <= fim);
 
       const descricao = item.numero_nf
         ? `XML - NF ${item.numero_nf}`
@@ -201,11 +285,18 @@ const okPeriodo =
 
       const okBusca = !termo || texto.includes(termo);
 
-      let okStatus = true;
-      if (statusFiltro === "pago") okStatus = st === "pago";
-      if (statusFiltro === "aberto") okStatus = st !== "pago" && info.cls === "aberto";
-      if (statusFiltro === "vencido") okStatus = st !== "pago" && info.cls === "vencido";
-      if (statusFiltro === "todos") okStatus = true;
+      const filtros = Array.isArray(statusFiltro) ? statusFiltro : ["aberto"];
+
+      const okStatus =
+        filtros.includes("aberto") && st !== "pago" && info.cls === "aberto"
+          ? true
+          : filtros.includes("vencido") &&
+            st !== "pago" &&
+            info.cls === "vencido"
+          ? true
+          : filtros.includes("pago") && st === "pago"
+          ? true
+          : false;
 
       return okBusca && okStatus && okPeriodo;
     });
@@ -259,7 +350,7 @@ const okPeriodo =
         .cp-v{font-size:24px;font-weight:800;margin-top:6px}
         .cp-form{display:grid;grid-template-columns:2fr 1fr 1.4fr 1fr 1fr auto;gap:10px;align-items:end}
         .cp-input,.cp-select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#131528;color:#fff;outline:none;box-sizing:border-box}
-        .cp-toolbar{display:grid;grid-template-columns:1.4fr 180px;gap:10px}
+        .cp-toolbar{display:grid;grid-template-columns:1.4fr 220px;gap:10px;align-items:start}
         .cp-table-wrap{overflow:auto;border:1px solid rgba(255,255,255,.08);border-radius:14px}
         .cp-table{width:100%;border-collapse:collapse;min-width:1050px}
         .cp-table th{font-size:12px;text-align:left;padding:12px;background:rgba(255,255,255,.05);white-space:nowrap}
@@ -276,6 +367,73 @@ const okPeriodo =
         .cp-err{background:#3a1212;border:1px solid #7a2a2a;color:#ffd5d5;border-radius:10px;padding:10px}
         .cp-ok{background:#11351e;border:1px solid #24663b;color:#d7ffe1;border-radius:10px;padding:10px}
         .cp-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+
+        .cp-multi{position:relative;width:100%}
+        .cp-multi-btn{
+          width:100%;
+          height:43px;
+          padding:11px 12px;
+          border-radius:10px;
+          border:1px solid rgba(255,255,255,.12);
+          background:#131528;
+          color:#fff;
+          outline:none;
+          box-sizing:border-box;
+          cursor:pointer;
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:10px;
+          font-weight:800;
+        }
+
+        .cp-multi-btn:hover{
+          border-color:rgba(123,108,255,.45);
+        }
+
+        .cp-multi-menu{
+          position:absolute;
+          top:50px;
+          right:0;
+          width:100%;
+          min-width:220px;
+          z-index:30;
+          border:1px solid rgba(255,255,255,.12);
+          background:#111326;
+          border-radius:12px;
+          padding:8px;
+          box-shadow:0 18px 45px rgba(0,0,0,.45);
+        }
+
+        .cp-check{
+          display:flex;
+          align-items:center;
+          gap:10px;
+          padding:9px 10px;
+          border-radius:10px;
+          cursor:pointer;
+          font-size:14px;
+          color:#fff;
+          user-select:none;
+        }
+
+        .cp-check:hover{
+          background:rgba(255,255,255,.06);
+        }
+
+        .cp-check input{
+          width:16px;
+          height:16px;
+          accent-color:#6d5dfc;
+          cursor:pointer;
+        }
+
+        .cp-multi-line{
+          height:1px;
+          background:rgba(255,255,255,.10);
+          margin:6px 0;
+        }
+
         @media (max-width: 980px){
           .cp-top{grid-template-columns:repeat(2,minmax(180px,1fr))}
           .cp-form{grid-template-columns:1fr 1fr}
@@ -314,7 +472,9 @@ const okPeriodo =
         <form onSubmit={salvar} className="cp-card">
           <div className="cp-form">
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>Fornecedor</div>
+              <div className="cp-muted" style={{ marginBottom: 6 }}>
+                Fornecedor
+              </div>
               <input
                 className="cp-input"
                 value={fornecedor}
@@ -324,7 +484,9 @@ const okPeriodo =
             </div>
 
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>Número NF</div>
+              <div className="cp-muted" style={{ marginBottom: 6 }}>
+                Número NF
+              </div>
               <input
                 className="cp-input"
                 value={numeroNF}
@@ -334,7 +496,9 @@ const okPeriodo =
             </div>
 
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>Chave / referência</div>
+              <div className="cp-muted" style={{ marginBottom: 6 }}>
+                Chave / referência
+              </div>
               <input
                 className="cp-input"
                 value={chave}
@@ -344,7 +508,9 @@ const okPeriodo =
             </div>
 
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>Valor</div>
+              <div className="cp-muted" style={{ marginBottom: 6 }}>
+                Valor
+              </div>
               <input
                 className="cp-input"
                 value={valor}
@@ -354,7 +520,9 @@ const okPeriodo =
             </div>
 
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>Vencimento</div>
+              <div className="cp-muted" style={{ marginBottom: 6 }}>
+                Vencimento
+              </div>
               <input
                 className="cp-input"
                 type="date"
@@ -398,16 +566,10 @@ const okPeriodo =
               placeholder="Pesquisar qualquer campo: fornecedor, NF, chave, data, valor, status..."
             />
 
-            <select
-              className="cp-select"
+            <StatusMultiSelect
               value={statusFiltro}
-              onChange={(e) => setStatusFiltro(e.target.value)}
-            >
-              <option value="todos">Todos</option>
-              <option value="aberto">Em aberto</option>
-              <option value="vencido">Vencidos</option>
-              <option value="pago">Pagos</option>
-            </select>
+              onChange={setStatusFiltro}
+            />
           </div>
         </div>
 
@@ -454,7 +616,9 @@ const okPeriodo =
 
                   return (
                     <tr key={c.id}>
-                      <td><strong>{descricao}</strong></td>
+                      <td>
+                        <strong>{descricao}</strong>
+                      </td>
                       <td>{c.fornecedor || "—"}</td>
                       <td>{formatDateBR(c.vencimento)}</td>
                       <td>{money(c.valor)}</td>
