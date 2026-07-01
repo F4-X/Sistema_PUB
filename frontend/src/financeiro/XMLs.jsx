@@ -171,6 +171,10 @@ export default function XMLs() {
     }
   }
 
+  function editar(x) {
+    alert(`Editar XML #${x.id}`);
+  }
+
   async function excluir(id) {
     if (!window.confirm("Excluir este XML?")) return;
 
@@ -246,6 +250,7 @@ export default function XMLs() {
         .xml-table td{padding:12px;border-top:1px solid rgba(255,255,255,.07);vertical-align:top}
         .xml-actions{display:flex;gap:8px;flex-wrap:wrap}
         .xml-mini{padding:8px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:800}
+        .xml-edit{background:#4a3210;color:#ffe3b0;border:1px solid #8a5a16}
         .xml-down{background:#4f46e5;color:#fff}
         .xml-del{background:#2a0f16;color:#ffb4b4;border:1px solid rgba(255,80,80,.35)}
         .xml-err{background:#3a1212;border:1px solid #7a2a2a;color:#ffd5d5;border-radius:10px;padding:10px}
@@ -367,21 +372,37 @@ export default function XMLs() {
                     <td style={{ maxWidth: 260, wordBreak: "break-word" }}>
                       {x.nome_arquivo || "—"}
                     </td>
+
                     <td>{x.numero_documento || "—"}</td>
+
                     <td>{x.nosso_numero || "—"}</td>
+
                     <td style={{ maxWidth: 240, wordBreak: "break-word" }}>
                       {x.cedente || "—"}
                     </td>
+
                     <td style={{ maxWidth: 220, wordBreak: "break-word" }}>
                       {x.sacado || "—"}
                     </td>
+
                     <td>
                       {x.valor_documento == null ? "—" : money(x.valor_documento)}
                     </td>
+
                     <td>{formatDateBR(x.data_vencimento)}</td>
+
                     <td>{formatDateBR(x.criado_em)}</td>
+
                     <td>
                       <div className="xml-actions">
+                        <button
+                          type="button"
+                          className="xml-mini xml-edit"
+                          onClick={() => editar(x)}
+                        >
+                          Editar
+                        </button>
+
                         <button
                           type="button"
                           className="xml-mini xml-down"

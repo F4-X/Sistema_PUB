@@ -412,6 +412,81 @@ router.get("/:id/download", async (req, res) => {
   }
 });
 
+router.put("/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+
+    const {
+      numero_documento,
+      nosso_numero,
+      cedente,
+      sacado,
+      valor_documento,
+      data_vencimento,
+    } = req.body;
+
+    const r = await db.query(
+      `
+      UPDATE financeiro_xmls
+      SET
+        numero_documento = $1,
+        nosso_numero = $2,
+        cedente = $3,
+        sacado = $4,
+        valor_documento = $5,
+        data_vencimento = $6
+      WHERE id = $7
+      RETURNING
+        id,
+        nome_arquivo,
+        numero_documento,
+        nosso_numero,
+        cedente,
+        sacado,
+        valor_documento,
+        data_vencimento,
+        criado_em
+      `,
+      [
+        numero_documento || null,
+        nosso_numero || null,
+        cedente || null,
+        sacado || null,
+        valor_documento == null
+          ? null
+          : Number(valor_documento),
+        data_vencimento || null,
+        id,
+      ]
+    );
+
+    if (!r.rows.length) {
+      return res
+        .status(404)
+        .json({ error: "XML não encontrado" });
+    }
+
+    res.json({
+      ...r.rows[0],
+      valor_documento:
+        r.rows[0].valor_documento == null
+          ? null
+          : Number(r.rows[0].valor_documento),
+    });
+  } catch (e) {
+    res
+      .status(500)
+      .json({
+        error:
+          e?.message || "Erro ao editar XML",
+      });
+  }
+});
+
 router.delete("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
