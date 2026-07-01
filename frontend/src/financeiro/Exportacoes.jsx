@@ -27,10 +27,19 @@ function baixarBlob(response, type, nome) {
 export default function Exportacoes() {
   const [inicio, setInicio] = useState(hojeISO());
   const [fim, setFim] = useState(hojeISO());
+
+  const [horaInicio, setHoraInicio] = useState("08:00");
+  const [horaFim, setHoraFim] = useState("02:00");
+
   const [loading, setLoading] = useState("");
   const [erro, setErro] = useState("");
 
-  const query = `inicio=${inicio}T00:00:00&fim=${fim}T23:59:59`;
+  const inicioCompleto = `${inicio}T${horaInicio}:00`;
+  const fimCompleto = `${fim}T${horaFim}:00`;
+
+  const query = `inicio=${encodeURIComponent(
+    inicioCompleto
+  )}&fim=${encodeURIComponent(fimCompleto)}`;
 
   async function exportarXmls() {
     try {
@@ -38,14 +47,14 @@ export default function Exportacoes() {
       setLoading("xml");
 
       const response = await api.get(
-        `/vendas/fiscal/xmls/exportar?inicio=${inicio}&fim=${fim}`,
+        `/vendas/fiscal/xmls/exportar?${query}`,
         { responseType: "blob" }
       );
 
       baixarBlob(
         response,
         "application/zip",
-        `xmls_nfce_${inicio}_a_${fim}.zip`
+        `xmls_nfce_${inicio}_${horaInicio}_a_${fim}_${horaFim}.zip`
       );
     } catch (e) {
       setErro(e?.response?.data?.error || "Erro ao exportar XMLs");
@@ -67,7 +76,7 @@ export default function Exportacoes() {
       baixarBlob(
         response,
         "text/csv;charset=utf-8;",
-        `vendas_${inicio}_a_${fim}.csv`
+        `vendas_${inicio}_${horaInicio}_a_${fim}_${horaFim}.csv`
       );
     } catch (e) {
       setErro(e?.response?.data?.error || "Erro ao exportar CSV");
@@ -84,8 +93,6 @@ export default function Exportacoes() {
       const { data } = await api.get(`/financeiro/resumo?${query}`);
 
       const pg = data?.por_pagamento || {};
-
-      console.log("RESUMO FINANCEIRO:", data);
 
       const dinheiro = Number(pg.dinheiro || 0);
       const pix = Number(pg.pix || 0);
@@ -116,7 +123,8 @@ export default function Exportacoes() {
 body{font-family:Georgia,"Times New Roman",serif;background:#fff;color:#111;padding:25px}
 .box{width:720px;margin:auto;border:2px solid #222;padding:35px 55px}
 .print{text-align:center;font-size:28px;margin-bottom:8px}
-h2{text-align:center;margin:0 0 35px;font-size:24px}
+h2{text-align:center;margin:0 0 10px;font-size:24px}
+.periodo{text-align:center;margin-bottom:30px;font-size:16px}
 .row{display:flex;justify-content:space-between;font-size:26px;margin:24px 0}
 .row strong{font-size:32px}
 .sep{border-top:1px solid #ddd;margin:28px 0}
@@ -130,6 +138,9 @@ h2{text-align:center;margin:0 0 35px;font-size:24px}
 <div class="box">
   <div class="print">🖨️</div>
   <h2>Faturamento Sintético</h2>
+  <div class="periodo">
+    Período: ${inicio} ${horaInicio} até ${fim} ${horaFim}
+  </div>
 
   <div class="row">
     <span>Dinheiro</span>
@@ -186,9 +197,6 @@ window.onload = () => setTimeout(() => window.print(), 300);
       w.document.write(html);
       w.document.close();
     } catch (e) {
-      console.log("ERRO FATURAMENTO:", e);
-      console.log("ERRO RESPONSE:", e?.response?.data);
-
       setErro(
         e?.response?.data?.error ||
           e?.response?.data?.message ||
@@ -206,7 +214,7 @@ window.onload = () => setTimeout(() => window.print(), 300);
         <div>
           <h2>Exportações</h2>
           <div className="fin-subtitle">
-            Escolha o período e exporte os arquivos.
+            Escolha o período com data e horário.
           </div>
         </div>
 
@@ -221,6 +229,11 @@ window.onload = () => setTimeout(() => window.print(), 300);
             value={inicio}
             onChange={(e) => setInicio(e.target.value)}
           />
+          <input
+            type="time"
+            value={horaInicio}
+            onChange={(e) => setHoraInicio(e.target.value)}
+          />
         </div>
 
         <div className="fin-datebox">
@@ -229,6 +242,11 @@ window.onload = () => setTimeout(() => window.print(), 300);
             type="date"
             value={fim}
             onChange={(e) => setFim(e.target.value)}
+          />
+          <input
+            type="time"
+            value={horaFim}
+            onChange={(e) => setHoraFim(e.target.value)}
           />
         </div>
       </div>
