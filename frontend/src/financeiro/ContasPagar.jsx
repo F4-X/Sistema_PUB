@@ -177,6 +177,60 @@ export default function ContasPagar() {
     }
   }
 
+async function editar(conta) {
+  const fornecedor = prompt(
+    "Fornecedor:",
+    conta.fornecedor || ""
+  );
+  if (fornecedor === null) return;
+
+  const numero_nf = prompt(
+    "Número NF:",
+    conta.numero_nf || ""
+  );
+  if (numero_nf === null) return;
+
+  const chave = prompt(
+    "Referência:",
+    conta.chave || ""
+  );
+  if (chave === null) return;
+
+  const valor = prompt(
+    "Valor:",
+    conta.valor
+  );
+  if (valor === null) return;
+
+  const vencimento = prompt(
+    "Vencimento (AAAA-MM-DD):",
+    String(conta.vencimento || "").slice(0, 10)
+  );
+  if (vencimento === null) return;
+
+  try {
+    await api.put(
+      `/financeiro/contas-pagar/${conta.id}`,
+      {
+        fornecedor,
+        numero_nf,
+        chave,
+        valor,
+        vencimento,
+      }
+    );
+
+    setMsg("Conta atualizada com sucesso");
+
+    carregar();
+  } catch (e) {
+    setErro(
+      e?.response?.data?.error ||
+        "Erro ao editar conta"
+    );
+  }
+}
+
   async function excluir(id) {
     if (!window.confirm("Excluir esta conta?")) return;
 
@@ -877,24 +931,37 @@ const totalSelecionado = useMemo(() => {
 
                       <td>
                         <div className="cp-actions">
-                          {!pago && (
-                            <button
-                              type="button"
-                              className="cp-mini cp-pay"
-                              onClick={() => pagar(c.id)}
-                            >
-                              Pagar
-                            </button>
-                          )}
 
-                          <button
-                            type="button"
-                            className="cp-mini cp-del"
-                            onClick={() => excluir(c.id)}
-                          >
-                            Excluir
-                          </button>
-                        </div>
+  <button
+    type="button"
+    className="cp-mini"
+    style={{
+      background: "#8a5a16",
+      color: "#fff",
+    }}
+    onClick={() => editar(c)}
+  >
+    Editar
+  </button>
+
+  {!pago && (
+    <button
+      type="button"
+      className="cp-mini cp-pay"
+      onClick={() => pagar(c.id)}
+    >
+      Pagar
+    </button>
+  )}
+
+  <button
+    type="button"
+    className="cp-mini cp-del"
+    onClick={() => excluir(c.id)}
+  >
+    Excluir
+  </button>
+</div>
                       </td>
                     </tr>
                   );

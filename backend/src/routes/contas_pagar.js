@@ -113,6 +113,72 @@ router.post("/:id/pagar", async (req, res) => {
   }
 });
 
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      fornecedor,
+      numero_nf,
+      chave,
+      valor,
+      vencimento,
+    } = req.body;
+
+    const valorNormalizado = normalizeMoney(valor);
+
+    if (
+      valor != null &&
+      valor !== "" &&
+      valorNormalizado == null
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Valor inválido" });
+    }
+
+    const r = await db.query(
+      `
+      UPDATE contas_pagar
+      SET
+        fornecedor = $1,
+        numero_nf = $2,
+        chave = $3,
+        valor = $4,
+        vencimento = $5
+      WHERE id = $6
+      RETURNING *
+      `,
+      [
+        fornecedor || null,
+        numero_nf || null,
+        chave || null,
+        valorNormalizado,
+        vencimento || null,
+        id,
+      ]
+    );
+
+    if (!r.rows.length) {
+      return res
+        .status(404)
+        .json({ error: "Conta não encontrada" });
+    }
+
+    res.json({
+      ...r.rows[0],
+      valor:
+        r.rows[0].valor == null
+          ? null
+          : Number(r.rows[0].valor),
+    });
+  } catch (e) {
+    res.status(500).json({
+      error: e?.message || "Erro ao editar conta",
+    });
+  }
+});
+
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
