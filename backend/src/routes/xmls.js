@@ -46,17 +46,12 @@ function normalizeMoney(v) {
     return Number.isFinite(n) ? Number(n.toFixed(2)) : null;
   }
 
-  const hasComma = s.includes(",");
-  const hasDot = s.includes(".");
-
   let normalized = s;
 
-  if (hasComma && hasDot) {
+  if (s.includes(",") && s.includes(".")) {
     normalized = s.replace(/\./g, "").replace(",", ".");
-  } else if (hasComma) {
+  } else if (s.includes(",")) {
     normalized = s.replace(",", ".");
-  } else {
-    normalized = s;
   }
 
   const n = Number(normalized);
@@ -91,6 +86,32 @@ function tryFindByRegex(xml, patterns) {
     if (m?.[1]) return cleanText(m[1]);
   }
   return "";
+}
+
+function getDuplicatas(xml) {
+  const src = String(xml || "");
+  const re = /<(?:\w+:)?dup[^>]*>([\s\S]*?)<\/(?:\w+:)?dup>/gi;
+
+  const parcelas = [];
+  let m;
+
+  while ((m = re.exec(src))) {
+    const bloco = m[1];
+
+    const numero = getTag(bloco, "nDup");
+    const vencimento = normalizeDate(getTag(bloco, "dVenc"));
+    const valor = normalizeMoney(getTag(bloco, "vDup"));
+
+    if (numero || vencimento || valor != null) {
+      parcelas.push({
+        numero,
+        vencimento,
+        valor,
+      });
+    }
+  }
+
+  return parcelas;
 }
 
 function extractXmlData(xml) {
@@ -136,6 +157,9 @@ function extractXmlData(xml) {
     ]);
 
   const cedente =
+    tryFindByRegex(xml, [
+      /<emit[\s>][\s\S]*?<(?:\w+:)?xNome[^>]*>([\s\S]*?)<\/(?:\w+:)?xNome>[\s\S]*?<\/emit>/i,
+    ]) ||
     getFirst(xml, [
       "cedente",
       "Cedente",
@@ -149,14 +173,12 @@ function extractXmlData(xml) {
       "sacadorAvalista",
       "favorecido",
       "xNome",
-    ]) ||
-    tryFindByRegex(xml, [
-      /<emit[\s>][\s\S]*?<(?:\w+:)?xNome[^>]*>([\s\S]*?)<\/(?:\w+:)?xNome>[\s\S]*?<\/emit>/i,
-      /<(?:\w+:)?beneficiario[^>]*>([\s\S]*?)<\/(?:\w+:)?beneficiario>/i,
-      /<(?:\w+:)?cedente[^>]*>([\s\S]*?)<\/(?:\w+:)?cedente>/i,
     ]);
 
   const sacado =
+    tryFindByRegex(xml, [
+      /<dest[\s>][\s\S]*?<(?:\w+:)?xNome[^>]*>([\s\S]*?)<\/(?:\w+:)?xNome>[\s\S]*?<\/dest>/i,
+    ]) ||
     getFirst(xml, [
       "sacado",
       "Sacado",
@@ -167,11 +189,6 @@ function extractXmlData(xml) {
       "nomePagador",
       "razaoSocialPagador",
       "nomeSacadoAvalista",
-    ]) ||
-    tryFindByRegex(xml, [
-      /<dest[\s>][\s\S]*?<(?:\w+:)?xNome[^>]*>([\s\S]*?)<\/(?:\w+:)?xNome>[\s\S]*?<\/dest>/i,
-      /<(?:\w+:)?pagador[^>]*>([\s\S]*?)<\/(?:\w+:)?pagador>/i,
-      /<(?:\w+:)?sacado[^>]*>([\s\S]*?)<\/(?:\w+:)?sacado>/i,
     ]);
 
   const valorRaw =
@@ -187,19 +204,16 @@ function extractXmlData(xml) {
       "valor",
       "vlrDocumento",
       "valorOriginal",
-      "vDup",
       "vNF",
       "vLiq",
       "vOrig",
+      "vDup",
     ]) ||
     tryFindByRegex(xml, [
-      /<(?:\w+:)?vDup[^>]*>([\d.,]+)<\/(?:\w+:)?vDup>/i,
       /<(?:\w+:)?vNF[^>]*>([\d.,]+)<\/(?:\w+:)?vNF>/i,
       /<(?:\w+:)?vLiq[^>]*>([\d.,]+)<\/(?:\w+:)?vLiq>/i,
       /<(?:\w+:)?vOrig[^>]*>([\d.,]+)<\/(?:\w+:)?vOrig>/i,
-      /<(?:\w+:)?valor[^>]*>([\d.,]+)<\/(?:\w+:)?valor>/i,
-      /<(?:\w+:)?valorDocumento[^>]*>([\d.,]+)<\/(?:\w+:)?valorDocumento>/i,
-      /<(?:\w+:)?valorTitulo[^>]*>([\d.,]+)<\/(?:\w+:)?valorTitulo>/i,
+      /<(?:\w+:)?vDup[^>]*>([\d.,]+)<\/(?:\w+:)?vDup>/i,
     ]);
 
   const vencRaw =
@@ -215,8 +229,6 @@ function extractXmlData(xml) {
     ]) ||
     tryFindByRegex(xml, [
       /<(?:\w+:)?dVenc[^>]*>([\s\S]*?)<\/(?:\w+:)?dVenc>/i,
-      /<(?:\w+:)?dataVencimento[^>]*>([\s\S]*?)<\/(?:\w+:)?dataVencimento>/i,
-      /<(?:\w+:)?vencimento[^>]*>([\s\S]*?)<\/(?:\w+:)?vencimento>/i,
     ]);
 
   return {
@@ -319,6 +331,17 @@ router.post("/", async (req, res) => {
     }
 
     const extra = extractXmlData(xml);
+    const parcelas = getDuplicatas(xml);
+
+    const extraPrincipal = parcelas.length
+      ? {
+          ...extra,
+          nosso_numero: parcelas[0].numero || extra.nosso_numero,
+          valor_documento: parcelas[0].valor ?? extra.valor_documento,
+          data_vencimento:
+            parcelas[0].vencimento || extra.data_vencimento,
+        }
+      : extra;
 
     const r = await db.query(
       `
@@ -347,17 +370,28 @@ router.post("/", async (req, res) => {
       [
         nome_arquivo,
         xml,
-        extra.numero_documento || null,
-        extra.nosso_numero || null,
-        extra.cedente || null,
-        extra.sacado || null,
-        extra.valor_documento ?? null,
-        extra.data_vencimento || null,
+        extraPrincipal.numero_documento || null,
+        extraPrincipal.nosso_numero || null,
+        extraPrincipal.cedente || null,
+        extraPrincipal.sacado || null,
+        extraPrincipal.valor_documento ?? null,
+        extraPrincipal.data_vencimento || null,
       ]
     );
 
     try {
-      await createContaPagarFromXml(extra);
+      if (parcelas.length) {
+        for (const p of parcelas) {
+          await createContaPagarFromXml({
+            ...extra,
+            nosso_numero: p.numero || extra.nosso_numero,
+            valor_documento: p.valor ?? extra.valor_documento,
+            data_vencimento: p.vencimento || extra.data_vencimento,
+          });
+        }
+      } else {
+        await createContaPagarFromXml(extra);
+      }
     } catch (errConta) {
       console.error(
         "Erro ao criar conta a pagar pelo XML:",
@@ -366,6 +400,7 @@ router.post("/", async (req, res) => {
     }
 
     const row = r.rows?.[0];
+
     res.status(201).json({
       ...row,
       valor_documento:
@@ -379,6 +414,7 @@ router.post("/", async (req, res) => {
 router.get("/:id/download", async (req, res) => {
   try {
     const id = Number(req.params.id);
+
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ error: "ID inválido" });
     }
@@ -394,6 +430,7 @@ router.get("/:id/download", async (req, res) => {
     );
 
     const item = r.rows?.[0];
+
     if (!item) {
       return res.status(404).json({ error: "XML não encontrado" });
     }
@@ -420,15 +457,6 @@ router.put("/:id", async (req, res) => {
       return res.status(400).json({ error: "ID inválido" });
     }
 
-    const {
-      numero_documento,
-      nosso_numero,
-      cedente,
-      sacado,
-      valor_documento,
-      data_vencimento,
-    } = req.body;
-
     const r = await db.query(
       `
       UPDATE financeiro_xmls
@@ -452,22 +480,20 @@ router.put("/:id", async (req, res) => {
         criado_em
       `,
       [
-        numero_documento || null,
-        nosso_numero || null,
-        cedente || null,
-        sacado || null,
-        valor_documento == null
+        req.body.numero_documento || null,
+        req.body.nosso_numero || null,
+        req.body.cedente || null,
+        req.body.sacado || null,
+        req.body.valor_documento == null || req.body.valor_documento === ""
           ? null
-          : Number(valor_documento),
-        data_vencimento || null,
+          : Number(String(req.body.valor_documento).replace(",", ".")),
+        req.body.data_vencimento || null,
         id,
       ]
     );
 
     if (!r.rows.length) {
-      return res
-        .status(404)
-        .json({ error: "XML não encontrado" });
+      return res.status(404).json({ error: "XML não encontrado" });
     }
 
     res.json({
@@ -478,18 +504,16 @@ router.put("/:id", async (req, res) => {
           : Number(r.rows[0].valor_documento),
     });
   } catch (e) {
-    res
-      .status(500)
-      .json({
-        error:
-          e?.message || "Erro ao editar XML",
-      });
+    res.status(500).json({
+      error: e?.message || "Erro ao editar XML",
+    });
   }
 });
 
 router.delete("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
+
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ error: "ID inválido" });
     }
