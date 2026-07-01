@@ -851,8 +851,8 @@ const totalSelecionado = useMemo(() => {
           <table className="cp-table">
             <thead>
               <tr>
-                <th>Descrição</th>
                 <th>Fornecedor</th>
+                <th>Descrição</th>
                 <th>Vencimento</th>
                 <th>Valor</th>
                 <th>Saldo</th>
@@ -899,12 +899,14 @@ const totalSelecionado = useMemo(() => {
                     : c.fornecedor || "Conta sem descrição";
 
                   return (
+                  
                     <tr key={c.id}>
+
+                      <td>{c.fornecedor || "—"}</td>
+
                       <td>
                         <strong>{descricao}</strong>
                       </td>
-
-                      <td>{c.fornecedor || "—"}</td>
 
                       <td>{formatDateBR(c.vencimento)}</td>
 
