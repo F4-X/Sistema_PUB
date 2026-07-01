@@ -89,6 +89,7 @@ export default function ContasPagar() {
   ]);
 
   const [fornecedor, setFornecedor] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [numeroNF, setNumeroNF] = useState("");
   const [chave, setChave] = useState("");
   const [valor, setValor] = useState("");
@@ -131,14 +132,17 @@ export default function ContasPagar() {
       setMsg("");
 
       await api.post("/financeiro/contas-pagar", {
-        fornecedor,
-        numero_nf: numeroNF,
-        chave,
-        valor: String(valor).replace(",", "."),
-        vencimento,
-      });
-
+  
+    fornecedor,
+    descricao,
+   numero_nf: numeroNF,
+   chave,
+    valor: String(valor).replace(",", "."),
+   vencimento,
+    });
+      
       setFornecedor("");
+      setDescricao("");
       setNumeroNF("");
       setChave("");
       setValor("");
@@ -669,6 +673,20 @@ const totalSelecionado = useMemo(() => {
 
         <form onSubmit={salvar} className="cp-card">
           <div className="cp-form">
+            
+            <div>
+  <div className="cp-muted" style={{ marginBottom: 6 }}>
+    Descrição
+  </div>
+
+  <input
+    className="cp-input"
+    value={descricao}
+    onChange={(e) => setDescricao(e.target.value)}
+    placeholder="Ex.: Conta de luz - 06/2026"
+  />
+</div>
+            
             <div>
               <div className="cp-muted" style={{ marginBottom: 6 }}>
                 Fornecedor
@@ -894,9 +912,8 @@ const totalSelecionado = useMemo(() => {
                   const pago =
                     String(c.status || "").toLowerCase() === "pago";
 
-                  const descricao = c.numero_nf
-                    ? `XML - NF ${c.numero_nf}`
-                    : c.fornecedor || "Conta sem descrição";
+                  const descricao = c.descricao
+  || (c.numero_nf ? `XML - NF ${c.numero_nf}` : "Conta sem descrição");
 
                   return (
                   

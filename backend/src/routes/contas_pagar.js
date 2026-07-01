@@ -51,7 +51,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { fornecedor, numero_nf, chave, valor, vencimento } = req.body;
+    const { descricao, fornecedor, numero_nf, chave, valor, vencimento } = req.body;
 
     const valorNormalizado = normalizeMoney(valor);
     if (valor != null && valor !== "" && valorNormalizado == null) {
@@ -61,17 +61,18 @@ router.post("/", async (req, res) => {
     const r = await db.query(
       `
       INSERT INTO contas_pagar
-      (fornecedor, numero_nf, chave, valor, vencimento)
-      VALUES ($1,$2,$3,$4,$5)
-      RETURNING *
+(descricao, fornecedor, numero_nf, chave, valor, vencimento)
+VALUES ($1,$2,$3,$4,$5,$6)
+RETURNING *
       `,
       [
-        fornecedor || null,
-        numero_nf || null,
-        chave || null,
-        valorNormalizado,
-        vencimento || null,
-      ]
+  descricao || null,
+  fornecedor || null,
+  numero_nf || null,
+  chave || null,
+  valorNormalizado,
+  vencimento || null,
+]
     );
 
     res.status(201).json({
@@ -118,12 +119,13 @@ router.put("/:id", async (req, res) => {
     const { id } = req.params;
 
     const {
-      fornecedor,
-      numero_nf,
-      chave,
-      valor,
-      vencimento,
-    } = req.body;
+  descricao,
+  fornecedor,
+  numero_nf,
+  chave,
+  valor,
+  vencimento,
+} = req.body;
 
     const valorNormalizado = normalizeMoney(valor);
 
@@ -140,23 +142,25 @@ router.put("/:id", async (req, res) => {
     const r = await db.query(
       `
       UPDATE contas_pagar
-      SET
-        fornecedor = $1,
-        numero_nf = $2,
-        chave = $3,
-        valor = $4,
-        vencimento = $5
-      WHERE id = $6
-      RETURNING *
+SET
+  descricao = $1,
+  fornecedor = $2,
+  numero_nf = $3,
+  chave = $4,
+  valor = $5,
+  vencimento = $6
+WHERE id = $7
+RETURNING *
       `,
       [
-        fornecedor || null,
-        numero_nf || null,
-        chave || null,
-        valorNormalizado,
-        vencimento || null,
-        id,
-      ]
+  descricao || null,
+  fornecedor || null,
+  numero_nf || null,
+  chave || null,
+  valorNormalizado,
+  vencimento || null,
+  id,
+]
     );
 
     if (!r.rows.length) {
