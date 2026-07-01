@@ -101,6 +101,17 @@ export default function ContasPagar() {
   const [page, setPage] = useState(1);
   const PER_PAGE = 6;
 
+const [editando, setEditando] = useState(null);
+
+const [editForm, setEditForm] = useState({
+  descricao: "",
+  fornecedor: "",
+  numero_nf: "",
+  chave: "",
+  valor: "",
+  vencimento: "",
+});
+
   async function carregar() {
     try {
       setLoading(true);
@@ -181,57 +192,40 @@ export default function ContasPagar() {
     }
   }
 
-async function editar(conta) {
-  const fornecedor = prompt(
-    "Fornecedor:",
-    conta.fornecedor || ""
-  );
-  if (fornecedor === null) return;
+function editar(conta) {
+  setEditando(conta);
 
-  const numero_nf = prompt(
-    "Número NF:",
-    conta.numero_nf || ""
-  );
-  if (numero_nf === null) return;
+  setEditForm({
+    descricao: conta.descricao || "",
+    fornecedor: conta.fornecedor || "",
+    numero_nf: conta.numero_nf || "",
+    chave: conta.chave || "",
+    valor: conta.valor == null ? "" : String(conta.valor).replace(".", ","),
+    vencimento: String(conta.vencimento || "").slice(0, 10),
+  });
+}
 
-  const chave = prompt(
-    "Referência:",
-    conta.chave || ""
-  );
-  if (chave === null) return;
-
-  const valor = prompt(
-    "Valor:",
-    conta.valor
-  );
-  if (valor === null) return;
-
-  const vencimento = prompt(
-    "Vencimento (AAAA-MM-DD):",
-    String(conta.vencimento || "").slice(0, 10)
-  );
-  if (vencimento === null) return;
+async function salvarEdicao() {
+  if (!editando?.id) return;
 
   try {
-    await api.put(
-      `/financeiro/contas-pagar/${conta.id}`,
-      {
-        fornecedor,
-        numero_nf,
-        chave,
-        valor,
-        vencimento,
-      }
-    );
+    setErro("");
+    setMsg("");
 
+    await api.put(`/financeiro/contas-pagar/${editando.id}`, {
+      descricao: editForm.descricao,
+      fornecedor: editForm.fornecedor,
+      numero_nf: editForm.numero_nf,
+      chave: editForm.chave,
+      valor: String(editForm.valor || "").replace(",", "."),
+      vencimento: editForm.vencimento,
+    });
+
+    setEditando(null);
     setMsg("Conta atualizada com sucesso");
-
-    carregar();
+    await carregar();
   } catch (e) {
-    setErro(
-      e?.response?.data?.error ||
-        "Erro ao editar conta"
-    );
+    setErro(e?.response?.data?.error || "Erro ao editar conta");
   }
 }
 
@@ -297,9 +291,11 @@ async function editar(conta) {
         (!inicio || dataBase >= inicio) &&
         (!fim || dataBase <= fim);
 
-      const descricao = item.numero_nf
-        ? `XML - NF ${item.numero_nf}`
-        : item.fornecedor || "Conta sem descrição";
+      const descricao =
+  item.descricao ||
+  (item.numero_nf
+    ? `XML - NF ${item.numero_nf}`
+    : "Conta sem descrição");
 
       const vencBR = formatDateBR(item.vencimento);
       const valorTxt = valueSearch(item.valor);
@@ -430,7 +426,14 @@ const totalSelecionado = useMemo(() => {
 
         .cp-form{
           display:grid;
-          grid-template-columns:2fr 1fr 1.4fr 1fr 1fr auto;
+          grid-template-columns:
+1.6fr
+1.6fr
+1fr
+1fr
+1fr
+1fr
+auto;
           gap:10px;
           align-items:end;
         }
@@ -605,6 +608,42 @@ const totalSelecionado = useMemo(() => {
           gap:12px;
           flex-wrap:wrap;
         }
+
+.cp-modal-bg{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.72);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+.cp-modal{
+  width:min(520px,92vw);
+  background:#11111d;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  padding:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.55);
+}
+
+.cp-modal h3{
+  margin:0 0 14px;
+  color:#fff;
+}
+
+.cp-modal-grid{
+  display:grid;
+  gap:10px;
+}
+
+.cp-modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:18px;
+}
 
         @media (max-width: 980px){
           .cp-top{
@@ -1017,6 +1056,112 @@ const totalSelecionado = useMemo(() => {
           </button>
         </div>
       </div>
+
+{editando && (
+  <div
+    className="cp-modal-bg"
+    onClick={() => setEditando(null)}
+  >
+    <div
+      className="cp-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h3>Editar Conta</h3>
+
+      <div className="cp-modal-grid">
+
+        <input
+          className="cp-input"
+          placeholder="Descrição"
+          value={editForm.descricao}
+          onChange={(e) =>
+            setEditForm({
+              ...editForm,
+              descricao: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="cp-input"
+          placeholder="Fornecedor"
+          value={editForm.fornecedor}
+          onChange={(e) =>
+            setEditForm({
+              ...editForm,
+              fornecedor: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="cp-input"
+          placeholder="Número NF"
+          value={editForm.numero_nf}
+          onChange={(e) =>
+            setEditForm({
+              ...editForm,
+              numero_nf: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="cp-input"
+          placeholder="Referência"
+          value={editForm.chave}
+          onChange={(e) =>
+            setEditForm({
+              ...editForm,
+              chave: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="cp-input"
+          placeholder="Valor"
+          value={editForm.valor}
+          onChange={(e) =>
+            setEditForm({
+              ...editForm,
+              valor: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="cp-input"
+          type="date"
+          value={editForm.vencimento}
+          onChange={(e) =>
+            setEditForm({
+              ...editForm,
+              vencimento: e.target.value,
+            })
+          }
+        />
+      </div>
+
+      <div className="cp-modal-actions">
+        <button
+          className="btn-secondary"
+          onClick={() => setEditando(null)}
+        >
+          Cancelar
+        </button>
+
+        <button
+          className="btn-primary"
+          onClick={salvarEdicao}
+        >
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
