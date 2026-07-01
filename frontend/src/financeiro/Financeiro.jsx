@@ -3,7 +3,6 @@ import { api } from "../api";
 import { TopbarFinanceiro } from "../components.jsx";
 import XMLs from "./XMLs.jsx";
 import ContasPagar from "./ContasPagar.jsx";
-import ContasPagas from "./ContasPagas.jsx";
 import Fechamento from "./Fechamento.jsx";
 import Exportacoes from "./Exportacoes.jsx";
 
@@ -219,17 +218,6 @@ location.reload();
         <TopbarPadrao />
         <main className="fin-wrap" style={{ gap: 10, paddingTop: 10 }}>
           <ContasPagar />
-        </main>
-      </>
-    );
-  }
-
-  if (page === "contas-pagas") {
-    return (
-      <>
-        <TopbarPadrao />
-        <main className="fin-wrap" style={{ gap: 10, paddingTop: 10 }}>
-          <ContasPagas />
         </main>
       </>
     );

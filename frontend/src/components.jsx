@@ -76,8 +76,6 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
     ? "XMLs"
     : page === "contas-pagar"
     ? "Contas a Pagar"
-    : page === "contas-pagas"
-    ? "Contas Pagas"
     : page === "fechamentos"
 ? "Fechamentos"
 : page === "exportacoes"
