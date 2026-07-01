@@ -39,10 +39,9 @@ function valueSearch(v) {
     maximumFractionDigits: 2,
   });
 
-  const simple = String(n);
-  const fixed = n.toFixed(2);
-
-  return `${br} ${simple} ${fixed} ${br.replace(/\./g, "").replace(",", ".")}`;
+  return `${br} ${String(n)} ${n.toFixed(2)} ${br
+    .replace(/\./g, "")
+    .replace(",", ".")}`;
 }
 
 export default function XMLs() {
@@ -55,8 +54,18 @@ export default function XMLs() {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
 
-  const inputRef = useRef(null);
+  const [editando, setEditando] = useState(null);
+  const [salvandoEdit, setSalvandoEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    numero_documento: "",
+    nosso_numero: "",
+    cedente: "",
+    sacado: "",
+    valor_documento: "",
+    data_vencimento: "",
+  });
 
+  const inputRef = useRef(null);
   const [page, setPage] = useState(1);
   const PER_PAGE = 6;
 
@@ -121,6 +130,7 @@ export default function XMLs() {
       document.body.appendChild(a);
       a.click();
       a.remove();
+
       window.URL.revokeObjectURL(url);
     } catch (e) {
       setErro(e?.response?.data?.error || "Erro ao baixar XML");
@@ -131,21 +141,15 @@ export default function XMLs() {
     try {
       setErro("");
 
-      const i = inicio || "";
-      const f = fim || "";
-
       const params = new URLSearchParams();
-
-      if (i) params.set("inicio", i);
-      if (f) params.set("fim", f);
+      if (inicio) params.set("inicio", inicio);
+      if (fim) params.set("fim", fim);
 
       const qs = params.toString();
 
       const response = await api.get(
         `/vendas/fiscal/xmls/exportar${qs ? `?${qs}` : ""}`,
-        {
-          responseType: "blob",
-        }
+        { responseType: "blob" }
       );
 
       const blob = new Blob([response.data], {
@@ -172,7 +176,48 @@ export default function XMLs() {
   }
 
   function editar(x) {
-    alert(`Editar XML #${x.id}`);
+    setErro("");
+    setMsg("");
+    setEditando(x);
+
+    setEditForm({
+      numero_documento: x.numero_documento || "",
+      nosso_numero: x.nosso_numero || "",
+      cedente: x.cedente || "",
+      sacado: x.sacado || "",
+      valor_documento:
+        x.valor_documento == null
+          ? ""
+          : String(x.valor_documento).replace(".", ","),
+      data_vencimento: String(x.data_vencimento || "").slice(0, 10),
+    });
+  }
+
+  async function salvarEdicao() {
+    if (!editando?.id) return;
+
+    try {
+      setSalvandoEdit(true);
+      setErro("");
+      setMsg("");
+
+      await api.put(`/financeiro/xmls/${editando.id}`, {
+        numero_documento: editForm.numero_documento,
+        nosso_numero: editForm.nosso_numero,
+        cedente: editForm.cedente,
+        sacado: editForm.sacado,
+        valor_documento: String(editForm.valor_documento || "").replace(",", "."),
+        data_vencimento: editForm.data_vencimento || null,
+      });
+
+      setMsg("XML editado com sucesso");
+      setEditando(null);
+      await carregar();
+    } catch (e) {
+      setErro(e?.response?.data?.error || "Erro ao editar XML");
+    } finally {
+      setSalvandoEdit(false);
+    }
   }
 
   async function excluir(id) {
@@ -197,13 +242,13 @@ export default function XMLs() {
       const criadoBR = formatDateBR(item.criado_em);
       const valorTxt = valueSearch(item.valor_documento);
 
-      const dataBase = String(
-        item.data_vencimento || item.criado_em || ""
-      ).slice(0, 10);
+      const dataBase = String(item.data_vencimento || item.criado_em || "").slice(
+        0,
+        10
+      );
 
       const okPeriodo =
-        (!inicio || dataBase >= inicio) &&
-        (!fim || dataBase <= fim);
+        (!inicio || dataBase >= inicio) && (!fim || dataBase <= fim);
 
       const texto = norm(`
         ${item.nome_arquivo || ""}
@@ -256,6 +301,9 @@ export default function XMLs() {
         .xml-err{background:#3a1212;border:1px solid #7a2a2a;color:#ffd5d5;border-radius:10px;padding:10px}
         .xml-ok{background:#11351e;border:1px solid #24663b;color:#d7ffe1;border-radius:10px;padding:10px}
         .xml-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+        .xml-edit-grid{display:grid;gap:10px}
+        .xml-edit-grid input{width:100%;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(10,10,16,.55);color:var(--text);outline:none}
+        .xml-edit-grid input:focus{border-color:rgba(123,108,255,.65);box-shadow:0 0 0 4px var(--glow)}
       `}</style>
 
       <div className="panel-head">
@@ -374,7 +422,6 @@ export default function XMLs() {
                     </td>
 
                     <td>{x.numero_documento || "—"}</td>
-
                     <td>{x.nosso_numero || "—"}</td>
 
                     <td style={{ maxWidth: 240, wordBreak: "break-word" }}>
@@ -390,7 +437,6 @@ export default function XMLs() {
                     </td>
 
                     <td>{formatDateBR(x.data_vencimento)}</td>
-
                     <td>{formatDateBR(x.criado_em)}</td>
 
                     <td>
@@ -449,6 +495,101 @@ export default function XMLs() {
           </button>
         </div>
       </div>
+
+      {editando ? (
+        <div className="modal-backdrop" onClick={() => setEditando(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Editar XML</h3>
+
+            <div className="xml-edit-grid">
+              <input
+                value={editForm.numero_documento}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    numero_documento: e.target.value,
+                  }))
+                }
+                placeholder="Documento"
+              />
+
+              <input
+                value={editForm.nosso_numero}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    nosso_numero: e.target.value,
+                  }))
+                }
+                placeholder="Nosso número"
+              />
+
+              <input
+                value={editForm.cedente}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    cedente: e.target.value,
+                  }))
+                }
+                placeholder="Cedente"
+              />
+
+              <input
+                value={editForm.sacado}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    sacado: e.target.value,
+                  }))
+                }
+                placeholder="Sacado"
+              />
+
+              <input
+                value={editForm.valor_documento}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    valor_documento: e.target.value,
+                  }))
+                }
+                placeholder="Valor"
+                inputMode="decimal"
+              />
+
+              <input
+                type="date"
+                value={editForm.data_vencimento}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    data_vencimento: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => setEditando(null)}
+                disabled={salvandoEdit}
+              >
+                Cancelar
+              </button>
+
+              <button
+                className="btn-primary"
+                onClick={salvarEdicao}
+                disabled={salvandoEdit}
+              >
+                {salvandoEdit ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
