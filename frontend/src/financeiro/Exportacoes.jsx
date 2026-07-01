@@ -28,55 +28,60 @@ export default function Exportacoes() {
   const [inicio, setInicio] = useState(hojeISO());
   const [fim, setFim] = useState(hojeISO());
 
+  const [usarHorario, setUsarHorario] = useState(false);
   const [horaInicio, setHoraInicio] = useState("08:00");
   const [horaFim, setHoraFim] = useState("02:00");
 
   const [loading, setLoading] = useState("");
   const [erro, setErro] = useState("");
 
-  const inicioCompleto = `${inicio}T${horaInicio}:00`;
-  const fimCompleto = `${fim}T${horaFim}:00`;
+  const inicioFinal = usarHorario
+    ? `${inicio}T${horaInicio}:00`
+    : `${inicio}T00:00:00`;
 
-  const query = `inicio=${encodeURIComponent(
-    inicioCompleto
-  )}&fim=${encodeURIComponent(fimCompleto)}`;
+  const fimFinal = usarHorario
+    ? `${fim}T${horaFim}:00`
+    : `${fim}T23:59:59`;
 
- async function exportarXmls() {
-  try {
-    setErro("");
-    setLoading("xml");
+  const query = `inicio=${encodeURIComponent(inicioFinal)}&fim=${encodeURIComponent(fimFinal)}`;
 
-    const response = await api.get(
-      `/vendas/fiscal/xmls/exportar?inicio=${inicio}&fim=${fim}`,
-      { responseType: "blob" }
-    );
+  async function exportarXmls() {
+    try {
+      setErro("");
+      setLoading("xml");
 
-    baixarBlob(
-      response,
-      "application/zip",
-      `xmls_nfce_${inicio}_a_${fim}.zip`
-    );
-  } catch (e) {
-    setErro(e?.response?.data?.error || "Erro ao exportar XMLs");
-  } finally {
-    setLoading("");
+      const response = await api.get(
+        `/vendas/fiscal/xmls/exportar?inicio=${inicio}&fim=${fim}`,
+        { responseType: "blob" }
+      );
+
+      baixarBlob(
+        response,
+        "application/zip",
+        `xmls_nfce_${inicio}_a_${fim}.zip`
+      );
+    } catch (e) {
+      setErro(e?.response?.data?.error || "Erro ao exportar XMLs");
+    } finally {
+      setLoading("");
+    }
   }
-}
 
   async function exportarCSV() {
     try {
       setErro("");
       setLoading("csv");
 
-      const response = await api.get(
-        `/financeiro/exportar-vendas?${query}`,
-        { responseType: "blob" }
-      );
+      const response = await api.get(`/financeiro/exportar-vendas?${query}`, {
+        responseType: "blob",
+      });
 
       baixarBlob(
         response,
         "text/csv;charset=utf-8;",
-        `vendas_${inicio}_${horaInicio}_a_${fim}_${horaFim}.csv`
+        usarHorario
+          ? `vendas_${inicio}_${horaInicio}_a_${fim}_${horaFim}.csv`
+          : `vendas_${inicio}_a_${fim}.csv`
       );
     } catch (e) {
       setErro(e?.response?.data?.error || "Erro ao exportar CSV");
@@ -91,7 +96,6 @@ export default function Exportacoes() {
       setLoading("sintetico");
 
       const { data } = await api.get(`/financeiro/resumo?${query}`);
-
       const pg = data?.por_pagamento || {};
 
       const dinheiro = Number(pg.dinheiro || 0);
@@ -112,6 +116,10 @@ export default function Exportacoes() {
         0;
 
       const bruto = liquido + desconto;
+
+      const periodoTexto = usarHorario
+        ? `${inicio} ${horaInicio} até ${fim} ${horaFim}`
+        : `${inicio} até ${fim}`;
 
       const html = `
 <!DOCTYPE html>
@@ -138,24 +146,11 @@ h2{text-align:center;margin:0 0 10px;font-size:24px}
 <div class="box">
   <div class="print">🖨️</div>
   <h2>Faturamento Sintético</h2>
-  <div class="periodo">
-    Período: ${inicio} ${horaInicio} até ${fim} ${horaFim}
-  </div>
+  <div class="periodo">Período: ${periodoTexto}</div>
 
-  <div class="row">
-    <span>Dinheiro</span>
-    <strong>${money(dinheiro)}</strong>
-  </div>
-
-  <div class="row">
-    <span>PIX</span>
-    <strong>${money(pix)}</strong>
-  </div>
-
-  <div class="row">
-    <span>Cartão</span>
-    <strong>${money(cartao)}</strong>
-  </div>
+  <div class="row"><span>Dinheiro</span><strong>${money(dinheiro)}</strong></div>
+  <div class="row"><span>PIX</span><strong>${money(pix)}</strong></div>
+  <div class="row"><span>Cartão</span><strong>${money(cartao)}</strong></div>
 
   <div class="sep"></div>
 
@@ -214,7 +209,7 @@ window.onload = () => setTimeout(() => window.print(), 300);
         <div>
           <h2>Exportações</h2>
           <div className="fin-subtitle">
-            Escolha o período com data e horário.
+            Escolha o período e, se quiser, filtre por horário.
           </div>
         </div>
 
@@ -229,11 +224,14 @@ window.onload = () => setTimeout(() => window.print(), 300);
             value={inicio}
             onChange={(e) => setInicio(e.target.value)}
           />
-          <input
-            type="time"
-            value={horaInicio}
-            onChange={(e) => setHoraInicio(e.target.value)}
-          />
+
+          {usarHorario && (
+            <input
+              type="time"
+              value={horaInicio}
+              onChange={(e) => setHoraInicio(e.target.value)}
+            />
+          )}
         </div>
 
         <div className="fin-datebox">
@@ -243,12 +241,27 @@ window.onload = () => setTimeout(() => window.print(), 300);
             value={fim}
             onChange={(e) => setFim(e.target.value)}
           />
-          <input
-            type="time"
-            value={horaFim}
-            onChange={(e) => setHoraFim(e.target.value)}
-          />
+
+          {usarHorario && (
+            <input
+              type="time"
+              value={horaFim}
+              onChange={(e) => setHoraFim(e.target.value)}
+            />
+          )}
         </div>
+
+        <label
+          className="fin-datebox"
+          style={{ cursor: "pointer", userSelect: "none" }}
+        >
+          <input
+            type="checkbox"
+            checked={usarHorario}
+            onChange={(e) => setUsarHorario(e.target.checked)}
+          />
+          <span className="tag">Usar horário</span>
+        </label>
       </div>
 
       {erro ? <div className="empty">{erro}</div> : null}
