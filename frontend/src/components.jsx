@@ -114,13 +114,6 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
             Contas a Pagar
           </button>
 
-          <button
-  className={page === "contas-pagas" ? "active" : ""}
-  onClick={() => setPage("contas-pagas")}
->
-  Contas Pagas
-</button>
-
 <button
   className={page === "fechamentos" ? "active" : ""}
   onClick={() => setPage("fechamentos")}
