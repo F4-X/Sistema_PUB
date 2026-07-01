@@ -307,6 +307,13 @@ export default function ContasPagar() {
     };
   }, [items]);
 
+const totalSelecionado = useMemo(() => {
+  return filtrados.reduce(
+    (total, item) => total + Number(item.valor || 0),
+    0
+  );
+}, [filtrados]);
+
   const totalPages = Math.max(
     1,
     Math.ceil(filtrados.length / PER_PAGE)
@@ -600,6 +607,11 @@ export default function ContasPagar() {
             <div className="cp-v">{money(totais.total)}</div>
           </div>
         </div>
+
+        <div className="cp-card">
+  <div className="cp-k">Selecionados</div>
+  <div className="cp-v">{money(totalSelecionado)}</div>
+</div>
 
         <form onSubmit={salvar} className="cp-card">
           <div className="cp-form">
