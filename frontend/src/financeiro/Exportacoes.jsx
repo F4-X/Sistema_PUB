@@ -35,6 +35,9 @@ export default function Exportacoes() {
   const [loading, setLoading] = useState("");
   const [erro, setErro] = useState("");
 
+  const [openRelatorio, setOpenRelatorio] = useState(false);
+  const [relatorioStatus, setRelatorioStatus] = useState("todos");
+
   const inicioFinal = usarHorario
     ? `${inicio}T${horaInicio}:00`
     : `${inicio}T00:00:00`;
@@ -85,6 +88,30 @@ export default function Exportacoes() {
       );
     } catch (e) {
       setErro(e?.response?.data?.error || "Erro ao exportar CSV");
+    } finally {
+      setLoading("");
+    }
+  }
+
+  async function gerarRelatorioContas() {
+    try {
+      setErro("");
+      setLoading("relatorio");
+
+      const response = await api.get(
+        `/financeiro/contas-pagar/relatorio?${query}&status=${relatorioStatus}`,
+        { responseType: "blob" }
+      );
+
+      baixarBlob(
+        response,
+        "application/pdf",
+        `relatorio_contas_${relatorioStatus}_${inicio}_a_${fim}.pdf`
+      );
+
+      setOpenRelatorio(false);
+    } catch (e) {
+      setErro(e?.response?.data?.error || "Erro ao gerar relatório");
     } finally {
       setLoading("");
     }
@@ -293,7 +320,60 @@ window.onload = () => setTimeout(() => window.print(), 300);
         >
           {loading === "csv" ? "Exportando..." : "Exportar CSV"}
         </button>
+
+        <button
+          className="btn-secondary"
+          onClick={() => setOpenRelatorio(true)}
+          disabled={!!loading}
+          type="button"
+        >
+          Relatório
+        </button>
       </div>
+
+      {openRelatorio ? (
+        <div
+          className="modal-backdrop"
+          onClick={() => setOpenRelatorio(false)}
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Relatório de Contas a Pagar</h3>
+
+            <div style={{ marginBottom: 10, color: "var(--muted)" }}>
+              Período: {inicio} até {fim}
+            </div>
+
+            <select
+              value={relatorioStatus}
+              onChange={(e) => setRelatorioStatus(e.target.value)}
+            >
+              <option value="todos">Todos</option>
+              <option value="aberto">Em aberto</option>
+              <option value="vencido">Vencidos</option>
+              <option value="pago">Pagas</option>
+            </select>
+
+            <div className="modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => setOpenRelatorio(false)}
+                type="button"
+              >
+                Cancelar
+              </button>
+
+              <button
+                className="btn-primary"
+                onClick={gerarRelatorioContas}
+                disabled={loading === "relatorio"}
+                type="button"
+              >
+                {loading === "relatorio" ? "Gerando..." : "Gerar PDF"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
