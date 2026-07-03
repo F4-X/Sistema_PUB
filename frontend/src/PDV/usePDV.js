@@ -26,8 +26,8 @@ export function usePDV(confirmDialog) {
   const [openPay, setOpenPay] = useState(false);
   const [payDinheiro, setPayDinheiro] = useState("");
   const [payPix, setPayPix] = useState("");
-  const [payCartao, setPayCartao] = useState("");
-  const [payCartaoTipo, setPayCartaoTipo] = useState("");
+  const [payDebito, setPayDebito] = useState("");
+  const [payCredito, setPayCredito] = useState("");
   const [payLoading, setPayLoading] = useState(false);
 
   const [descontoTipo, setDescontoTipo] = useState("rs");
@@ -207,8 +207,8 @@ export function usePDV(confirmDialog) {
 
     setPayDinheiro("");
     setPayPix("");
-    setPayCartao("");
-    setPayCartaoTipo("");
+    setPayDebito("");
+    setPayCredito("");
 
     setDescontoTipo("rs");
     setDescontoValor("");
@@ -224,23 +224,22 @@ export function usePDV(confirmDialog) {
 
     const dinheiro = clamp2(num(payDinheiro));
     const pix = clamp2(num(payPix));
-    const cartao = clamp2(num(payCartao));
+    const debito = clamp2(num(payDebito));
+    const credito = clamp2(num(payCredito));
+    const cartaoTotal = clamp2(debito + credito);
 
     const tf = clamp2(totalFinal);
 
     const restanteAntesCartao = clamp2(Math.max(0, tf - (dinheiro + pix)));
-    if (cartao > restanteAntesCartao + 0.00001) {
+    if (cartaoTotal > restanteAntesCartao + 0.00001) {
       return toastErr("Cartão não pode ser maior que o valor restante.");
-    }
-
-    if (cartao > 0 && !payCartaoTipo) {
-      return toastErr("Escolha crédito ou débito para o cartão.");
     }
 
     const pagamentos = [
       { tipo: "dinheiro", valor: dinheiro },
       { tipo: "pix", valor: pix },
-      { tipo: payCartaoTipo, valor: cartao },
+      { tipo: "debito", valor: debito },
+      { tipo: "credito", valor: credito },
     ].filter((p) => p.valor > 0 && p.tipo);
 
     if (!pagamentos.length) return toastErr("Informe ao menos um pagamento.");
@@ -248,7 +247,7 @@ export function usePDV(confirmDialog) {
     const totalPago = clamp2(pagamentos.reduce((s, p) => s + p.valor, 0));
     if (totalPago + 0.00001 < tf) return toastErr("Pagamento insuficiente.");
 
-    const precisaEmDinPix = clamp2(Math.max(0, tf - cartao));
+    const precisaEmDinPix = clamp2(Math.max(0, tf - cartaoTotal));
     const troco = clamp2(Math.max(0, (dinheiro + pix) - precisaEmDinPix));
 
     setPayLoading(true);
@@ -419,10 +418,10 @@ export function usePDV(confirmDialog) {
     setPayDinheiro,
     payPix,
     setPayPix,
-    payCartao,
-    setPayCartao,
-    payCartaoTipo,
-    setPayCartaoTipo,
+    payDebito,
+    setPayDebito,
+    payCredito,
+    setPayCredito,
     payLoading,
 
     descontoTipo,

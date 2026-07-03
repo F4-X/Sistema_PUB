@@ -76,11 +76,11 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
     ? "XMLs"
     : page === "contas-pagar"
     ? "Contas a Pagar"
+    : page === "contas-pagas"
+    ? "Contas Pagas"
     : page === "fechamentos"
-? "Fechamentos"
-: page === "exportacoes"
-? "Exportações"
-: "Financeiro";
+    ? "Fechamentos"
+    : "Financeiro";
 
   return (
     <header className="pdv-topbar">
@@ -114,6 +114,13 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
             Contas a Pagar
           </button>
 
+          <button
+  className={page === "contas-pagas" ? "active" : ""}
+  onClick={() => setPage("contas-pagas")}
+>
+  Contas Pagas
+</button>
+
 <button
   className={page === "fechamentos" ? "active" : ""}
   onClick={() => setPage("fechamentos")}
@@ -121,14 +128,7 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
   Fechamentos
 </button>
 
-<button
-  className={page === "exportacoes" ? "active" : ""}
-  onClick={() => setPage("exportacoes")}
->
-  Exportações
-</button>
-
-<button onClick={onLogout}>Sair</button>
+          <button onClick={onLogout}>Sair</button>
         </div>
       </div>
     </header>
@@ -521,12 +521,12 @@ export function ModalPagamento({
 
   dinheiro,
   pix,
-  cartao,
-  cartaoTipo,
+  debito,
+  credito,
   setDinheiro,
   setPix,
-  setCartao,
-  setCartaoTipo,
+  setDebito,
+  setCredito,
 
   descontoTipo,
   setDescontoTipo,
@@ -543,10 +543,8 @@ export function ModalPagamento({
 
   const [dinDraft, setDinDraft] = React.useState("");
   const [pixDraft, setPixDraft] = React.useState("");
-  const [carDraft, setCarDraft] = React.useState("");
-
-  const [openTipoCartao, setOpenTipoCartao] = React.useState(false);
-  const [carTemp, setCarTemp] = React.useState("");
+  const [debDraft, setDebDraft] = React.useState("");
+  const [credDraft, setCredDraft] = React.useState("");
 
   const n = (v) => Number(String(v || "").replace(",", ".")) || 0;
   const clamp2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
@@ -555,15 +553,17 @@ export function ModalPagamento({
 
   const din = clamp2(n(dinheiro));
   const px = clamp2(n(pix));
-  const car = clamp2(n(cartao));
+  const deb = clamp2(n(debito));
+  const cred = clamp2(n(credito));
+  const cardTotal = clamp2(deb + cred);
 
-  const totalPago = clamp2(din + px + car);
+  const totalPago = clamp2(din + px + cardTotal);
   const falta = clamp2(Math.max(0, tf - totalPago));
 
-  const precisaEmDinPix = clamp2(Math.max(0, tf - car));
+  const precisaEmDinPix = clamp2(Math.max(0, tf - cardTotal));
   const troco = clamp2(Math.max(0, (din + px) - precisaEmDinPix));
 
-  const maxCartao = clamp2(Math.max(0, tf - (din + px)));
+  const maxMetodo = clamp2(Math.max(0, tf - totalPago));
   const podeConfirmar = totalPago + 0.00001 >= tf && tf > 0;
 
   const enviar = (tipo) => {
@@ -583,33 +583,31 @@ export function ModalPagamento({
       return;
     }
 
-    if (tipo === "car") {
-      let v = clamp2(n(carDraft));
+    if (tipo === "deb") {
+      let v = clamp2(n(debDraft));
       if (v <= 0) return;
-
-      v = Math.min(v, maxCartao);
+      v = Math.min(v, maxMetodo);
       if (v <= 0) return;
-
-      setCarTemp(String(v));
-      setOpenTipoCartao(true);
+      setDebito(String(v));
+      setDebDraft("");
+      return;
     }
-  };
 
-  const escolherTipoCartao = (tipo) => {
-    setCartao(carTemp);
-    setCartaoTipo(tipo);
-    setCarDraft("");
-    setCarTemp("");
-    setOpenTipoCartao(false);
+    if (tipo === "cred") {
+      let v = clamp2(n(credDraft));
+      if (v <= 0) return;
+      v = Math.min(v, maxMetodo);
+      if (v <= 0) return;
+      setCredito(String(v));
+      setCredDraft("");
+    }
   };
 
   const remover = (tipo) => {
     if (tipo === "din") setDinheiro("");
     if (tipo === "pix") setPix("");
-    if (tipo === "car") {
-      setCartao("");
-      setCartaoTipo("");
-    }
+    if (tipo === "deb") setDebito("");
+    if (tipo === "cred") setCredito("");
   };
 
   const LinhaValor = ({ label, value, onRemove }) => (
@@ -631,146 +629,133 @@ export function ModalPagamento({
   );
 
   return (
-    <>
-      <div className="modal-backdrop" onClick={onClose}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ margin: 0 }}>Pagamento</h3>
-            <div className="badge">
-              Total: <b style={{ marginLeft: 6 }}>R$ {tf.toFixed(2)}</b>
-            </div>
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0 }}>Pagamento</h3>
+          <div className="badge">
+            Total: <b style={{ marginLeft: 6 }}>R$ {tf.toFixed(2)}</b>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
+            <input
+              value={dinDraft}
+              onChange={(e) => setDinDraft(e.target.value)}
+              placeholder="Dinheiro"
+              inputMode="decimal"
+              onKeyDown={(e) => e.key === "Enter" && enviar("din")}
+            />
+            <button className="btn-secondary" type="button" onClick={() => enviar("din")}>
+              Enviar
+            </button>
           </div>
 
-          <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
-              <input
-                value={dinDraft}
-                onChange={(e) => setDinDraft(e.target.value)}
-                placeholder="Dinheiro"
-                inputMode="decimal"
-                onKeyDown={(e) => e.key === "Enter" && enviar("din")}
-              />
-              <button className="btn-secondary" type="button" onClick={() => enviar("din")}>
-                Enviar
-              </button>
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
+            <input
+              value={pixDraft}
+              onChange={(e) => setPixDraft(e.target.value)}
+              placeholder="Pix"
+              inputMode="decimal"
+              onKeyDown={(e) => e.key === "Enter" && enviar("pix")}
+            />
+            <button className="btn-secondary" type="button" onClick={() => enviar("pix")}>
+              Enviar
+            </button>
+          </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
-              <input
-                value={pixDraft}
-                onChange={(e) => setPixDraft(e.target.value)}
-                placeholder="Pix"
-                inputMode="decimal"
-                onKeyDown={(e) => e.key === "Enter" && enviar("pix")}
-              />
-              <button className="btn-secondary" type="button" onClick={() => enviar("pix")}>
-                Enviar
-              </button>
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
+            <input
+              value={debDraft}
+              onChange={(e) => setDebDraft(e.target.value)}
+              placeholder={`Débito (máx: ${maxMetodo.toFixed(2)})`}
+              inputMode="decimal"
+              onKeyDown={(e) => e.key === "Enter" && enviar("deb")}
+            />
+            <button className="btn-secondary" type="button" onClick={() => enviar("deb")}>
+              Enviar
+            </button>
+          </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
-              <input
-                value={carDraft}
-                onChange={(e) => setCarDraft(e.target.value)}
-                placeholder={`Cartão (máx: ${maxCartao.toFixed(2)})`}
-                inputMode="decimal"
-                onKeyDown={(e) => e.key === "Enter" && enviar("car")}
-              />
-              <button className="btn-secondary" type="button" onClick={() => enviar("car")}>
-                Enviar
-              </button>
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
+            <input
+              value={credDraft}
+              onChange={(e) => setCredDraft(e.target.value)}
+              placeholder={`Crédito (máx: ${maxMetodo.toFixed(2)})`}
+              inputMode="decimal"
+              onKeyDown={(e) => e.key === "Enter" && enviar("cred")}
+            />
+            <button className="btn-secondary" type="button" onClick={() => enviar("cred")}>
+              Enviar
+            </button>
+          </div>
 
-            {(din > 0 || px > 0 || car > 0) && (
-              <div className="empty">
-                {din > 0 && <LinhaValor label="Dinheiro" value={din} onRemove={() => remover("din")} />}
+          {(din > 0 || px > 0 || deb > 0 || cred > 0) && (
+            <div className="empty">
+              {din > 0 && <LinhaValor label="Dinheiro" value={din} onRemove={() => remover("din")} />}
 
-                {px > 0 && (
-                  <div style={{ marginTop: 6 }}>
-                    <LinhaValor label="Pix" value={px} onRemove={() => remover("pix")} />
-                  </div>
-                )}
-
-                {car > 0 && (
-                  <div style={{ marginTop: 6 }}>
-                    <LinhaValor
-                      label={`Cartão${cartaoTipo ? ` (${cartaoTipo === "credito" ? "Crédito" : "Débito"})` : ""}`}
-                      value={car}
-                      onRemove={() => remover("car")}
-                    />
-                  </div>
-                )}
-
-                <div style={{ borderTop: "1px dashed rgba(255,255,255,.14)", margin: "10px 0" }} />
-
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Falta pagar</span>
-                  <b>R$ {falta.toFixed(2)}</b>
+              {px > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <LinhaValor label="Pix" value={px} onRemove={() => remover("pix")} />
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-                  <span>Troco</span>
-                  <b>R$ {troco.toFixed(2)}</b>
+              )}
+
+              {deb > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <LinhaValor label="Débito" value={deb} onRemove={() => remover("deb")} />
                 </div>
+              )}
+
+              {cred > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <LinhaValor label="Crédito" value={cred} onRemove={() => remover("cred")} />
+                </div>
+              )}
+
+              <div style={{ borderTop: "1px dashed rgba(255,255,255,.14)", margin: "10px 0" }} />
+
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>Falta pagar</span>
+                <b>R$ {falta.toFixed(2)}</b>
               </div>
-            )}
-
-            <button className="btn-secondary" type="button" onClick={() => setShowDesc((v) => !v)}>
-              {showDesc ? "Ocultar desconto" : "Desconto (opcional)"}
-            </button>
-
-            {showDesc && (
-              <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 10 }}>
-                <select value={descontoTipo} onChange={(e) => setDescontoTipo(e.target.value)}>
-                  <option value="rs">Desconto (R$)</option>
-                  <option value="pct">Desconto (%)</option>
-                </select>
-
-                <input
-                  value={descontoValor}
-                  onChange={(e) => setDescontoValor(e.target.value)}
-                  placeholder={descontoTipo === "pct" ? "Ex: 10" : "Ex: 5.00"}
-                  inputMode="decimal"
-                />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                <span>Troco</span>
+                <b>R$ {troco.toFixed(2)}</b>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="modal-actions">
-            <button className="btn-secondary" onClick={onClose} disabled={loading}>
-              Cancelar
-            </button>
-            <button className="btn-primary" onClick={onConfirm} disabled={!podeConfirmar || loading}>
-              {loading ? "Salvando..." : "Confirmar venda"}
-            </button>
-          </div>
+          <button className="btn-secondary" type="button" onClick={() => setShowDesc((v) => !v)}>
+            {showDesc ? "Ocultar desconto" : "Desconto (opcional)"}
+          </button>
+
+          {showDesc && (
+            <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 10 }}>
+              <select value={descontoTipo} onChange={(e) => setDescontoTipo(e.target.value)}>
+                <option value="rs">Desconto (R$)</option>
+                <option value="pct">Desconto (%)</option>
+              </select>
+
+              <input
+                value={descontoValor}
+                onChange={(e) => setDescontoValor(e.target.value)}
+                placeholder={descontoTipo === "pct" ? "Ex: 10" : "Ex: 5.00"}
+                inputMode="decimal"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onClose} disabled={loading}>
+            Cancelar
+          </button>
+          <button className="btn-primary" onClick={onConfirm} disabled={!podeConfirmar || loading}>
+            {loading ? "Salvando..." : "Confirmar venda"}
+          </button>
         </div>
       </div>
-
-      {openTipoCartao && (
-        <div className="modal-backdrop" onClick={() => setOpenTipoCartao(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ width: "min(420px, 92vw)" }}>
-            <h3 style={{ marginTop: 0 }}>Tipo do cartão</h3>
-            <p style={{ marginTop: 0, opacity: 0.85 }}>
-              Escolha se o valor de R$ {Number(carTemp || 0).toFixed(2)} é no crédito ou débito.
-            </p>
-
-            <div className="modal-actions" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-              <button className="btn-secondary" type="button" onClick={() => setOpenTipoCartao(false)}>
-                Cancelar
-              </button>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button className="btn-secondary" type="button" onClick={() => escolherTipoCartao("debito")}>
-                  Débito
-                </button>
-                <button className="btn-primary" type="button" onClick={() => escolherTipoCartao("credito")}>
-                  Crédito
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

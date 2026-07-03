@@ -368,12 +368,12 @@ export default function PDV({ setTela, onLogout }) {
               total={s.totalFinal}
               dinheiro={s.payDinheiro}
               pix={s.payPix}
-              cartao={s.payCartao}
-              cartaoTipo={s.payCartaoTipo}
+              debito={s.payDebito}
+              credito={s.payCredito}
               setDinheiro={s.setPayDinheiro}
               setPix={s.setPayPix}
-              setCartao={s.setPayCartao}
-              setCartaoTipo={s.setPayCartaoTipo}
+              setDebito={s.setPayDebito}
+              setCredito={s.setPayCredito}
               descontoTipo={s.descontoTipo}
               setDescontoTipo={s.setDescontoTipo}
               descontoValor={s.descontoValor}

@@ -3,8 +3,8 @@ import { api } from "../api";
 import { TopbarFinanceiro } from "../components.jsx";
 import XMLs from "./XMLs.jsx";
 import ContasPagar from "./ContasPagar.jsx";
+import ContasPagas from "./ContasPagas.jsx";
 import Fechamento from "./Fechamento.jsx";
-import Exportacoes from "./Exportacoes.jsx";
 
 const isoDate = (d) => d.toISOString().slice(0, 10);
 const startOfDay = (dateStr) => `${dateStr}T00:00:00`;
@@ -27,7 +27,7 @@ export default function Financeiro({ setTela }) {
     faturamento: "0.00",
     qtd_vendas: 0,
     ticket_medio: "0.00",
-    por_pagamento: { dinheiro: "0.00", pix: "0.00", cartao: "0.00" },
+    por_pagamento: { dinheiro: "0.00", pix: "0.00", debito: "0.00", credito: "0.00" },
   });
 
   const [porCaixa, setPorCaixa] = useState([]);
@@ -77,7 +77,8 @@ export default function Financeiro({ setTela }) {
         por_pagamento: {
           dinheiro: porPg.dinheiro ?? "0.00",
           pix: porPg.pix ?? "0.00",
-          cartao: porPg.cartao ?? "0.00",
+          debito: porPg.debito ?? "0.00",
+          credito: porPg.credito ?? "0.00",
         },
       });
 
@@ -107,7 +108,8 @@ export default function Financeiro({ setTela }) {
   const pg = resumo?.por_pagamento || {};
   const dinheiro = Number(pg.dinheiro || 0).toFixed(2);
   const pix = Number(pg.pix || 0).toFixed(2);
-  const cartao = Number(pg.cartao || 0).toFixed(2);
+  const debito = Number(pg.debito || 0).toFixed(2);
+  const credito = Number(pg.credito || 0).toFixed(2);
 
   async function fecharCaixa() {
     setFechMsg(null);
@@ -193,9 +195,8 @@ export default function Financeiro({ setTela }) {
         setPage={setPage}
         onBack={() => setTela("menu")}
         onLogout={() => {
-          sessionStorage.clear();
-localStorage.clear();
-location.reload();
+          localStorage.removeItem("token");
+          location.reload();
         }}
       />
     );
@@ -223,6 +224,17 @@ location.reload();
     );
   }
 
+  if (page === "contas-pagas") {
+    return (
+      <>
+        <TopbarPadrao />
+        <main className="fin-wrap" style={{ gap: 10, paddingTop: 10 }}>
+          <ContasPagas />
+        </main>
+      </>
+    );
+  }
+
   if (page === "fechamentos") {
     return (
       <>
@@ -233,17 +245,6 @@ location.reload();
       </>
     );
   }
-
-if (page === "exportacoes") {
-  return (
-    <>
-      <TopbarPadrao />
-      <main className="fin-wrap" style={{ gap: 10, paddingTop: 10 }}>
-        <Exportacoes />
-      </main>
-    </>
-  );
-}
 
   return (
     <>
@@ -488,7 +489,7 @@ if (page === "exportacoes") {
 
           <div className="panel-head" style={{ marginTop: 6, marginBottom: 6 }}>
             <h2 style={{ fontSize: 16 }}>Por Pagamento</h2>
-            <span className="badge">Dinheiro / Pix / Cartão</span>
+            <span className="badge">Dinheiro / Pix / Débito / Crédito</span>
           </div>
 
           <div
@@ -496,6 +497,7 @@ if (page === "exportacoes") {
             style={{
               gap: 8,
               marginBottom: 8,
+              gridTemplateColumns: "repeat(4, minmax(160px, 1fr))",
             }}
           >
             <div
@@ -533,10 +535,25 @@ if (page === "exportacoes") {
               style={{ padding: 12 }}
             >
               <div className="fin-k" style={{ fontSize: 12 }}>
-                💳 Cartão
+                💳 Débito
               </div>
               <div className="fin-v" style={{ fontSize: 20 }}>
-                R$ {cartao}
+                R$ {debito}
+              </div>
+              <div className="fin-s" style={{ fontSize: 11 }}>
+                Total no período
+              </div>
+            </div>
+
+            <div
+              className={`fin-kpi ${loading ? "fin-dim" : ""}`}
+              style={{ padding: 12 }}
+            >
+              <div className="fin-k" style={{ fontSize: 12 }}>
+                💳 Crédito
+              </div>
+              <div className="fin-v" style={{ fontSize: 20 }}>
+                R$ {credito}
               </div>
               <div className="fin-s" style={{ fontSize: 11 }}>
                 Total no período
