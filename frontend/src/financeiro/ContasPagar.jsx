@@ -93,6 +93,7 @@ export default function ContasPagar() {
   const [numeroNF, setNumeroNF] = useState("");
   const [chave, setChave] = useState("");
   const [valor, setValor] = useState("");
+  const [multa, setMulta] = useState("");
   const [vencimento, setVencimento] = useState(todayISO());
 
   const [inicio, setInicio] = useState("");
@@ -109,6 +110,7 @@ const [editForm, setEditForm] = useState({
   numero_nf: "",
   chave: "",
   valor: "",
+  multa: "",
   vencimento: "",
 });
 
@@ -149,6 +151,7 @@ const [editForm, setEditForm] = useState({
    numero_nf: numeroNF,
    chave,
     valor: String(valor).replace(",", "."),
+    multa: String(multa || 0).replace(",", "."),
    vencimento,
     });
       
@@ -157,6 +160,7 @@ const [editForm, setEditForm] = useState({
       setNumeroNF("");
       setChave("");
       setValor("");
+      setMulta("");
       setVencimento(todayISO());
 
       setMsg("Conta cadastrada com sucesso");
@@ -173,7 +177,10 @@ const [editForm, setEditForm] = useState({
   }
 
   async function pagar(id) {
-    if (!window.confirm("Marcar esta conta como paga?")) return;
+    const conta = items.find((item) => item.id === id);
+    const total = Number(conta?.valor_atual ?? conta?.valor ?? 0);
+
+    if (!window.confirm(`Marcar esta conta como paga por ${money(total)}?`)) return;
 
     try {
       setErro("");
@@ -201,6 +208,7 @@ function editar(conta) {
     numero_nf: conta.numero_nf || "",
     chave: conta.chave || "",
     valor: conta.valor == null ? "" : String(conta.valor).replace(".", ","),
+    multa: conta.multa == null ? "" : String(conta.multa).replace(".", ","),
     vencimento: String(conta.vencimento || "").slice(0, 10),
   });
 }
@@ -218,6 +226,7 @@ async function salvarEdicao() {
       numero_nf: editForm.numero_nf,
       chave: editForm.chave,
       valor: String(editForm.valor || "").replace(",", "."),
+      multa: String(editForm.multa || 0).replace(",", "."),
       vencimento: editForm.vencimento,
     });
 
@@ -309,6 +318,8 @@ async function salvarEdicao() {
         ${item.vencimento || ""}
         ${vencBR || ""}
         ${item.valor || ""}
+        ${item.multa || ""}
+        ${item.valor_atual || ""}
         ${valorTxt || ""}
         ${saldoTxt || ""}
         ${item.status || ""}
@@ -340,7 +351,7 @@ async function salvarEdicao() {
     let vencido = 0;
 
     for (const item of items) {
-      const v = Number(item.valor || 0);
+      const v = Number(item.valor_atual ?? item.valor ?? 0);
       const st = String(item.status || "pendente").toLowerCase();
       const info = statusInfo(item);
 
@@ -363,7 +374,7 @@ async function salvarEdicao() {
 
 const totalSelecionado = useMemo(() => {
   return filtrados.reduce(
-    (total, item) => total + Number(item.valor || 0),
+    (total, item) => total + Number(item.valor_atual ?? item.valor ?? 0),
     0
   );
 }, [filtrados]);
@@ -429,6 +440,7 @@ const totalSelecionado = useMemo(() => {
           grid-template-columns:
 1.6fr
 1.6fr
+1fr
 1fr
 1fr
 1fr
@@ -780,6 +792,19 @@ auto;
 
             <div>
               <div className="cp-muted" style={{ marginBottom: 6 }}>
+                Multa por atraso (R$)
+              </div>
+
+              <input
+                className="cp-input"
+                value={multa}
+                onChange={(e) => setMulta(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+
+            <div>
+              <div className="cp-muted" style={{ marginBottom: 6 }}>
                 Vencimento
               </div>
 
@@ -912,6 +937,7 @@ auto;
                 <th>Descrição</th>
                 <th>Vencimento</th>
                 <th>Valor</th>
+                <th>Multa</th>
                 <th>Saldo</th>
                 <th>Status</th>
                 <th>Número NF</th>
@@ -924,7 +950,7 @@ auto;
               {loading ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     style={{
                       textAlign: "center",
                       padding: 20,
@@ -936,7 +962,7 @@ auto;
               ) : paginados.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     style={{
                       textAlign: "center",
                       padding: 20,
@@ -962,13 +988,20 @@ auto;
 
                       <td>
                         <strong>{descricao}</strong>
+                        {info.cls === "vencido" && Number(c.multa || 0) > 0 ? (
+                          <div className="cp-muted" style={{ marginTop: 4 }}>
+                            Total com multa: {money(c.valor_atual ?? c.valor)}
+                          </div>
+                        ) : null}
                       </td>
 
                       <td>{formatDateBR(c.vencimento)}</td>
 
                       <td>{money(c.valor)}</td>
 
-                      <td>{pago ? money(0) : money(c.valor)}</td>
+                      <td>{money(c.multa)}</td>
+
+                      <td>{pago ? money(0) : money(c.valor_atual ?? c.valor)}</td>
 
                       <td>
                         <span className={`cp-tag ${info.cls}`}>
@@ -1126,6 +1159,18 @@ auto;
             setEditForm({
               ...editForm,
               valor: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="cp-input"
+          placeholder="Multa por atraso (R$)"
+          value={editForm.multa}
+          onChange={(e) =>
+            setEditForm({
+              ...editForm,
+              multa: e.target.value,
             })
           }
         />
