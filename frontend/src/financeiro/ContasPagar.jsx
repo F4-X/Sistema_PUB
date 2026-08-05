@@ -103,6 +103,20 @@ export default function ContasPagar() {
   const PER_PAGE = 6;
 
 const [editando, setEditando] = useState(null);
+const [pagando, setPagando] = useState(null);
+const [bancoPagamento, setBancoPagamento] = useState("");
+const [bancoOutro, setBancoOutro] = useState("");
+const [pagandoLoading, setPagandoLoading] = useState(false);
+
+const BANCOS = [
+  "Caixa",
+  "Sicredi",
+  "Sicoob",
+  "Nubank",
+  "Banco do Brasil",
+  "Dinheiro",
+  "Outro",
+];
 
 const [editForm, setEditForm] = useState({
   descricao: "",
@@ -176,19 +190,48 @@ const [editForm, setEditForm] = useState({
     }
   }
 
-  async function pagar(id) {
-    const conta = items.find((item) => item.id === id);
-    const total = Number(conta?.valor_atual ?? conta?.valor ?? 0);
+  function abrirPagamento(conta) {
+    setPagando(conta);
+    setBancoPagamento("");
+    setBancoOutro("");
+    setErro("");
+    setMsg("");
+  }
 
-    if (!window.confirm(`Marcar esta conta como paga por ${money(total)}?`)) return;
+  function fecharPagamento() {
+    if (pagandoLoading) return;
+    setPagando(null);
+    setBancoPagamento("");
+    setBancoOutro("");
+  }
+
+  async function confirmarPagamento() {
+    if (!pagando?.id || pagandoLoading) return;
+
+    const banco =
+      bancoPagamento === "Outro"
+        ? String(bancoOutro || "").trim()
+        : String(bancoPagamento || "").trim();
+
+    if (!banco) {
+      setErro("Selecione ou informe o banco usado no pagamento");
+      return;
+    }
 
     try {
+      setPagandoLoading(true);
       setErro("");
       setMsg("");
 
-      await api.post(`/financeiro/contas-pagar/${id}/pagar`);
+      await api.post(
+        `/financeiro/contas-pagar/${pagando.id}/pagar`,
+        { banco_pagamento: banco }
+      );
 
-      setMsg("Conta marcada como paga");
+      setPagando(null);
+      setBancoPagamento("");
+      setBancoOutro("");
+      setMsg(`Conta marcada como paga pelo banco ${banco}`);
 
       await carregar();
     } catch (e) {
@@ -196,6 +239,8 @@ const [editForm, setEditForm] = useState({
         e?.response?.data?.error ||
           "Erro ao pagar conta"
       );
+    } finally {
+      setPagandoLoading(false);
     }
   }
 
@@ -942,6 +987,8 @@ auto;
                 <th>Status</th>
                 <th>Número NF</th>
                 <th>Referência</th>
+                <th>Banco</th>
+                <th>Pago em</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -950,7 +997,7 @@ auto;
               {loading ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={12}
                     style={{
                       textAlign: "center",
                       padding: 20,
@@ -962,7 +1009,7 @@ auto;
               ) : paginados.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={12}
                     style={{
                       textAlign: "center",
                       padding: 20,
@@ -1020,6 +1067,10 @@ auto;
                         {c.chave || "—"}
                       </td>
 
+                      <td>{pago ? c.banco_pagamento || "—" : "—"}</td>
+
+                      <td>{pago ? formatDateBR(c.pago_em) : "—"}</td>
+
                       <td>
                         <div className="cp-actions">
 
@@ -1039,7 +1090,7 @@ auto;
     <button
       type="button"
       className="cp-mini cp-pay"
-      onClick={() => pagar(c.id)}
+      onClick={() => abrirPagamento(c)}
     >
       Pagar
     </button>
@@ -1089,6 +1140,97 @@ auto;
           </button>
         </div>
       </div>
+
+{pagando && (
+  <div
+    className="cp-modal-bg"
+    onClick={fecharPagamento}
+  >
+    <div
+      className="cp-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h3>Pagar Conta</h3>
+
+      <div className="cp-modal-grid">
+        <div className="cp-card" style={{ padding: 12 }}>
+          <div className="cp-muted">Conta</div>
+          <div style={{ marginTop: 5, fontWeight: 800 }}>
+            {pagando.descricao || pagando.fornecedor || "Conta sem descrição"}
+          </div>
+          <div style={{ marginTop: 6, fontSize: 20, fontWeight: 900 }}>
+            {money(pagando.valor_atual ?? pagando.valor)}
+          </div>
+        </div>
+
+        <div>
+          <div className="cp-muted" style={{ marginBottom: 6 }}>
+            Banco usado no pagamento
+          </div>
+
+          <select
+            className="cp-select"
+            value={bancoPagamento}
+            onChange={(e) => {
+              setBancoPagamento(e.target.value);
+              if (e.target.value !== "Outro") setBancoOutro("");
+            }}
+            autoFocus
+          >
+            <option value="">Selecione o banco</option>
+            {BANCOS.map((banco) => (
+              <option key={banco} value={banco}>
+                {banco}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {bancoPagamento === "Outro" ? (
+          <div>
+            <div className="cp-muted" style={{ marginBottom: 6 }}>
+              Nome do banco
+            </div>
+
+            <input
+              className="cp-input"
+              value={bancoOutro}
+              onChange={(e) => setBancoOutro(e.target.value)}
+              placeholder="Digite o nome do banco"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") confirmarPagamento();
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="cp-modal-actions">
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={fecharPagamento}
+          disabled={pagandoLoading}
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={confirmarPagamento}
+          disabled={
+            pagandoLoading ||
+            !bancoPagamento ||
+            (bancoPagamento === "Outro" && !bancoOutro.trim())
+          }
+        >
+          {pagandoLoading ? "Pagando..." : "Confirmar Pagamento"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
 {editando && (
   <div

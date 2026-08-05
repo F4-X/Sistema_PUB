@@ -828,136 +828,94 @@ router.post("/", async (req, res) => {
    PAGAR
 ========================================================= */
 
-router.post(
-  "/:id/pagar",
-  async (req, res) => {
-    try {
-      const { id } = req.params;
+/* =========================================================
+   PAGAR
+========================================================= */
 
-      const conta =
-        await db.query(
-          `
-          SELECT *
-          FROM contas_pagar
-          WHERE id = $1
-          `,
-          [id]
-        );
+router.post("/:id/pagar", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { banco_pagamento } = req.body;
 
-      if (!conta.rows[0]) {
-        return res
-          .status(404)
-          .json({
-            error:
-              "Conta não encontrada",
-          });
-      }
-
-      const item =
-        conta.rows[0];
-
-      const valorOriginal =
-        Number(
-          item.valor || 0
-        );
-
-      const multa =
-        Number(
-          item.multa || 0
-        );
-
-      const hoje =
-        new Date();
-
-      hoje.setHours(
-        0,
-        0,
-        0,
-        0
-      );
-
-      const vencimento =
-        item.vencimento
-          ? new Date(
-              item.vencimento
-            )
-          : null;
-
-      if (vencimento) {
-        vencimento.setHours(
-          0,
-          0,
-          0,
-          0
-        );
-      }
-
-      const estaVencida =
-        vencimento &&
-        vencimento < hoje;
-
-      const valorFinal =
-        valorOriginal +
-        (
-          estaVencida
-            ? multa
-            : 0
-        );
-
-      const r =
-        await db.query(
-          `
-          UPDATE contas_pagar
-          SET
-            status = 'pago',
-            valor = $2,
-            pago_em = NOW()
-          WHERE id = $1
-          RETURNING *
-          `,
-          [
-            id,
-            valorFinal,
-          ]
-        );
-
-      res.json({
-        ok: true,
-
-        item: {
-          ...r.rows[0],
-
-          valor:
-            r.rows[0]?.valor ==
-            null
-              ? null
-              : Number(
-                  r.rows[0]
-                    .valor
-                ),
-
-          multa:
-            r.rows[0]?.multa ==
-            null
-              ? 0
-              : Number(
-                  r.rows[0]
-                    .multa
-                ),
-        },
+    if (!banco_pagamento) {
+      return res.status(400).json({
+        error: "Selecione o banco do pagamento",
       });
-    } catch (e) {
-      res
-        .status(500)
-        .json({
-          error:
-            e?.message ||
-            "Erro ao pagar conta",
-        });
     }
-  }
-);
 
+    const conta = await db.query(
+      `
+      SELECT *
+      FROM contas_pagar
+      WHERE id = $1
+      `,
+      [id]
+    );
+
+    if (!conta.rows.length) {
+      return res.status(404).json({
+        error: "Conta não encontrada",
+      });
+    }
+
+    const item = conta.rows[0];
+
+    if (String(item.status).toLowerCase() === "pago") {
+      return res.status(400).json({
+        error: "Esta conta já está paga",
+      });
+    }
+
+    const valorOriginal = Number(item.valor || 0);
+    const multa = Number(item.multa || 0);
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    let valorFinal = valorOriginal;
+
+    if (item.vencimento) {
+      const venc = new Date(item.vencimento);
+      venc.setHours(0, 0, 0, 0);
+
+      if (venc < hoje) {
+        valorFinal += multa;
+      }
+    }
+
+    const r = await db.query(
+      `
+      UPDATE contas_pagar
+      SET
+        status='pago',
+        valor=$2,
+        pago_em=NOW(),
+        banco_pagamento=$3
+      WHERE id=$1
+      RETURNING *
+      `,
+      [
+        id,
+        valorFinal,
+        banco_pagamento,
+      ]
+    );
+
+    res.json({
+      ok: true,
+      item: {
+        ...r.rows[0],
+        valor: Number(r.rows[0].valor),
+        multa: Number(r.rows[0].multa || 0),
+      },
+    });
+
+  } catch (e) {
+    res.status(500).json({
+      error: e.message || "Erro ao pagar conta",
+    });
+  }
+});
 /* =========================================================
    EDITAR
 ========================================================= */
