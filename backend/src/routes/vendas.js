@@ -279,6 +279,8 @@ async function emitirVendaFiscal(
       Number(venda.total_bruto || 0)
     );
 
+let descontoDistribuido = 0;
+
     const items = itensR.rows.map(
       (it, idx) => {
         const qtd = Number(
@@ -295,16 +297,28 @@ async function emitirVendaFiscal(
 
         let valorDesconto = 0;
 
-        if (
-          descontoVenda > 0 &&
-          totalBrutoVenda > 0
-        ) {
-          valorDesconto = round2(
-            (valorBruto /
-              totalBrutoVenda) *
-              descontoVenda
-          );
-        }
+if (
+  descontoVenda > 0 &&
+  totalBrutoVenda > 0
+) {
+  const ultimoItem =
+    idx === itensR.rows.length - 1;
+
+  if (ultimoItem) {
+    valorDesconto = round2(
+      descontoVenda - descontoDistribuido
+    );
+  } else {
+    valorDesconto = round2(
+      (valorBruto / totalBrutoVenda) *
+        descontoVenda
+    );
+
+    descontoDistribuido = round2(
+      descontoDistribuido + valorDesconto
+    );
+  }
+}
 
         const item = {
           numero_item: idx + 1,
