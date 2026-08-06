@@ -180,11 +180,11 @@ async function emitirVendaFiscal(
     const venda = rv.rows[0];
 
     if (
-      venda.nfce_id &&
-      String(venda.nfce_status || "")
-        .toLowerCase()
-        .includes("autoriz")
-    ) {
+  venda.nfce_id &&
+  String(venda.nfce_status || "")
+    .trim()
+    .toLowerCase() === "autorizado"
+) {
       return {
         ok: true,
         status: venda.nfce_status,
@@ -581,8 +581,8 @@ async function emitirVendaFiscal(
     );
 
     return {
-      ok:
-        status.includes("autoriz"),
+  ok:
+    status === "autorizado",
 
       status,
 
@@ -882,10 +882,8 @@ router.post(
             ).toLowerCase();
 
           if (
-            statusConsulta.includes(
-              "autoriz"
-            )
-          ) {
+  statusConsulta === "autorizado"
+) {
             const sincronizada =
               await sincronizarConsultaFocus(
                 venda,
