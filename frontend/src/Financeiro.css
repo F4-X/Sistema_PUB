@@ -307,3 +307,48 @@
   gap:10px;
   margin-top:16px;
 }
+
+/* Barra de carregamento Exportações */
+
+.exp-loading{
+  margin:18px 0;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  background:rgba(255,255,255,.03);
+}
+
+.exp-loading-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+  font-size:13px;
+  color:#ddd;
+}
+
+.exp-loading-bar{
+  width:100%;
+  height:12px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+}
+
+.exp-loading-progress{
+  width:35%;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#5d3bff,#8d6cff);
+  animation:loadingBar 1.2s linear infinite;
+}
+
+@keyframes loadingBar{
+  0%{
+    transform:translateX(-120%);
+  }
+
+  100%{
+    transform:translateX(320%);
+  }
+}

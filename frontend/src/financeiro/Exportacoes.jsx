@@ -526,6 +526,26 @@ window.onload = () => {
         </div>
       ) : null}
 
+{loading && (
+  <div className="exp-loading">
+    <div className="exp-loading-top">
+      <span>
+        {loading === "xml" && "Gerando XMLs NFC-e..."}
+        {loading === "xmlEntrada" && "Gerando XMLs de Entrada..."}
+        {loading === "csv" && "Exportando CSV..."}
+        {loading === "sintetico" && "Gerando Faturamento Sintético..."}
+        {loading === "relatorio" && "Gerando Relatório..."}
+      </span>
+
+      <span>Aguarde...</span>
+    </div>
+
+    <div className="exp-loading-bar">
+      <div className="exp-loading-progress" />
+    </div>
+  </div>
+)}
+
       <div
         style={{
           display: "flex",
