@@ -41,6 +41,11 @@ export default function Exportacoes() {
   const [openRelatorio, setOpenRelatorio] = useState(false);
   const [relatorioStatus, setRelatorioStatus] = useState("todos");
 
+  // =========================================================
+  // VALIDAÇÃO NFC-e
+  // =========================================================
+  const [validacaoNfce, setValidacaoNfce] = useState(null);
+
   const inicioFinal = usarHorario
     ? `${inicio}T${horaInicio}:00`
     : `${inicio}T00:00:00`;
@@ -52,6 +57,33 @@ export default function Exportacoes() {
   const query =
     `inicio=${encodeURIComponent(inicioFinal)}` +
     `&fim=${encodeURIComponent(fimFinal)}`;
+
+  /* =========================================================
+     VALIDAR NFC-e DE SAÍDA
+  ========================================================= */
+
+  async function validarNfce() {
+    try {
+      setErro("");
+      setLoading("validacao");
+      setValidacaoNfce(null);
+
+      const { data } = await api.get(
+        `/vendas/fiscal/validar?inicio=${inicio}&fim=${fim}`
+      );
+
+      setValidacaoNfce(data);
+    } catch (e) {
+      setErro(
+        e?.response?.data?.error ||
+          e?.response?.data?.message ||
+          e?.message ||
+          "Erro ao validar NFC-e"
+      );
+    } finally {
+      setLoading("");
+    }
+  }
 
   /* =========================================================
      XMLs NFC-e DE SAÍDA
@@ -453,9 +485,10 @@ window.onload = () => {
           <input
             type="date"
             value={inicio}
-            onChange={(e) =>
-              setInicio(e.target.value)
-            }
+            onChange={(e) => {
+              setInicio(e.target.value);
+              setValidacaoNfce(null);
+            }}
           />
 
           {usarHorario && (
@@ -479,9 +512,10 @@ window.onload = () => {
           <input
             type="date"
             value={fim}
-            onChange={(e) =>
-              setFim(e.target.value)
-            }
+            onChange={(e) => {
+              setFim(e.target.value);
+              setValidacaoNfce(null);
+            }}
           />
 
           {usarHorario && (
@@ -526,25 +560,26 @@ window.onload = () => {
         </div>
       ) : null}
 
-{loading && (
-  <div className="exp-loading">
-    <div className="exp-loading-top">
-      <span>
-        {loading === "xml" && "Gerando XMLs NFC-e..."}
-        {loading === "xmlEntrada" && "Gerando XMLs de Entrada..."}
-        {loading === "csv" && "Exportando CSV..."}
-        {loading === "sintetico" && "Gerando Faturamento Sintético..."}
-        {loading === "relatorio" && "Gerando Relatório..."}
-      </span>
+      {loading && (
+        <div className="exp-loading">
+          <div className="exp-loading-top">
+            <span>
+              {loading === "validacao" && "Validando NFC-e..."}
+              {loading === "xml" && "Gerando XMLs NFC-e..."}
+              {loading === "xmlEntrada" && "Gerando XMLs de Entrada..."}
+              {loading === "csv" && "Exportando CSV..."}
+              {loading === "sintetico" && "Gerando Faturamento Sintético..."}
+              {loading === "relatorio" && "Gerando Relatório..."}
+            </span>
 
-      <span>Aguarde...</span>
-    </div>
+            <span>Aguarde...</span>
+          </div>
 
-    <div className="exp-loading-bar">
-      <div className="exp-loading-progress" />
-    </div>
-  </div>
-)}
+          <div className="exp-loading-bar">
+            <div className="exp-loading-progress" />
+          </div>
+        </div>
+      )}
 
       <div
         style={{
@@ -562,6 +597,17 @@ window.onload = () => {
           {loading === "sintetico"
             ? "Gerando..."
             : "Faturamento Sintético"}
+        </button>
+
+        <button
+          className="btn-primary"
+          onClick={validarNfce}
+          disabled={!!loading}
+          type="button"
+        >
+          {loading === "validacao"
+            ? "Validando..."
+            : "Validar NFC-e"}
         </button>
 
         <button
@@ -608,6 +654,107 @@ window.onload = () => {
           Relatório
         </button>
       </div>
+
+      {/* =====================================================
+          RESULTADO DA VALIDAÇÃO NFC-e
+      ===================================================== */}
+
+      {validacaoNfce ? (
+        <div
+          className="panel"
+          style={{
+            marginTop: 16,
+            padding: 16,
+          }}
+        >
+          <div className="panel-head">
+            <div>
+              <h2 style={{ margin: 0 }}>
+                Validação NFC-e de Saída
+              </h2>
+
+              <div className="fin-subtitle">
+                Período: {validacaoNfce.inicio} até{" "}
+                {validacaoNfce.fim}
+              </div>
+            </div>
+
+            <span className="badge">
+              Conferência
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 12,
+              marginTop: 14,
+            }}
+          >
+            <div
+              className="fin-kpi"
+              style={{ padding: 16 }}
+            >
+              <div className="fin-k">
+                NFC-e autorizadas
+              </div>
+
+              <div
+                className="fin-v"
+                style={{
+                  fontSize: 30,
+                  fontWeight: 900,
+                  marginTop: 6,
+                }}
+              >
+                {validacaoNfce.quantidade ?? 0}
+              </div>
+            </div>
+
+            <div
+              className="fin-kpi"
+              style={{ padding: 16 }}
+            >
+              <div className="fin-k">
+                Primeira NFC-e
+              </div>
+
+              <div
+                className="fin-v"
+                style={{
+                  fontSize: 30,
+                  fontWeight: 900,
+                  marginTop: 6,
+                }}
+              >
+                {validacaoNfce.primeira_nfce ?? "—"}
+              </div>
+            </div>
+
+            <div
+              className="fin-kpi"
+              style={{ padding: 16 }}
+            >
+              <div className="fin-k">
+                Última NFC-e
+              </div>
+
+              <div
+                className="fin-v"
+                style={{
+                  fontSize: 30,
+                  fontWeight: 900,
+                  marginTop: 6,
+                }}
+              >
+                {validacaoNfce.ultima_nfce ?? "—"}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {openRelatorio ? (
         <div
