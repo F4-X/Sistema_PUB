@@ -110,20 +110,20 @@ router.get("/relatorio", async (req, res) => {
     let where = "WHERE 1=1";
 
     if (inicio) {
-      params.push(inicio);
+  params.push(inicio);
 
-      where += `
-        AND criado_em >= $${params.length}
-      `;
-    }
+  where += `
+    AND vencimento >= $${params.length}::date
+  `;
+}
 
-    if (fim) {
-      params.push(fim);
+if (fim) {
+  params.push(fim);
 
-      where += `
-        AND criado_em <= $${params.length}
-      `;
-    }
+  where += `
+    AND vencimento <= $${params.length}::date
+  `;
+}
 
     const r = await db.query(
       `
