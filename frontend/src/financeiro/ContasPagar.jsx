@@ -109,13 +109,15 @@ const [bancoOutro, setBancoOutro] = useState("");
 const [pagandoLoading, setPagandoLoading] = useState(false);
 
 const BANCOS = [
-  "Caixa",
-  "Sicredi",
-  "Sicoob",
-  "Nubank",
-  "Banco do Brasil",
-  "Dinheiro",
-  "Outro",
+  "1005 SICREDI",
+  "1005 PAGSEGURO",
+  "1005 STONE",
+  "Cofre",
+  "CANOINHAS",
+  "Thiago NUBANK",
+  "JOÃO PAGSEGURO",
+  "ITAÚ",
+  "STONE - PAULA",
 ];
 
 const [editForm, setEditForm] = useState({
