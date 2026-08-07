@@ -1032,6 +1032,50 @@ router.post(
 );
 
 // =========================================================
+// VALIDAÇÃO NFC-e DE SAÍDA
+// =========================================================
+router.get("/fiscal/validar", async (req, res) => {
+  try {
+    const inicio = String(req.query.inicio || "").trim();
+    const fim = String(req.query.fim || "").trim();
+
+    if (!inicio || !fim) {
+      return res.status(400).json({
+        error: "Informe inicio e fim",
+      });
+    }
+
+    const r = await db.query(
+      `
+      SELECT
+        COUNT(*)::int AS quantidade,
+        MIN(nfce_numero) AS primeira_nfce,
+        MAX(nfce_numero) AS ultima_nfce
+      FROM vendas
+      WHERE LOWER(COALESCE(nfce_status, '')) = 'autorizado'
+        AND criado_em >= $1::date
+        AND criado_em < ($2::date + INTERVAL '1 day')
+      `,
+      [inicio, fim]
+    );
+
+    return res.json({
+      inicio,
+      fim,
+      quantidade: Number(r.rows[0]?.quantidade || 0),
+      primeira_nfce: r.rows[0]?.primeira_nfce || null,
+      ultima_nfce: r.rows[0]?.ultima_nfce || null,
+    });
+  } catch (e) {
+    console.error("ERRO validação NFC-e:", e);
+
+    return res.status(500).json({
+      error: e?.message || "Erro ao validar NFC-e",
+    });
+  }
+});
+
+// =========================================================
 // BUSCAR VENDA
 // =========================================================
 router.get("/:id", async (req, res) => {
