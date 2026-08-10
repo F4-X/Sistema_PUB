@@ -9,26 +9,53 @@ function money(v) {
 }
 
 function n(v) {
-  return Number(String(v || "0").replace(",", ".")) || 0;
+  const numero = Number(
+    String(v ?? "0")
+      .trim()
+      .replace(",", ".")
+  );
+
+  return Number.isFinite(numero)
+    ? Number(numero.toFixed(2))
+    : 0;
 }
 
 function brDate(v) {
   if (!v) return "—";
-  return new Date(v).toLocaleString("pt-BR");
+
+  return new Date(v).toLocaleString(
+    "pt-BR"
+  );
 }
 
 function fmt(v) {
-  return n(v).toFixed(2).replace(".", ",");
+  return n(v)
+    .toFixed(2)
+    .replace(".", ",");
 }
 
-function linha(nome, calculado, declarado) {
+function linha(
+  nome,
+  calculado,
+  declarado
+) {
   const calc = n(calculado);
   const decl = n(declarado);
-  const dif = decl - calc;
+  const dif = n(decl - calc);
 
-  return `${nome.padEnd(12, " ")} ${fmt(calc).padStart(9, " ")} ${fmt(
-    decl
-  ).padStart(9, " ")} ${fmt(dif).padStart(9, " ")}\n`;
+  return `${nome.padEnd(
+    12,
+    " "
+  )} ${fmt(calc).padStart(
+    9,
+    " "
+  )} ${fmt(decl).padStart(
+    9,
+    " "
+  )} ${fmt(dif).padStart(
+    9,
+    " "
+  )}\n`;
 }
 
 function imprimirFechamento({
@@ -38,51 +65,109 @@ function imprimirFechamento({
   declarado,
 }) {
   const fechadoEm =
-    fechamento?.fechado_em || new Date().toISOString();
+    fechamento?.fechado_em ||
+    new Date().toISOString();
 
   const abertura = n(
-    preview?.abertura ?? sessao?.valor_abertura
+    preview?.abertura ??
+      sessao?.valor_abertura
   );
 
-  const dinheiro = n(preview?.dinheiro);
-  const pix = n(preview?.pix);
-  const cartao = n(preview?.cartao);
-  const entradas = n(preview?.entradas);
-  const saidas = n(preview?.saidas);
+  const vendasDinheiro = n(
+    preview?.dinheiro
+  );
 
-  const declaradoDinheiroLiquido =
-    n(declarado.dinheiro) - abertura;
+  const entradas = n(
+    preview?.entradas
+  );
 
-  const declaradoPix = n(declarado.pix);
-  const declaradoCartao = n(declarado.cartao);
+  const sangrias = n(
+    preview?.sangrias
+  );
 
-  const totalCalculado =
-    abertura +
-    dinheiro +
-    pix +
-    cartao +
-    entradas -
-    saidas;
+  const troco = n(
+    preview?.troco
+  );
 
-  const totalDeclarado =
-    n(declarado.dinheiro) +
-    declaradoPix +
-    declaradoCartao +
-    entradas -
-    saidas;
+  /*
+   * IMPORTANTE:
+   * dinheiro_sistema já contém:
+   *
+   * abertura
+   * + vendas em dinheiro
+   * + reforços
+   * - sangrias
+   * - troco
+   */
+  const dinheiroSistema = n(
+    preview?.dinheiro_sistema ??
+      (
+        abertura +
+        vendasDinheiro +
+        entradas -
+        n(preview?.saidas)
+      )
+  );
 
-  const diferenca =
-    totalDeclarado - totalCalculado;
+  const pixSistema = n(
+    preview?.pix_sistema ??
+      preview?.pix
+  );
+
+  const cartaoSistema = n(
+    preview?.cartao_sistema ??
+      preview?.cartao
+  );
+
+  const dinheiroDeclarado = n(
+    declarado.dinheiro
+  );
+
+  const pixDeclarado = n(
+    declarado.pix
+  );
+
+  const cartaoDeclarado = n(
+    declarado.cartao
+  );
+
+  const totalSistema = n(
+    dinheiroSistema +
+      pixSistema +
+      cartaoSistema
+  );
+
+  /*
+   * NÃO adicionamos entradas/saídas aqui.
+   * dinheiroDeclarado representa o valor
+   * final do dinheiro físico do caixa.
+   */
+  const totalDeclarado = n(
+    dinheiroDeclarado +
+      pixDeclarado +
+      cartaoDeclarado
+  );
+
+  const diferenca = n(
+    totalDeclarado -
+      totalSistema
+  );
 
   const html = `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Fechamento de Caixa</title>
+
+<title>
+Fechamento de Caixa
+</title>
 
 <style>
-@page{size:58mm auto;margin:4mm}
+@page{
+  size:58mm auto;
+  margin:4mm
+}
 
 html,body{
   margin:0;
@@ -98,9 +183,18 @@ html,body{
   margin:0 auto;
 }
 
-.center{text-align:center}
-.bold{font-weight:700}
-.hr{border-top:1px dashed #000;margin:8px 0}
+.center{
+  text-align:center
+}
+
+.bold{
+  font-weight:700
+}
+
+.hr{
+  border-top:1px dashed #000;
+  margin:8px 0
+}
 
 pre{
   font-family:monospace;
@@ -124,55 +218,130 @@ pre{
 </head>
 
 <body>
+
 <div class="recibo">
 
-<div class="center bold">1005 THE BEST</div>
-<div class="center">Relatório de Fechamento</div>
+<div class="center bold">
+1005 THE BEST
+</div>
+
+<div class="center">
+Relatório de Fechamento
+</div>
 
 <div class="hr"></div>
 
-<div>Data: ${brDate(fechadoEm)}</div>
-<div>Funcionário: ${sessao?.usuario_email || "—"}</div>
+<div>
+Data: ${brDate(fechadoEm)}
+</div>
+
+<div>
+Funcionário:
+${sessao?.usuario_email || "—"}
+</div>
 
 <div class="hr"></div>
+
+<div class="bold">
+Movimento em dinheiro
+</div>
 
 <pre>
-${"".padEnd(13, " ")}Calculado Declarado Diferença
-${linha("Abertura", abertura, abertura)}
-${linha("Dinheiro", dinheiro, declaradoDinheiroLiquido)}
-${linha("PIX", pix, declaradoPix)}
-${linha("Cartão", cartao, declaradoCartao)}
-${linha("Entradas", entradas, entradas)}
-${linha("Saídas", saidas, saidas)}
+Abertura       ${fmt(
+    abertura
+  ).padStart(9, " ")}
+Vendas         ${fmt(
+    vendasDinheiro
+  ).padStart(9, " ")}
+Reforços       ${fmt(
+    entradas
+  ).padStart(9, " ")}
+Sangrias      -${fmt(
+    sangrias
+  ).padStart(9, " ")}
+Trocos        -${fmt(
+    troco
+  ).padStart(9, " ")}
 </pre>
 
 <div class="hr"></div>
 
 <pre>
-${"Total sistema".padEnd(15, " ")} ${fmt(totalCalculado).padStart(9, " ")}
-${"Total declarado".padEnd(15, " ")} ${fmt(totalDeclarado).padStart(9, " ")}
-${"Diferença".padEnd(15, " ")} ${fmt(diferenca).padStart(9, " ")}
+${"".padEnd(
+    13,
+    " "
+  )}Calculado Declarado Diferença
+${linha(
+    "Dinheiro",
+    dinheiroSistema,
+    dinheiroDeclarado
+  )}
+${linha(
+    "PIX",
+    pixSistema,
+    pixDeclarado
+  )}
+${linha(
+    "Cartão",
+    cartaoSistema,
+    cartaoDeclarado
+  )}
+</pre>
+
+<div class="hr"></div>
+
+<pre>
+${"Total sistema".padEnd(
+    15,
+    " "
+  )} ${fmt(
+    totalSistema
+  ).padStart(9, " ")}
+${"Total declarado".padEnd(
+    15,
+    " "
+  )} ${fmt(
+    totalDeclarado
+  ).padStart(9, " ")}
+${"Diferença".padEnd(
+    15,
+    " "
+  )} ${fmt(
+    diferenca
+  ).padStart(9, " ")}
 </pre>
 
 <div class="hr"></div>
 
 <div class="row bold">
-<span>${
-    diferenca < 0
-      ? "Quebra"
-      : diferenca > 0
-      ? "Sobra"
-      : "Sem diferença"
-  }</span>
 
-<span>${money(diferenca)}</span>
+<span>
+${
+  diferenca < 0
+    ? "Quebra"
+    : diferenca > 0
+    ? "Sobra"
+    : "Sem diferença"
+}
+</span>
+
+<span>
+${money(diferenca)}
+</span>
+
 </div>
 
 <div class="hr"></div>
 
-<div class="center bold">ASSINATURA</div>
+<div class="center bold">
+ASSINATURA
+</div>
+
 <div class="sign"></div>
-<div class="center">${sessao?.usuario_email || ""}</div>
+
+<div class="center">
+${sessao?.usuario_email || ""}
+</div>
 
 </div>
 
@@ -184,6 +353,7 @@ window.onload=function(){
   },250);
 }
 </script>
+
 </body>
 </html>
 `;
@@ -195,7 +365,10 @@ window.onload=function(){
   );
 
   if (!w) {
-    alert("Pop-up bloqueado. Libere pop-up.");
+    alert(
+      "Pop-up bloqueado. Libere pop-up."
+    );
+
     return;
   }
 
@@ -205,24 +378,46 @@ window.onload=function(){
 }
 
 export default function FechamentoCaixa() {
-  const [sessao, setSessao] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [sessao, setSessao] =
+    useState(null);
 
-  const [valorAbertura, setValorAbertura] = useState("");
+  const [preview, setPreview] =
+    useState(null);
 
-  const [dinheiroDecl, setDinheiroDecl] = useState("");
-  const [pixDecl, setPixDecl] = useState("");
-  const [cartaoDecl, setCartaoDecl] = useState("");
+  const [
+    valorAbertura,
+    setValorAbertura,
+  ] = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [
+    dinheiroDecl,
+    setDinheiroDecl,
+  ] = useState("");
+
+  const [
+    pixDecl,
+    setPixDecl,
+  ] = useState("");
+
+  const [
+    cartaoDecl,
+    setCartaoDecl,
+  ] = useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [msg, setMsg] =
+    useState("");
 
   async function carregar() {
     setLoading(true);
     setMsg("");
 
     try {
-      const r = await api.get("/caixa/sessao-atual");
+      const r = await api.get(
+        "/caixa/sessao-atual"
+      );
 
       const atual =
         r.data?.sessao || null;
@@ -234,7 +429,9 @@ export default function FechamentoCaixa() {
           "/caixa/fechamento-preview"
         );
 
-        setPreview(p.data || null);
+        setPreview(
+          p.data || null
+        );
       } else {
         setPreview(null);
       }
@@ -257,17 +454,22 @@ export default function FechamentoCaixa() {
       setLoading(true);
       setMsg("");
 
-      const valorDigitado = String(
-        valorAbertura || ""
-      ).trim();
+      const valorDigitado =
+        String(
+          valorAbertura || ""
+        ).trim();
 
-      await api.post("/caixa/abrir", {
-        valor_abertura: valorDigitado
-          ? n(valorDigitado)
-          : null,
+      await api.post(
+        "/caixa/abrir",
+        {
+          valor_abertura:
+            valorDigitado
+              ? n(valorDigitado)
+              : 0,
 
-        caixa_numero: 1,
-      });
+          caixa_numero: 1,
+        }
+      );
 
       setValorAbertura("");
 
@@ -299,8 +501,11 @@ export default function FechamentoCaixa() {
       setLoading(true);
       setMsg("");
 
-      // Busca os valores atualizados
-      // imediatamente antes do fechamento.
+      /*
+       * Busca novamente antes de fechar
+       * para evitar fechar com valores
+       * antigos da tela.
+       */
       const p = await api.get(
         "/caixa/fechamento-preview"
       );
@@ -308,22 +513,30 @@ export default function FechamentoCaixa() {
       const dados =
         p.data || preview || {};
 
-      const abertura = n(
-        dados.abertura ??
-          sessao?.valor_abertura
+      const dinheiroSistema = n(
+        dados.dinheiro_sistema
+      );
+
+      const pixSistema = n(
+        dados.pix_sistema ??
+          dados.pix
+      );
+
+      const cartaoSistema = n(
+        dados.cartao_sistema ??
+          dados.cartao
       );
 
       /*
-       * REGRA:
+       * REGRA DEFINITIVA:
        *
-       * Se o operador preencher o campo,
-       * usamos o valor digitado.
+       * CAMPO VAZIO
+       * = assume o valor do sistema
+       * = diferença zero.
        *
-       * Se deixar vazio,
-       * consideramos o valor do sistema.
-       *
-       * Dessa maneira um campo esquecido
-       * não gera uma diferença negativa falsa.
+       * DIGITOU 0
+       * = realmente declarou zero
+       * = diferença é calculada.
        */
 
       const dinheiroVazio =
@@ -341,80 +554,46 @@ export default function FechamentoCaixa() {
           cartaoDecl ?? ""
         ).trim() === "";
 
-      /*
-       * dinheiro_sistema já contém:
-       *
-       * abertura
-       * + vendas em dinheiro
-       * + reforços
-       * - saídas
-       *
-       * Portanto usamos dinheiro_sistema
-       * quando o campo estiver vazio.
-       */
-
-      const dinheiroSistema = n(
-        dados.dinheiro_sistema ??
-          (
-            abertura +
-            n(dados.dinheiro) +
-            n(dados.entradas) -
-            n(dados.saidas)
-          )
-      );
-
-      const pixSistema = n(
-        dados.pix_sistema ??
-          dados.pix
-      );
-
-      const cartaoSistema = n(
-        dados.cartao_sistema ??
-          dados.cartao
-      );
-
       const declarado = {
-        dinheiro: dinheiroVazio
-          ? dinheiroSistema
-          : n(dinheiroDecl),
+        dinheiro:
+          dinheiroVazio
+            ? dinheiroSistema
+            : n(dinheiroDecl),
 
-        pix: pixVazio
-          ? pixSistema
-          : n(pixDecl),
+        pix:
+          pixVazio
+            ? pixSistema
+            : n(pixDecl),
 
-        cartao: cartaoVazio
-          ? cartaoSistema
-          : n(cartaoDecl),
+        cartao:
+          cartaoVazio
+            ? cartaoSistema
+            : n(cartaoDecl),
       };
 
-      /*
-       * Valor final declarado.
-       *
-       * Os valores enviados aqui já representam
-       * exatamente o que será comparado pelo backend.
-       */
-
-      const valorFinal =
+      const valorFinal = n(
         declarado.dinheiro +
-        declarado.pix +
-        declarado.cartao;
-
-      const r = await api.post(
-        "/caixa/fechar",
-        {
-          valor_fechamento:
-            valorFinal,
-
-          dinheiro:
-            declarado.dinheiro,
-
-          pix:
-            declarado.pix,
-
-          cartao:
-            declarado.cartao,
-        }
+          declarado.pix +
+          declarado.cartao
       );
+
+      const r =
+        await api.post(
+          "/caixa/fechar",
+          {
+            valor_fechamento:
+              valorFinal,
+
+            dinheiro:
+              declarado.dinheiro,
+
+            pix:
+              declarado.pix,
+
+            cartao:
+              declarado.cartao,
+          }
+        );
 
       imprimirFechamento({
         sessao,
@@ -448,56 +627,69 @@ export default function FechamentoCaixa() {
       sessao?.valor_abertura
   );
 
-  /*
-   * Também mostramos na tela o valor
-   * que efetivamente será considerado.
-   */
+  const dinheiroSistema = n(
+    preview?.dinheiro_sistema ??
+      (
+        abertura +
+        n(preview?.dinheiro) +
+        n(preview?.entradas) -
+        n(preview?.saidas)
+      )
+  );
 
-  const dinheiroTela =
+  const pixSistema = n(
+    preview?.pix_sistema ??
+      preview?.pix
+  );
+
+  const cartaoSistema = n(
+    preview?.cartao_sistema ??
+      preview?.cartao
+  );
+
+  const dinheiroVazio =
     String(
       dinheiroDecl ?? ""
-    ).trim() === ""
-      ? n(
-          preview?.dinheiro_sistema ??
-            (
-              abertura +
-              n(preview?.dinheiro) +
-              n(preview?.entradas) -
-              n(preview?.saidas)
-            )
-        )
+    ).trim() === "";
+
+  const pixVazio =
+    String(
+      pixDecl ?? ""
+    ).trim() === "";
+
+  const cartaoVazio =
+    String(
+      cartaoDecl ?? ""
+    ).trim() === "";
+
+  const dinheiroTela =
+    dinheiroVazio
+      ? dinheiroSistema
       : n(dinheiroDecl);
 
   const pixTela =
-    String(
-      pixDecl ?? ""
-    ).trim() === ""
-      ? n(
-          preview?.pix_sistema ??
-            preview?.pix
-        )
+    pixVazio
+      ? pixSistema
       : n(pixDecl);
 
   const cartaoTela =
-    String(
-      cartaoDecl ?? ""
-    ).trim() === ""
-      ? n(
-          preview?.cartao_sistema ??
-            preview?.cartao
-        )
+    cartaoVazio
+      ? cartaoSistema
       : n(cartaoDecl);
 
-  const totalDeclarado =
+  const totalDeclarado = n(
     dinheiroTela +
-    pixTela +
-    cartaoTela;
+      pixTela +
+      cartaoTela
+  );
 
   return (
     <div
       style={{
-        width: "min(1700px,96vw)",
-        margin: "18px auto 26px",
+        width:
+          "min(1700px,96vw)",
+        margin:
+          "18px auto 26px",
         display: "grid",
         gap: 18,
       }}
@@ -513,7 +705,6 @@ export default function FechamentoCaixa() {
               style={{
                 color:
                   "rgba(255,255,255,.65)",
-
                 fontSize: 13,
                 marginTop: 4,
               }}
@@ -559,7 +750,9 @@ export default function FechamentoCaixa() {
             </div>
 
             <input
-              value={valorAbertura}
+              value={
+                valorAbertura
+              }
               onChange={(e) =>
                 setValorAbertura(
                   e.target.value
@@ -571,7 +764,9 @@ export default function FechamentoCaixa() {
 
             <button
               className="btn-primary"
-              onClick={abrirCaixa}
+              onClick={
+                abrirCaixa
+              }
               disabled={loading}
             >
               {loading
@@ -590,56 +785,63 @@ export default function FechamentoCaixa() {
             <div
               style={{
                 display: "grid",
-
                 gridTemplateColumns:
                   "repeat(auto-fit,minmax(220px,1fr))",
-
                 gap: 14,
               }}
             >
-              <div className="panel">
-                <div className="mk-selected-k">
-                  Operador
-                </div>
+              <InfoBox
+                titulo="Operador"
+                valor={
+                  sessao.usuario_email ||
+                  "—"
+                }
+              />
 
-                <div className="mk-selected-v">
-                  {sessao.usuario_email ||
-                    "—"}
-                </div>
-              </div>
+              <InfoBox
+                titulo="Abertura"
+                valor={money(
+                  abertura
+                )}
+              />
 
-              <div className="panel">
-                <div className="mk-selected-k">
-                  Abertura
-                </div>
-
-                <div className="mk-selected-v">
-                  {money(abertura)}
-                </div>
-              </div>
-
-              <div className="panel">
-                <div className="mk-selected-k">
-                  Total Declarado
-                </div>
-
-                <div className="mk-selected-v">
-                  {money(
-                    totalDeclarado
-                  )}
-                </div>
-              </div>
+              <InfoBox
+                titulo="Total considerado"
+                valor={money(
+                  totalDeclarado
+                )}
+              />
             </div>
 
             <div className="panel">
               <div className="panel-head">
-                <h2>
-                  Conferência Manual
-                </h2>
+                <div>
+                  <h2>
+                    Conferência Manual
+                  </h2>
+
+                  <div
+                    style={{
+                      marginTop: 5,
+                      color:
+                        "rgba(255,255,255,.65)",
+                      fontSize: 12,
+                    }}
+                  >
+                    Campo vazio =
+                    assumir valor do
+                    sistema.
+                  </div>
+                </div>
 
                 <button
                   className="btn-secondary"
-                  onClick={carregar}
+                  onClick={
+                    carregar
+                  }
+                  disabled={
+                    loading
+                  }
                 >
                   Atualizar
                 </button>
@@ -648,74 +850,58 @@ export default function FechamentoCaixa() {
               <div
                 style={{
                   display: "grid",
-
                   gridTemplateColumns:
                     "repeat(auto-fit,minmax(220px,1fr))",
-
                   gap: 14,
                   marginTop: 18,
                 }}
               >
-                <div>
-                  <div className="mk-selected-k">
-                    Dinheiro conferência
-                  </div>
+                <CampoConferencia
+                  titulo="Dinheiro"
+                  sistema={
+                    dinheiroSistema
+                  }
+                  value={
+                    dinheiroDecl
+                  }
+                  onChange={
+                    setDinheiroDecl
+                  }
+                />
 
-                  <input
-                    value={
-                      dinheiroDecl
-                    }
-                    onChange={(e) =>
-                      setDinheiroDecl(
-                        e.target.value
-                      )
-                    }
-                    placeholder="Deixe vazio para usar o sistema"
-                    inputMode="decimal"
-                  />
-                </div>
+                <CampoConferencia
+                  titulo="PIX"
+                  sistema={
+                    pixSistema
+                  }
+                  value={
+                    pixDecl
+                  }
+                  onChange={
+                    setPixDecl
+                  }
+                />
 
-                <div>
-                  <div className="mk-selected-k">
-                    PIX conferência
-                  </div>
-
-                  <input
-                    value={pixDecl}
-                    onChange={(e) =>
-                      setPixDecl(
-                        e.target.value
-                      )
-                    }
-                    placeholder="Deixe vazio para usar o sistema"
-                    inputMode="decimal"
-                  />
-                </div>
-
-                <div>
-                  <div className="mk-selected-k">
-                    Cartão conferência
-                  </div>
-
-                  <input
-                    value={
-                      cartaoDecl
-                    }
-                    onChange={(e) =>
-                      setCartaoDecl(
-                        e.target.value
-                      )
-                    }
-                    placeholder="Deixe vazio para usar o sistema"
-                    inputMode="decimal"
-                  />
-                </div>
+                <CampoConferencia
+                  titulo="Cartão"
+                  sistema={
+                    cartaoSistema
+                  }
+                  value={
+                    cartaoDecl
+                  }
+                  onChange={
+                    setCartaoDecl
+                  }
+                />
               </div>
             </div>
 
             <button
               className="btn-danger"
-              onClick={fecharCaixa}
+              onClick={
+                fecharCaixa
+              }
               disabled={loading}
               style={{
                 height: 58,
@@ -729,6 +915,67 @@ export default function FechamentoCaixa() {
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function InfoBox({
+  titulo,
+  valor,
+}) {
+  return (
+    <div className="panel">
+      <div className="mk-selected-k">
+        {titulo}
+      </div>
+
+      <div className="mk-selected-v">
+        {valor}
+      </div>
+    </div>
+  );
+}
+
+function CampoConferencia({
+  titulo,
+  sistema,
+  value,
+  onChange,
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: 7,
+      }}
+    >
+      <div className="mk-selected-k">
+        {titulo} conferência
+      </div>
+
+      <input
+        value={value}
+        onChange={(e) =>
+          onChange(
+            e.target.value
+          )
+        }
+        placeholder="Vazio = valor do sistema"
+        inputMode="decimal"
+      />
+
+      <div
+        style={{
+          fontSize: 11,
+          color:
+            "rgba(255,255,255,.55)",
+        }}
+      >
+        Sistema:{" "}
+        <strong>
+          {money(sistema)}
+        </strong>
       </div>
     </div>
   );

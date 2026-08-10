@@ -1154,7 +1154,6 @@ router.get("/:id", async (req, res) => {
     });
   }
 });
-
 // =========================================================
 // CRIAR VENDA
 // =========================================================
@@ -1164,17 +1163,17 @@ router.post("/", async (req, res) => {
       req.body?.caixa_numero || 1
     );
 
-    const itens = Array.isArray(
-      req.body?.itens
-    )
+    const itens = Array.isArray(req.body?.itens)
       ? req.body.itens
       : [];
 
-    const pagamentos = Array.isArray(
-      req.body?.pagamentos
-    )
+    const pagamentos = Array.isArray(req.body?.pagamentos)
       ? req.body.pagamentos
       : [];
+
+    // =====================================================
+    // BUSCAR SESSÃO DE CAIXA ABERTA
+    // =====================================================
 
     const sessaoR = await db.query(`
       SELECT *
@@ -1184,53 +1183,49 @@ router.post("/", async (req, res) => {
       LIMIT 1
     `);
 
-    const sessao =
-      sessaoR.rows[0];
+    const sessao = sessaoR.rows[0];
 
     if (!sessao) {
       return res.status(400).json({
-        error:
-          "Nenhum caixa aberto",
+        error: "Nenhum caixa aberto",
       });
     }
 
     if (!itens.length) {
       return res.status(400).json({
-        error:
-          "Itens obrigatórios",
+        error: "Itens obrigatórios",
       });
     }
 
     if (!pagamentos.length) {
       return res.status(400).json({
-        error:
-          "Pagamentos obrigatórios",
+        error: "Pagamentos obrigatórios",
       });
     }
 
+    // =====================================================
+    // TOTAIS DA VENDA
+    // =====================================================
+
     const total_bruto = round2(
-      Number(
-        req.body?.total_bruto ?? 0
-      )
+      Number(req.body?.total_bruto ?? 0)
     );
 
     const desconto = round2(
-      Number(
-        req.body?.desconto ?? 0
-      )
+      Number(req.body?.desconto ?? 0)
     );
 
     const acrescimo = round2(
-      Number(
-        req.body?.acrescimo ?? 0
-      )
+      Number(req.body?.acrescimo ?? 0)
     );
 
     const total_final = round2(
-      Number(
-        req.body?.total_final ?? 0
-      )
+      Number(req.body?.total_final ?? 0)
     );
+
+    // =====================================================
+    // CRIAR VENDA
+    // =====================================================
 
     const rv = await db.query(
       `
@@ -1271,21 +1266,23 @@ router.post("/", async (req, res) => {
       ]
     );
 
-    const venda_id =
-      rv.rows[0].id;
+    const venda_id = rv.rows[0].id;
+
+    // =====================================================
+    // ITENS
+    // =====================================================
 
     for (const it of itens) {
-      const produto_id =
-        Number(it.produto_id);
+      const produto_id = Number(
+        it.produto_id
+      );
 
       const qtd = Number(
         it.qtd || 1
       );
 
       const preco_unit = round2(
-        Number(
-          it.preco_unit || 0
-        )
+        Number(it.preco_unit || 0)
       );
 
       if (!produto_id || !qtd) {
@@ -1316,31 +1313,39 @@ router.post("/", async (req, res) => {
       );
     }
 
+    // =====================================================
+    // PAGAMENTOS
+    // =====================================================
+
     let totalPago = 0;
     let pagoDinheiro = 0;
     let pagoOutros = 0;
 
     for (const pg of pagamentos) {
-      const tipo =
-        normTipo(pg.tipo);
+      const tipo = normTipo(
+        pg.tipo
+      );
 
       const valor = round2(
         Number(pg.valor || 0)
       );
 
-      if (
-        !tipo ||
-        valor <= 0
-      ) {
+      if (!tipo || valor <= 0) {
         continue;
       }
 
-      totalPago += valor;
+      totalPago = round2(
+        totalPago + valor
+      );
 
       if (tipo === "dinheiro") {
-        pagoDinheiro += valor;
+        pagoDinheiro = round2(
+          pagoDinheiro + valor
+        );
       } else {
-        pagoOutros += valor;
+        pagoOutros = round2(
+          pagoOutros + valor
+        );
       }
 
       await db.query(
@@ -1364,6 +1369,10 @@ router.post("/", async (req, res) => {
       );
     }
 
+    // =====================================================
+    // TROCO TOTAL
+    // =====================================================
+
     const troco = round2(
       Math.max(
         0,
@@ -1377,8 +1386,15 @@ router.post("/", async (req, res) => {
       SET troco = $1
       WHERE id = $2
       `,
-      [troco, venda_id]
+      [
+        troco,
+        venda_id,
+      ]
     );
+
+    // =====================================================
+    // DINHEIRO QUE REALMENTE FICA NO CAIXA
+    // =====================================================
 
     const restante = round2(
       Math.max(
@@ -1387,26 +1403,29 @@ router.post("/", async (req, res) => {
       )
     );
 
-    const dinheiroGuardado =
-      round2(
-        Math.min(
-          pagoDinheiro,
-          restante
-        )
-      );
+    const dinheiroGuardado = round2(
+      Math.min(
+        pagoDinheiro,
+        restante
+      )
+    );
 
-    const trocoDinheiro =
-      round2(
-        Math.max(
-          0,
-          pagoDinheiro - restante
-        )
-      );
+    const trocoDinheiro = round2(
+      Math.max(
+        0,
+        pagoDinheiro - restante
+      )
+    );
+
+    // =====================================================
+    // ENTRADA EM DINHEIRO
+    // =====================================================
 
     if (dinheiroGuardado > 0) {
       await db.query(
         `
         INSERT INTO caixa_movimentos (
+          sessao_id,
           tipo,
           valor,
           motivo,
@@ -1416,16 +1435,18 @@ router.post("/", async (req, res) => {
           usuario_email
         )
         VALUES (
-          'entrada',
           $1,
+          'entrada',
+          $2,
           'venda',
           'pdv',
-          $2,
           $3,
-          $4
+          $4,
+          $5
         )
         `,
         [
+          sessao.id,
           dinheiroGuardado,
           `Venda #${venda_id} (dinheiro)`,
           req.user?.id || null,
@@ -1434,10 +1455,15 @@ router.post("/", async (req, res) => {
       );
     }
 
+    // =====================================================
+    // SAÍDA DE TROCO
+    // =====================================================
+
     if (trocoDinheiro > 0) {
       await db.query(
         `
         INSERT INTO caixa_movimentos (
+          sessao_id,
           tipo,
           valor,
           motivo,
@@ -1447,16 +1473,18 @@ router.post("/", async (req, res) => {
           usuario_email
         )
         VALUES (
-          'saida',
           $1,
+          'saida',
+          $2,
           'troco',
           'pdv',
-          $2,
           $3,
-          $4
+          $4,
+          $5
         )
         `,
         [
+          sessao.id,
           trocoDinheiro,
           `Troco venda #${venda_id}`,
           req.user?.id || null,
@@ -1464,6 +1492,10 @@ router.post("/", async (req, res) => {
         ]
       );
     }
+
+    // =====================================================
+    // RESPOSTA
+    // =====================================================
 
     return res.json({
       venda_id,
@@ -1478,8 +1510,7 @@ router.post("/", async (req, res) => {
     );
 
     return res.status(500).json({
-      error:
-        "Erro ao registrar venda",
+      error: "Erro ao registrar venda",
     });
   }
 });
