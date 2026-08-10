@@ -31,22 +31,38 @@ function linha(nome, calculado, declarado) {
   ).padStart(9, " ")} ${fmt(dif).padStart(9, " ")}\n`;
 }
 
-function imprimirFechamento({ sessao, preview, fechamento, declarado }) {
-  const fechadoEm = fechamento?.fechado_em || new Date().toISOString();
+function imprimirFechamento({
+  sessao,
+  preview,
+  fechamento,
+  declarado,
+}) {
+  const fechadoEm =
+    fechamento?.fechado_em || new Date().toISOString();
 
-  const abertura = n(preview?.abertura ?? sessao?.valor_abertura);
+  const abertura = n(
+    preview?.abertura ?? sessao?.valor_abertura
+  );
+
   const dinheiro = n(preview?.dinheiro);
   const pix = n(preview?.pix);
   const cartao = n(preview?.cartao);
   const entradas = n(preview?.entradas);
   const saidas = n(preview?.saidas);
 
-  const declaradoDinheiroLiquido = n(declarado.dinheiro) - abertura;
+  const declaradoDinheiroLiquido =
+    n(declarado.dinheiro) - abertura;
+
   const declaradoPix = n(declarado.pix);
   const declaradoCartao = n(declarado.cartao);
 
   const totalCalculado =
-    abertura + dinheiro + pix + cartao + entradas - saidas;
+    abertura +
+    dinheiro +
+    pix +
+    cartao +
+    entradas -
+    saidas;
 
   const totalDeclarado =
     n(declarado.dinheiro) +
@@ -55,7 +71,8 @@ function imprimirFechamento({ sessao, preview, fechamento, declarado }) {
     entradas -
     saidas;
 
-  const diferenca = totalDeclarado - totalCalculado;
+  const diferenca =
+    totalDeclarado - totalCalculado;
 
   const html = `
 <!DOCTYPE html>
@@ -171,7 +188,11 @@ window.onload=function(){
 </html>
 `;
 
-  const w = window.open("", "_blank", "width=420,height=700");
+  const w = window.open(
+    "",
+    "_blank",
+    "width=420,height=700"
+  );
 
   if (!w) {
     alert("Pop-up bloqueado. Libere pop-up.");
@@ -202,18 +223,26 @@ export default function FechamentoCaixa() {
 
     try {
       const r = await api.get("/caixa/sessao-atual");
-      const atual = r.data?.sessao || null;
+
+      const atual =
+        r.data?.sessao || null;
 
       setSessao(atual);
 
       if (atual) {
-        const p = await api.get("/caixa/fechamento-preview");
+        const p = await api.get(
+          "/caixa/fechamento-preview"
+        );
+
         setPreview(p.data || null);
       } else {
         setPreview(null);
       }
     } catch (e) {
-      setMsg(e?.response?.data?.error || "Erro ao carregar caixa");
+      setMsg(
+        e?.response?.data?.error ||
+          "Erro ao carregar caixa"
+      );
     } finally {
       setLoading(false);
     }
@@ -228,62 +257,176 @@ export default function FechamentoCaixa() {
       setLoading(true);
       setMsg("");
 
-      const valorDigitado = String(valorAbertura || "").trim();
+      const valorDigitado = String(
+        valorAbertura || ""
+      ).trim();
 
-await api.post("/caixa/abrir", {
-  valor_abertura: valorDigitado ? n(valorDigitado) : null,
-  caixa_numero: 1,
-});
+      await api.post("/caixa/abrir", {
+        valor_abertura: valorDigitado
+          ? n(valorDigitado)
+          : null,
+
+        caixa_numero: 1,
+      });
 
       setValorAbertura("");
-      setMsg("Caixa aberto com sucesso");
+
+      setMsg(
+        "Caixa aberto com sucesso"
+      );
 
       await carregar();
     } catch (e) {
-      setMsg(e?.response?.data?.error || "Erro ao abrir caixa");
+      setMsg(
+        e?.response?.data?.error ||
+          "Erro ao abrir caixa"
+      );
     } finally {
       setLoading(false);
     }
   }
 
   async function fecharCaixa() {
-    if (!window.confirm("Deseja fechar o caixa?")) return;
+    if (
+      !window.confirm(
+        "Deseja fechar o caixa?"
+      )
+    ) {
+      return;
+    }
 
     try {
       setLoading(true);
       setMsg("");
 
-      const p = await api.get("/caixa/fechamento-preview");
-      const dados = p.data || preview || {};
+      // Busca os valores atualizados
+      // imediatamente antes do fechamento.
+      const p = await api.get(
+        "/caixa/fechamento-preview"
+      );
+
+      const dados =
+        p.data || preview || {};
+
+      const abertura = n(
+        dados.abertura ??
+          sessao?.valor_abertura
+      );
+
+      /*
+       * REGRA:
+       *
+       * Se o operador preencher o campo,
+       * usamos o valor digitado.
+       *
+       * Se deixar vazio,
+       * consideramos o valor do sistema.
+       *
+       * Dessa maneira um campo esquecido
+       * não gera uma diferença negativa falsa.
+       */
+
+      const dinheiroVazio =
+        String(
+          dinheiroDecl ?? ""
+        ).trim() === "";
+
+      const pixVazio =
+        String(
+          pixDecl ?? ""
+        ).trim() === "";
+
+      const cartaoVazio =
+        String(
+          cartaoDecl ?? ""
+        ).trim() === "";
+
+      /*
+       * dinheiro_sistema já contém:
+       *
+       * abertura
+       * + vendas em dinheiro
+       * + reforços
+       * - saídas
+       *
+       * Portanto usamos dinheiro_sistema
+       * quando o campo estiver vazio.
+       */
+
+      const dinheiroSistema = n(
+        dados.dinheiro_sistema ??
+          (
+            abertura +
+            n(dados.dinheiro) +
+            n(dados.entradas) -
+            n(dados.saidas)
+          )
+      );
+
+      const pixSistema = n(
+        dados.pix_sistema ??
+          dados.pix
+      );
+
+      const cartaoSistema = n(
+        dados.cartao_sistema ??
+          dados.cartao
+      );
 
       const declarado = {
-        dinheiro: n(dinheiroDecl),
-        pix: n(pixDecl),
-        cartao: n(cartaoDecl),
+        dinheiro: dinheiroVazio
+          ? dinheiroSistema
+          : n(dinheiroDecl),
+
+        pix: pixVazio
+          ? pixSistema
+          : n(pixDecl),
+
+        cartao: cartaoVazio
+          ? cartaoSistema
+          : n(cartaoDecl),
       };
+
+      /*
+       * Valor final declarado.
+       *
+       * Os valores enviados aqui já representam
+       * exatamente o que será comparado pelo backend.
+       */
 
       const valorFinal =
         declarado.dinheiro +
         declarado.pix +
-        declarado.cartao +
-        n(dados.entradas) -
-        n(dados.saidas);
+        declarado.cartao;
 
-      const r = await api.post("/caixa/fechar", {
-        valor_fechamento: valorFinal,
-        dinheiro: declarado.dinheiro,
-        pix: declarado.pix,
-        cartao: declarado.cartao,
-      });
+      const r = await api.post(
+        "/caixa/fechar",
+        {
+          valor_fechamento:
+            valorFinal,
+
+          dinheiro:
+            declarado.dinheiro,
+
+          pix:
+            declarado.pix,
+
+          cartao:
+            declarado.cartao,
+        }
+      );
 
       imprimirFechamento({
         sessao,
         preview: dados,
-        fechamento: r.data?.sessao,
+        fechamento:
+          r.data?.sessao,
         declarado,
       });
 
-      setMsg("Caixa fechado com sucesso");
+      setMsg(
+        "Caixa fechado com sucesso"
+      );
 
       setDinheiroDecl("");
       setPixDecl("");
@@ -291,18 +434,64 @@ await api.post("/caixa/abrir", {
 
       await carregar();
     } catch (e) {
-      setMsg(e?.response?.data?.error || "Erro ao fechar caixa");
+      setMsg(
+        e?.response?.data?.error ||
+          "Erro ao fechar caixa"
+      );
     } finally {
       setLoading(false);
     }
   }
 
-  const abertura = n(preview?.abertura ?? sessao?.valor_abertura);
+  const abertura = n(
+    preview?.abertura ??
+      sessao?.valor_abertura
+  );
+
+  /*
+   * Também mostramos na tela o valor
+   * que efetivamente será considerado.
+   */
+
+  const dinheiroTela =
+    String(
+      dinheiroDecl ?? ""
+    ).trim() === ""
+      ? n(
+          preview?.dinheiro_sistema ??
+            (
+              abertura +
+              n(preview?.dinheiro) +
+              n(preview?.entradas) -
+              n(preview?.saidas)
+            )
+        )
+      : n(dinheiroDecl);
+
+  const pixTela =
+    String(
+      pixDecl ?? ""
+    ).trim() === ""
+      ? n(
+          preview?.pix_sistema ??
+            preview?.pix
+        )
+      : n(pixDecl);
+
+  const cartaoTela =
+    String(
+      cartaoDecl ?? ""
+    ).trim() === ""
+      ? n(
+          preview?.cartao_sistema ??
+            preview?.cartao
+        )
+      : n(cartaoDecl);
 
   const totalDeclarado =
-    n(dinheiroDecl) +
-    n(pixDecl) +
-    n(cartaoDecl);
+    dinheiroTela +
+    pixTela +
+    cartaoTela;
 
   return (
     <div
@@ -316,11 +505,15 @@ await api.post("/caixa/abrir", {
       <div className="panel">
         <div className="panel-head">
           <div>
-            <h2>Fechamento de Caixa</h2>
+            <h2>
+              Fechamento de Caixa
+            </h2>
 
             <div
               style={{
-                color: "rgba(255,255,255,.65)",
+                color:
+                  "rgba(255,255,255,.65)",
+
                 fontSize: 13,
                 marginTop: 4,
               }}
@@ -330,12 +523,19 @@ await api.post("/caixa/abrir", {
           </div>
 
           <span className="badge">
-            {sessao ? "Caixa aberto" : "Caixa fechado"}
+            {sessao
+              ? "Caixa aberto"
+              : "Caixa fechado"}
           </span>
         </div>
 
         {msg ? (
-          <div className="empty" style={{ marginTop: 14 }}>
+          <div
+            className="empty"
+            style={{
+              marginTop: 14,
+            }}
+          >
             {msg}
           </div>
         ) : null}
@@ -349,13 +549,22 @@ await api.post("/caixa/abrir", {
               maxWidth: 420,
             }}
           >
-            <div style={{ fontWeight: 800, fontSize: 18 }}>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: 18,
+              }}
+            >
               Abrir caixa
             </div>
 
             <input
               value={valorAbertura}
-              onChange={(e) => setValorAbertura(e.target.value)}
+              onChange={(e) =>
+                setValorAbertura(
+                  e.target.value
+                )
+              }
               placeholder="Valor inicial"
               inputMode="decimal"
             />
@@ -365,29 +574,44 @@ await api.post("/caixa/abrir", {
               onClick={abrirCaixa}
               disabled={loading}
             >
-              {loading ? "Abrindo..." : "Abrir Caixa"}
+              {loading
+                ? "Abrindo..."
+                : "Abrir Caixa"}
             </button>
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 18, marginTop: 18 }}>
+          <div
+            style={{
+              display: "grid",
+              gap: 18,
+              marginTop: 18,
+            }}
+          >
             <div
               style={{
                 display: "grid",
+
                 gridTemplateColumns:
                   "repeat(auto-fit,minmax(220px,1fr))",
+
                 gap: 14,
               }}
             >
               <div className="panel">
-                <div className="mk-selected-k">Operador</div>
+                <div className="mk-selected-k">
+                  Operador
+                </div>
 
                 <div className="mk-selected-v">
-                  {sessao.usuario_email || "—"}
+                  {sessao.usuario_email ||
+                    "—"}
                 </div>
               </div>
 
               <div className="panel">
-                <div className="mk-selected-k">Abertura</div>
+                <div className="mk-selected-k">
+                  Abertura
+                </div>
 
                 <div className="mk-selected-v">
                   {money(abertura)}
@@ -395,17 +619,23 @@ await api.post("/caixa/abrir", {
               </div>
 
               <div className="panel">
-                <div className="mk-selected-k">Total Declarado</div>
+                <div className="mk-selected-k">
+                  Total Declarado
+                </div>
 
                 <div className="mk-selected-v">
-                  {money(totalDeclarado)}
+                  {money(
+                    totalDeclarado
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="panel">
               <div className="panel-head">
-                <h2>Conferência Manual</h2>
+                <h2>
+                  Conferência Manual
+                </h2>
 
                 <button
                   className="btn-secondary"
@@ -418,8 +648,10 @@ await api.post("/caixa/abrir", {
               <div
                 style={{
                   display: "grid",
+
                   gridTemplateColumns:
                     "repeat(auto-fit,minmax(220px,1fr))",
+
                   gap: 14,
                   marginTop: 18,
                 }}
@@ -430,11 +662,15 @@ await api.post("/caixa/abrir", {
                   </div>
 
                   <input
-                    value={dinheiroDecl}
-                    onChange={(e) =>
-                      setDinheiroDecl(e.target.value)
+                    value={
+                      dinheiroDecl
                     }
-                    placeholder="0,00"
+                    onChange={(e) =>
+                      setDinheiroDecl(
+                        e.target.value
+                      )
+                    }
+                    placeholder="Deixe vazio para usar o sistema"
                     inputMode="decimal"
                   />
                 </div>
@@ -447,9 +683,11 @@ await api.post("/caixa/abrir", {
                   <input
                     value={pixDecl}
                     onChange={(e) =>
-                      setPixDecl(e.target.value)
+                      setPixDecl(
+                        e.target.value
+                      )
                     }
-                    placeholder="0,00"
+                    placeholder="Deixe vazio para usar o sistema"
                     inputMode="decimal"
                   />
                 </div>
@@ -460,11 +698,15 @@ await api.post("/caixa/abrir", {
                   </div>
 
                   <input
-                    value={cartaoDecl}
-                    onChange={(e) =>
-                      setCartaoDecl(e.target.value)
+                    value={
+                      cartaoDecl
                     }
-                    placeholder="0,00"
+                    onChange={(e) =>
+                      setCartaoDecl(
+                        e.target.value
+                      )
+                    }
+                    placeholder="Deixe vazio para usar o sistema"
                     inputMode="decimal"
                   />
                 </div>
