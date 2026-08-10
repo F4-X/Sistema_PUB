@@ -21,6 +21,7 @@ import {
 function pretty(v) {
   if (v == null) return "";
   if (typeof v === "string") return v;
+
   try {
     return JSON.stringify(v, null, 2);
   } catch {
@@ -30,6 +31,7 @@ function pretty(v) {
 
 function errMsg(e, fallback) {
   const d = e?.response?.data;
+
   return (
     d?.detalhe ||
     d?.error ||
@@ -50,8 +52,11 @@ function blurActiveElement() {
 
 export default function PDV({ setTela, onLogout }) {
   const s = usePDV();
+
   const [page, setPage] = useState("pdv");
-  const [editandoProduto, setEditandoProduto] = useState(null);
+
+  const [editandoProduto, setEditandoProduto] =
+    useState(null);
 
   const [ncm, setNcm] = useState("");
   const [cfop, setCfop] = useState("");
@@ -67,8 +72,16 @@ export default function PDV({ setTela, onLogout }) {
       } catch {}
     };
 
-    window.addEventListener("blur", onWindowBlur);
-    return () => window.removeEventListener("blur", onWindowBlur);
+    window.addEventListener(
+      "blur",
+      onWindowBlur
+    );
+
+    return () =>
+      window.removeEventListener(
+        "blur",
+        onWindowBlur
+      );
   }, []);
 
   function limparFiscal() {
@@ -82,158 +95,465 @@ export default function PDV({ setTela, onLogout }) {
 
   function abrirNovoProduto() {
     setEditandoProduto(null);
+
     s.setProdNome("");
     s.setProdPreco("");
     s.setProdCategoriaId("");
+
     limparFiscal();
+
     s.setOpenProd(true);
   }
 
   function abrirEditarProduto(produto) {
     setEditandoProduto(produto);
 
-    s.setProdNome(produto.nome || "");
-    s.setProdPreco(String(produto.preco || ""));
-    s.setProdCategoriaId(produto.categoria_id || "");
+    s.setProdNome(
+      produto.nome || ""
+    );
+
+    s.setProdPreco(
+      String(produto.preco || "")
+    );
+
+    s.setProdCategoriaId(
+      produto.categoria_id || ""
+    );
 
     setNcm(produto.ncm || "");
     setCfop(produto.cfop || "");
     setCsosn(produto.csosn || "");
     setPis(produto.pis_cst || "");
     setCofins(produto.cofins_cst || "");
-    setUnidade(produto.unidade || "UN");
+    setUnidade(
+      produto.unidade || "UN"
+    );
 
     s.setOpenProd(true);
   }
 
   async function salvarProduto() {
+    const nome = String(
+      s.prodNome || ""
+    ).trim();
 
-  const faltando = [];
+    const preco = String(
+      s.prodPreco || ""
+    )
+      .trim()
+      .replace(",", ".");
 
-  if (!String(ncm || "").trim()) faltando.push("NCM");
-  if (!String(cfop || "").trim()) faltando.push("CFOP");
-  if (!String(csosn || "").trim()) faltando.push("CSOSN (ICMS)");
-  if (!String(pis || "").trim()) faltando.push("PIS CST");
-  if (!String(cofins || "").trim()) faltando.push("COFINS CST");
-  if (!String(unidade || "").trim()) faltando.push("UN");
+    const ncmLimpo = String(
+      ncm || ""
+    ).replace(/\D/g, "");
 
-  if (faltando.length) {
-    alert(
-      `Preencha os campos fiscais obrigatórios:\n\n${faltando.join("\n")}`
-    );
-    return;
-  }
+    const cfopLimpo = String(
+      cfop || ""
+    ).replace(/\D/g, "");
 
-    const payload = {
-      nome: s.prodNome,
-      preco: String(s.prodPreco).replace(",", "."),
-      categoria_id: s.prodCategoriaId || null,
-      ncm,
-      cfop,
-      csosn,
-      pis_cst: pis,
-      cofins_cst: cofins,
-      unidade: unidade || "UN",
-    };
+    const csosnLimpo = String(
+      csosn || ""
+    ).replace(/\D/g, "");
 
-    if (editandoProduto?.id) {
-      await api.put(`/produtos/${editandoProduto.id}`, payload);
+    const pisLimpo = String(
+      pis || ""
+    ).replace(/\D/g, "");
 
-      setEditandoProduto(null);
-      s.setOpenProd(false);
-      location.reload();
+    const cofinsLimpo = String(
+      cofins || ""
+    ).replace(/\D/g, "");
+
+    const unidadeLimpa = String(
+      unidade || ""
+    )
+      .trim()
+      .toUpperCase();
+
+    const erros = [];
+
+    // =========================
+    // DADOS BÁSICOS
+    // =========================
+
+    if (!nome) {
+      erros.push(
+        "Nome do produto é obrigatório"
+      );
+    }
+
+    if (
+      !preco ||
+      !Number.isFinite(Number(preco)) ||
+      Number(preco) <= 0
+    ) {
+      erros.push(
+        "Preço é obrigatório e deve ser maior que zero"
+      );
+    }
+
+    // =========================
+    // NCM
+    // =========================
+
+    if (!ncmLimpo) {
+      erros.push(
+        "NCM é obrigatório"
+      );
+    } else if (
+      ncmLimpo.length !== 8
+    ) {
+      erros.push(
+        "NCM deve possuir exatamente 8 números"
+      );
+    }
+
+    // =========================
+    // CFOP
+    // =========================
+
+    if (!cfopLimpo) {
+      erros.push(
+        "CFOP é obrigatório"
+      );
+    } else if (
+      cfopLimpo.length !== 4
+    ) {
+      erros.push(
+        "CFOP deve possuir exatamente 4 números"
+      );
+    }
+
+    // =========================
+    // CSOSN
+    // =========================
+
+    if (!csosnLimpo) {
+      erros.push(
+        "CSOSN (ICMS) é obrigatório"
+      );
+    } else if (
+      csosnLimpo.length !== 3
+    ) {
+      erros.push(
+        "CSOSN deve possuir exatamente 3 números"
+      );
+    }
+
+    // =========================
+    // PIS CST
+    // =========================
+
+    if (!pisLimpo) {
+      erros.push(
+        "PIS CST é obrigatório"
+      );
+    } else if (
+      pisLimpo.length !== 2
+    ) {
+      erros.push(
+        "PIS CST deve possuir exatamente 2 números"
+      );
+    }
+
+    // =========================
+    // COFINS CST
+    // =========================
+
+    if (!cofinsLimpo) {
+      erros.push(
+        "COFINS CST é obrigatório"
+      );
+    } else if (
+      cofinsLimpo.length !== 2
+    ) {
+      erros.push(
+        "COFINS CST deve possuir exatamente 2 números"
+      );
+    }
+
+    // =========================
+    // UNIDADE
+    // =========================
+
+    if (!unidadeLimpa) {
+      erros.push(
+        "Unidade é obrigatória"
+      );
+    }
+
+    const unidadesPermitidas = [
+      "UN",
+      "CX",
+      "KG",
+      "G",
+      "L",
+      "ML",
+      "PC",
+    ];
+
+    if (
+      unidadeLimpa &&
+      !unidadesPermitidas.includes(
+        unidadeLimpa
+      )
+    ) {
+      erros.push(
+        `Unidade inválida. Use: ${unidadesPermitidas.join(
+          ", "
+        )}`
+      );
+    }
+
+    // =========================
+    // BLOQUEIA O SALVAMENTO
+    // =========================
+
+    if (erros.length) {
+      alert(
+        "Não foi possível salvar o produto.\n\n" +
+          erros
+            .map(
+              (erro) =>
+                `• ${erro}`
+            )
+            .join("\n")
+      );
+
       return;
     }
 
-    await api.post("/produtos", payload);
+    const payload = {
+      nome,
+      preco,
 
-    setEditandoProduto(null);
-    s.setOpenProd(false);
-    location.reload();
+      categoria_id:
+        s.prodCategoriaId || null,
+
+      ncm: ncmLimpo,
+      cfop: cfopLimpo,
+      csosn: csosnLimpo,
+      pis_cst: pisLimpo,
+      cofins_cst: cofinsLimpo,
+      unidade: unidadeLimpa,
+    };
+
+    try {
+      if (editandoProduto?.id) {
+        await api.put(
+          `/produtos/${editandoProduto.id}`,
+          payload
+        );
+
+        setEditandoProduto(null);
+
+        s.setOpenProd(false);
+
+        location.reload();
+
+        return;
+      }
+
+      await api.post(
+        "/produtos",
+        payload
+      );
+
+      setEditandoProduto(null);
+
+      s.setOpenProd(false);
+
+      location.reload();
+    } catch (e) {
+      alert(
+        e?.response?.data?.error ||
+          e?.response?.data
+            ?.message ||
+          "Erro ao salvar produto"
+      );
+    }
   }
 
   async function printReceipt(venda) {
     try {
       blurActiveElement();
 
-      const vendaId = venda?.venda_id || venda?.id || venda;
+      const vendaId =
+        venda?.venda_id ||
+        venda?.id ||
+        venda;
 
       if (!vendaId) {
         alert("Venda inválida");
         return;
       }
 
-      const { data } = await api.get(`/vendas/${vendaId}`);
+      const { data } =
+        await api.get(
+          `/vendas/${vendaId}`
+        );
 
-      const itens = Array.isArray(data?.itens) ? data.itens : [];
-      const pagamentos = Array.isArray(data?.pagamentos) ? data.pagamentos : [];
+      const itens =
+        Array.isArray(data?.itens)
+          ? data.itens
+          : [];
+
+      const pagamentos =
+        Array.isArray(
+          data?.pagamentos
+        )
+          ? data.pagamentos
+          : [];
 
       const saleObj = {
         ...(data?.venda || {}),
-        venda_id: data?.venda?.id ?? data?.venda?.venda_id ?? vendaId,
+
+        venda_id:
+          data?.venda?.id ??
+          data?.venda?.venda_id ??
+          vendaId,
+
         itens: itens.map((i) => ({
           ...i,
+
           nome:
             i?.nome ||
             i?.produto_nome ||
-            (i?.produto_id ? `Produto #${i.produto_id}` : "Produto"),
-          qtd: Number(i?.qtd || 1),
-          preco: Number(i?.preco ?? i?.preco_unit ?? 0),
-          preco_unit: Number(i?.preco_unit ?? i?.preco ?? 0),
+            (i?.produto_id
+              ? `Produto #${i.produto_id}`
+              : "Produto"),
+
+          qtd: Number(
+            i?.qtd || 1
+          ),
+
+          preco: Number(
+            i?.preco ??
+              i?.preco_unit ??
+              0
+          ),
+
+          preco_unit: Number(
+            i?.preco_unit ??
+              i?.preco ??
+              0
+          ),
         })),
-        pagamentos: pagamentos.map((p) => ({
-          ...p,
-          tipo: p?.tipo,
-          valor: Number(p?.valor || 0),
-        })),
+
+        pagamentos:
+          pagamentos.map(
+            (p) => ({
+              ...p,
+
+              tipo: p?.tipo,
+
+              valor: Number(
+                p?.valor || 0
+              ),
+            })
+          ),
       };
 
       s.setLastSale(saleObj);
-      setTimeout(() => window.print(), 120);
+
+      setTimeout(
+        () => window.print(),
+        120
+      );
     } catch (e) {
       blurActiveElement();
-      alert("Erro ao carregar venda para recibo");
+
+      alert(
+        "Erro ao carregar venda para recibo"
+      );
+
       console.log(e);
     }
   }
 
-  async function emitFiscal(vendaId) {
-    if (!vendaId || vendaId === "—") {
+  async function emitFiscal(
+    vendaId
+  ) {
+    if (
+      !vendaId ||
+      vendaId === "—"
+    ) {
       blurActiveElement();
-      throw new Error("Venda inválida");
+
+      throw new Error(
+        "Venda inválida"
+      );
     }
 
     try {
       blurActiveElement();
-      const { data } = await api.post(`/vendas/${vendaId}/fiscal/emitir`);
+
+      const { data } =
+        await api.post(
+          `/vendas/${vendaId}/fiscal/emitir`
+        );
+
       return data;
     } catch (e) {
-      console.log("ERRO EMITIR NFC-e:", e?.response?.data || e);
+      console.log(
+        "ERRO EMITIR NFC-e:",
+        e?.response?.data || e
+      );
+
       throw e;
     } finally {
       blurActiveElement();
     }
   }
 
-  async function printFiscal(vendaId) {
-    if (!vendaId || vendaId === "—") {
+  async function printFiscal(
+    vendaId
+  ) {
+    if (
+      !vendaId ||
+      vendaId === "—"
+    ) {
       blurActiveElement();
-      return alert("Venda inválida");
+
+      return alert(
+        "Venda inválida"
+      );
     }
 
     try {
       blurActiveElement();
 
-      const r = await api.get(`/vendas/${vendaId}/fiscal/pdf`, {
-        responseType: "blob",
-      });
+      const r =
+        await api.get(
+          `/vendas/${vendaId}/fiscal/pdf`,
+          {
+            responseType:
+              "blob",
+          }
+        );
 
-      const blob = new Blob([r.data], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
+      const blob =
+        new Blob(
+          [r.data],
+          {
+            type:
+              "application/pdf",
+          }
+        );
 
-      const w = window.open(url, "_blank");
+      const url =
+        URL.createObjectURL(blob);
+
+      const w =
+        window.open(
+          url,
+          "_blank"
+        );
+
       if (!w) {
-        alert("Pop-up bloqueado. Libere pop-up pra imprimir.");
+        alert(
+          "Pop-up bloqueado. Libere pop-up pra imprimir."
+        );
+
         return;
       }
 
@@ -243,7 +563,13 @@ export default function PDV({ setTela, onLogout }) {
       };
     } catch (e) {
       blurActiveElement();
-      alert(errMsg(e, "Erro ao imprimir NFC-e"));
+
+      alert(
+        errMsg(
+          e,
+          "Erro ao imprimir NFC-e"
+        )
+      );
     }
   }
 
@@ -255,7 +581,9 @@ export default function PDV({ setTela, onLogout }) {
           setPage={setPage}
           search={s.search}
           setSearch={s.setSearch}
-          onBack={() => setTela("menu")}
+          onBack={() =>
+            setTela("menu")
+          }
           onLogout={onLogout}
         />
 
@@ -263,13 +591,21 @@ export default function PDV({ setTela, onLogout }) {
 
         {page === "hist" ? (
           <Historico
-            onPrintReceipt={printReceipt}
-            onEmitFiscal={emitFiscal}
-            onPrintFiscal={printFiscal}
+            onPrintReceipt={
+              printReceipt
+            }
+            onEmitFiscal={
+              emitFiscal
+            }
+            onPrintFiscal={
+              printFiscal
+            }
           />
-        ) : page === "caixa" ? (
+        ) : page ===
+          "caixa" ? (
           <Caixa />
-        ) : page === "fechamento" ? (
+        ) : page ===
+          "fechamento" ? (
           <FechamentoCaixa />
         ) : (
           <>
@@ -277,25 +613,57 @@ export default function PDV({ setTela, onLogout }) {
               <section className="panel">
                 {!s.mostrandoProdutos && (
                   <Categorias
-                    categorias={s.categorias}
-                    categoriaAtiva={s.categoriaAtiva}
-                    setCategoriaAtiva={s.setCategoriaAtiva}
-                    onCtx={s.abrirMenu}
-                    onOpenCat={() => s.setOpenCat(true)}
+                    categorias={
+                      s.categorias
+                    }
+                    categoriaAtiva={
+                      s.categoriaAtiva
+                    }
+                    setCategoriaAtiva={
+                      s.setCategoriaAtiva
+                    }
+                    onCtx={
+                      s.abrirMenu
+                    }
+                    onOpenCat={() =>
+                      s.setOpenCat(
+                        true
+                      )
+                    }
                   />
                 )}
 
                 <Produtos
-                  produtos={s.produtos}
-                  mostrandoProdutos={s.mostrandoProdutos}
-                  onAdd={s.addToCart}
-                  onCtx={s.abrirMenu}
-                  onOpenProd={abrirNovoProduto}
-                  page={s.prodPage}
-                  pages={s.prodPages}
-                  total={s.prodTotal}
-                  onPrev={s.prevPage}
-                  onNext={s.nextPage}
+                  produtos={
+                    s.produtos
+                  }
+                  mostrandoProdutos={
+                    s.mostrandoProdutos
+                  }
+                  onAdd={
+                    s.addToCart
+                  }
+                  onCtx={
+                    s.abrirMenu
+                  }
+                  onOpenProd={
+                    abrirNovoProduto
+                  }
+                  page={
+                    s.prodPage
+                  }
+                  pages={
+                    s.prodPages
+                  }
+                  total={
+                    s.prodTotal
+                  }
+                  onPrev={
+                    s.prevPage
+                  }
+                  onNext={
+                    s.nextPage
+                  }
                 />
               </section>
 
@@ -303,93 +671,207 @@ export default function PDV({ setTela, onLogout }) {
                 caixa={1}
                 cart={s.cart}
                 total={s.total}
-                onDec={s.decItem}
-                onInc={s.incItem}
-                onClear={s.limparCaixaAtual}
+                onDec={
+                  s.decItem
+                }
+                onInc={
+                  s.incItem
+                }
+                onClear={
+                  s.limparCaixaAtual
+                }
                 onFinish={() => {
                   blurActiveElement();
+
                   s.abrirPagamento();
                 }}
               />
             </main>
 
-           <ContextMenu
-  menu={s.openProd ? null : s.menu}
-  onEditarProduto={abrirEditarProduto}
-  onExcluirProduto={s.excluirProduto}
-  onExcluirCategoria={s.excluirCategoria}
-/>
+            <ContextMenu
+              menu={
+                s.openProd
+                  ? null
+                  : s.menu
+              }
+              onEditarProduto={
+                abrirEditarProduto
+              }
+              onExcluirProduto={
+                s.excluirProduto
+              }
+              onExcluirCategoria={
+                s.excluirCategoria
+              }
+            />
 
             <ModalCategoria
-              open={s.openCat}
-              value={s.catNome}
-              onChange={s.setCatNome}
+              open={
+                s.openCat
+              }
+              value={
+                s.catNome
+              }
+              onChange={
+                s.setCatNome
+              }
               onClose={() => {
                 blurActiveElement();
-                s.setOpenCat(false);
+
+                s.setOpenCat(
+                  false
+                );
               }}
-              onSave={s.criarCategoria}
+              onSave={
+                s.criarCategoria
+              }
             />
 
             <ModalProduto
-              open={s.openProd}
-              nome={s.prodNome}
-              preco={s.prodPreco}
-              categoriaId={s.prodCategoriaId}
-              categorias={s.categorias}
+              open={
+                s.openProd
+              }
+              nome={
+                s.prodNome
+              }
+              preco={
+                s.prodPreco
+              }
+              categoriaId={
+                s.prodCategoriaId
+              }
+              categorias={
+                s.categorias
+              }
               onClose={() => {
                 blurActiveElement();
-                setEditandoProduto(null);
+
+                setEditandoProduto(
+                  null
+                );
+
                 limparFiscal();
-                s.setOpenProd(false);
+
+                s.setOpenProd(
+                  false
+                );
               }}
-              onSave={salvarProduto}
-              setNome={s.setProdNome}
-              setPreco={s.setProdPreco}
-              setCategoriaId={s.setProdCategoriaId}
+              onSave={
+                salvarProduto
+              }
+              setNome={
+                s.setProdNome
+              }
+              setPreco={
+                s.setProdPreco
+              }
+              setCategoriaId={
+                s.setProdCategoriaId
+              }
               ncm={ncm}
               cfop={cfop}
               csosn={csosn}
               pis={pis}
               cofins={cofins}
-              unidade={unidade}
-              setNcm={setNcm}
-              setCfop={setCfop}
-              setCsosn={setCsosn}
-              setPis={setPis}
-              setCofins={setCofins}
-              setUnidade={setUnidade}
-              titulo={editandoProduto ? "Editar Produto" : "Cadastrar Produto"}
-              textoBotao={editandoProduto ? "Salvar alterações" : "Salvar"}
+              unidade={
+                unidade
+              }
+              setNcm={
+                setNcm
+              }
+              setCfop={
+                setCfop
+              }
+              setCsosn={
+                setCsosn
+              }
+              setPis={
+                setPis
+              }
+              setCofins={
+                setCofins
+              }
+              setUnidade={
+                setUnidade
+              }
+              titulo={
+                editandoProduto
+                  ? "Editar Produto"
+                  : "Cadastrar Produto"
+              }
+              textoBotao={
+                editandoProduto
+                  ? "Salvar alterações"
+                  : "Salvar"
+              }
             />
 
             <ModalPagamento
-              open={s.openPay}
-              total={s.totalFinal}
-              dinheiro={s.payDinheiro}
-              pix={s.payPix}
-              debito={s.payDebito}
-              credito={s.payCredito}
-              setDinheiro={s.setPayDinheiro}
-              setPix={s.setPayPix}
-              setDebito={s.setPayDebito}
-              setCredito={s.setPayCredito}
-              descontoTipo={s.descontoTipo}
-              setDescontoTipo={s.setDescontoTipo}
-              descontoValor={s.descontoValor}
-              setDescontoValor={s.setDescontoValor}
+              open={
+                s.openPay
+              }
+              total={
+                s.totalFinal
+              }
+              dinheiro={
+                s.payDinheiro
+              }
+              pix={
+                s.payPix
+              }
+              debito={
+                s.payDebito
+              }
+              credito={
+                s.payCredito
+              }
+              setDinheiro={
+                s.setPayDinheiro
+              }
+              setPix={
+                s.setPayPix
+              }
+              setDebito={
+                s.setPayDebito
+              }
+              setCredito={
+                s.setPayCredito
+              }
+              descontoTipo={
+                s.descontoTipo
+              }
+              setDescontoTipo={
+                s.setDescontoTipo
+              }
+              descontoValor={
+                s.descontoValor
+              }
+              setDescontoValor={
+                s.setDescontoValor
+              }
               onClose={() => {
-                if (!s.payLoading) {
+                if (
+                  !s.payLoading
+                ) {
                   blurActiveElement();
-                  s.setOpenPay(false);
+
+                  s.setOpenPay(
+                    false
+                  );
                 }
               }}
-              onConfirm={async () => {
-                blurActiveElement();
-                await s.confirmarPagamento();
-                blurActiveElement();
-              }}
-              loading={s.payLoading}
+              onConfirm={
+                async () => {
+                  blurActiveElement();
+
+                  await s.confirmarPagamento();
+
+                  blurActiveElement();
+                }
+              }
+              loading={
+                s.payLoading
+              }
             />
 
             {s.openPos && (
@@ -397,21 +879,47 @@ export default function PDV({ setTela, onLogout }) {
                 className="modal-backdrop"
                 onClick={() => {
                   blurActiveElement();
-                  s.setOpenPos(false);
+
+                  s.setOpenPos(
+                    false
+                  );
                 }}
               >
-                <div className="modal" onClick={(e) => e.stopPropagation()}>
-                  <h3>Venda finalizada</h3>
-                  <p style={{ marginTop: 0, opacity: 0.85 }}>
-                    O que você quer fazer agora?
+                <div
+                  className="modal"
+                  onClick={(e) =>
+                    e.stopPropagation()
+                  }
+                >
+                  <h3>
+                    Venda finalizada
+                  </h3>
+
+                  <p
+                    style={{
+                      marginTop: 0,
+                      opacity: 0.85,
+                    }}
+                  >
+                    O que você quer
+                    fazer agora?
                   </p>
 
-                  <div className="modal-actions" style={{ flexWrap: "wrap" }}>
+                  <div
+                    className="modal-actions"
+                    style={{
+                      flexWrap:
+                        "wrap",
+                    }}
+                  >
                     <button
                       className="btn-secondary"
                       onClick={() => {
                         blurActiveElement();
-                        s.setOpenPos(false);
+
+                        s.setOpenPos(
+                          false
+                        );
                       }}
                     >
                       Não imprimir
@@ -421,8 +929,14 @@ export default function PDV({ setTela, onLogout }) {
                       className="btn-primary"
                       onClick={() => {
                         blurActiveElement();
-                        s.setOpenPos(false);
-                        printReceipt(s.lastSale);
+
+                        s.setOpenPos(
+                          false
+                        );
+
+                        printReceipt(
+                          s.lastSale
+                        );
                       }}
                     >
                       Imprimir recibo
@@ -432,7 +946,11 @@ export default function PDV({ setTela, onLogout }) {
                       className="btn-secondary"
                       onClick={() => {
                         blurActiveElement();
-                        printFiscal(s.lastSale?.venda_id);
+
+                        printFiscal(
+                          s.lastSale
+                            ?.venda_id
+                        );
                       }}
                     >
                       Imprimir NFC-e
@@ -446,7 +964,9 @@ export default function PDV({ setTela, onLogout }) {
       </div>
 
       <div className="print-area">
-        <Recibo sale={s.lastSale} />
+        <Recibo
+          sale={s.lastSale}
+        />
       </div>
     </div>
   );
