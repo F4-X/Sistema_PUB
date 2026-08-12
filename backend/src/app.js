@@ -5,6 +5,7 @@ const { initOnStart } = require("./init_on_start");
 
 const categoriasRoutes = require("./routes/categorias");
 const produtosRoutes = require("./routes/produtos");
+const perfisFiscaisRoutes = require("./routes/perfis_fiscais");
 const vendasRoutes = require("./routes/vendas");
 const financeiroRoutes = require("./routes/financeiro");
 const fechamentosRoutes = require("./routes/fechamentos");
@@ -30,6 +31,7 @@ app.use(authRoutes);
 
 app.use("/categorias", auth, categoriasRoutes);
 app.use("/produtos", auth, produtosRoutes);
+app.use("/perfis-fiscais", auth, perfisFiscaisRoutes);
 app.use("/vendas", auth, vendasRoutes);
 app.use("/financeiro", auth, financeiroRoutes);
 app.use("/financeiro/contas-pagar", auth, contasPagarRoutes);
