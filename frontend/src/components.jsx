@@ -886,6 +886,7 @@ export function ModalProduto({
           }
           placeholder="Preço"
           inputMode="decimal"
+          lang="pt-BR"
         />
 
         <select
