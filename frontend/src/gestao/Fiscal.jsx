@@ -2,87 +2,51 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 
 const CST_OPTIONS = [
-  "01", "02", "03", "04", "05", "06", "07", "08", "09",
+  "01",
+  "02",
+  "03",
+  "04",
+  "05",
+  "06",
+  "07",
+  "08",
+  "09",
   "49",
-  "50", "51", "52", "53", "54", "55", "56",
-  "60", "61", "62", "63", "64", "65", "66", "67",
-  "70", "71", "72", "73", "74", "75",
-  "98", "99",
-].map((v) => ({ value: v, label: v }));
-
-const fiscaisPorNcm = {
-  "24031100": {
-    cfop: "5405",
-    csosn: "500",
-    pis_cst: "04",
-    cofins_cst: "04",
-    unidade: "UN",
-  },
-
-  "22030000": {
-    cfop: "5405",
-    csosn: "500",
-    pis_cst: "04",
-    cofins_cst: "04",
-    unidade: "UN",
-  },
-
-  "22021000": {
-    cfop: "5405",
-    csosn: "500",
-    pis_cst: "04",
-    cofins_cst: "04",
-    unidade: "UN",
-  },
-
-  "22029900": {
-    cfop: "5405",
-    csosn: "500",
-    pis_cst: "04",
-    cofins_cst: "04",
-    unidade: "UN",
-  },
-
-  "22083020": {
-    cfop: "5405",
-    csosn: "500",
-    pis_cst: "99",
-    cofins_cst: "99",
-    unidade: "UN",
-  },
-
-  "22089000": {
-    cfop: "5405",
-    csosn: "500",
-    pis_cst: "99",
-    cofins_cst: "99",
-    unidade: "UN",
-  },
-  "17049020": {
-  cfop: "5405",
-  csosn: "500",
-  pis_cst: "04",
-  cofins_cst: "04",
-  unidade: "UN",
-},
-"95044000": {
-  cfop: "5405",
-  csosn: "500",
-  pis_cst: "04",
-  cofins_cst: "04",
-  unidade: "UN",
-},"70133700": {
-  cfop: "5405",
-  csosn: "102",
-  pis_cst: "99",
-  cofins_cst: "99",
-  unidade: "UN",
-},
-};
+  "50",
+  "51",
+  "52",
+  "53",
+  "54",
+  "55",
+  "56",
+  "60",
+  "61",
+  "62",
+  "63",
+  "64",
+  "65",
+  "66",
+  "67",
+  "70",
+  "71",
+  "72",
+  "73",
+  "74",
+  "75",
+  "98",
+  "99",
+].map((v) => ({
+  value: v,
+  label: v,
+}));
 
 export default function Fiscal({ setTela }) {
   const [produtos, setProdutos] = useState([]);
+  const [perfisFiscais, setPerfisFiscais] = useState([]);
+
   const [produtoId, setProdutoId] = useState("");
+  const [perfilFiscalId, setPerfilFiscalId] = useState("");
+
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
@@ -96,15 +60,46 @@ export default function Fiscal({ setTela }) {
     csosn: "",
     pis_cst: "",
     cofins_cst: "",
+    cest: "",
     unidade: "UN",
   });
+
+  // =========================================================
+  // CARREGAR PERFIS FISCAIS
+  // =========================================================
+
+  async function carregarPerfisFiscais() {
+    try {
+      const r = await api.get("/perfis-fiscais");
+
+      const lista = Array.isArray(r.data)
+        ? r.data
+        : [];
+
+      setPerfisFiscais(lista);
+    } catch (e) {
+      console.error(
+        "Erro ao carregar perfis fiscais:",
+        e?.response?.data || e
+      );
+
+      setPerfisFiscais([]);
+    }
+  }
+
+  // =========================================================
+  // CARREGAR PRODUTOS
+  // =========================================================
 
   async function carregarProdutos() {
     setLoading(true);
     setErro("");
 
     try {
-      const r = await api.get("/produtos?limit=500&page=1");
+      const r = await api.get(
+        "/produtos?limit=500&page=1"
+      );
+
       const lista = r.data?.items || [];
 
       setProdutos(lista);
@@ -113,129 +108,318 @@ export default function Fiscal({ setTela }) {
         selecionarProduto(lista[0]);
       }
     } catch (e) {
-      setErro(e?.response?.data?.error || "Erro ao carregar produtos");
+      setErro(
+        e?.response?.data?.error ||
+          "Erro ao carregar produtos"
+      );
+
       setProdutos([]);
     } finally {
       setLoading(false);
     }
   }
 
+  // =========================================================
+  // INICIALIZAÇÃO
+  // =========================================================
+
   useEffect(() => {
-    carregarProdutos();
+    async function iniciar() {
+      await carregarPerfisFiscais();
+      await carregarProdutos();
+    }
+
+    iniciar();
   }, []);
 
-  function selecionarProduto(produto) {
-    if (!produto) return;
+  // =========================================================
+  // LOCALIZAR PERFIL DO PRODUTO
+  // =========================================================
 
-    setProdutoId(String(produto.id));
+  function localizarPerfilFiscal(produto) {
+    if (!produto) {
+      return null;
+    }
+
+    return (
+      perfisFiscais.find(
+        (perfil) =>
+          String(perfil.ncm || "") ===
+            String(produto.ncm || "") &&
+          String(perfil.cfop || "") ===
+            String(produto.cfop || "") &&
+          String(perfil.csosn || "") ===
+            String(produto.csosn || "") &&
+          String(perfil.pis_cst || "") ===
+            String(produto.pis_cst || "") &&
+          String(perfil.cofins_cst || "") ===
+            String(produto.cofins_cst || "") &&
+          String(perfil.unidade || "UN") ===
+            String(produto.unidade || "UN")
+      ) || null
+    );
+  }
+
+  // =========================================================
+  // SELECIONAR PRODUTO
+  // =========================================================
+
+  function selecionarProduto(produto) {
+    if (!produto) {
+      return;
+    }
+
+    setProdutoId(
+      String(produto.id)
+    );
 
     setForm({
       ncm: produto.ncm || "",
       cfop: produto.cfop || "",
       csosn: produto.csosn || "",
       pis_cst: produto.pis_cst || "",
-      cofins_cst: produto.cofins_cst || "",
-      unidade: produto.unidade || "UN",
+      cofins_cst:
+        produto.cofins_cst || "",
+      cest: produto.cest || "",
+      unidade:
+        produto.unidade || "UN",
     });
+
+    const perfil =
+      localizarPerfilFiscal(produto);
+
+    setPerfilFiscalId(
+      perfil
+        ? String(perfil.id)
+        : ""
+    );
   }
 
   function onSelectProduto(id) {
-    const p = produtos.find((x) => String(x.id) === String(id));
-    selecionarProduto(p);
+    const produto =
+      produtos.find(
+        (x) =>
+          String(x.id) ===
+          String(id)
+      );
+
+    selecionarProduto(produto);
   }
 
-  const produtoSelecionado = useMemo(() => {
-    return produtos.find((p) => String(p.id) === String(produtoId)) || null;
-  }, [produtos, produtoId]);
+  // =========================================================
+  // SELECIONAR PERFIL FISCAL
+  // =========================================================
 
-  const produtosFiltrados = useMemo(() => {
-    const q = busca.toLowerCase().trim();
+  function selecionarPerfilFiscal(id) {
+    setPerfilFiscalId(id);
 
-    return produtos.filter((p) => {
-      const txt = `
-        ${p.nome || ""}
-        ${p.ncm || ""}
-        ${p.cfop || ""}
-        ${p.csosn || ""}
-        ${p.pis_cst || ""}
-        ${p.cofins_cst || ""}
-      `.toLowerCase();
+    const perfil =
+      perfisFiscais.find(
+        (p) =>
+          String(p.id) ===
+          String(id)
+      );
 
-      return !q || txt.includes(q);
+    if (!perfil) {
+      return;
+    }
+
+    setForm({
+      ncm: perfil.ncm || "",
+      cfop: perfil.cfop || "",
+      csosn: perfil.csosn || "",
+      pis_cst: perfil.pis_cst || "",
+      cofins_cst:
+        perfil.cofins_cst || "",
+      cest: perfil.cest || "",
+      unidade:
+        perfil.unidade || "UN",
     });
-  }, [produtos, busca]);
+  }
+
+  // =========================================================
+  // PRODUTO SELECIONADO
+  // =========================================================
+
+  const produtoSelecionado =
+    useMemo(() => {
+      return (
+        produtos.find(
+          (p) =>
+            String(p.id) ===
+            String(produtoId)
+        ) || null
+      );
+    }, [produtos, produtoId]);
+
+  // =========================================================
+  // FILTRO
+  // =========================================================
+
+  const produtosFiltrados =
+    useMemo(() => {
+      const q = busca
+        .toLowerCase()
+        .trim();
+
+      return produtos.filter(
+        (p) => {
+          const txt = `
+            ${p.nome || ""}
+            ${p.ncm || ""}
+            ${p.cfop || ""}
+            ${p.csosn || ""}
+            ${p.pis_cst || ""}
+            ${p.cofins_cst || ""}
+            ${p.cest || ""}
+            ${p.unidade || ""}
+          `.toLowerCase();
+
+          return (
+            !q ||
+            txt.includes(q)
+          );
+        }
+      );
+    }, [produtos, busca]);
 
   const totalPages = Math.max(
     1,
-    Math.ceil(produtosFiltrados.length / PER_PAGE)
+    Math.ceil(
+      produtosFiltrados.length /
+        PER_PAGE
+    )
   );
 
-  const produtosPaginados = useMemo(() => {
-    const start = (page - 1) * PER_PAGE;
-    return produtosFiltrados.slice(start, start + PER_PAGE);
-  }, [produtosFiltrados, page]);
+  const produtosPaginados =
+    useMemo(() => {
+      const start =
+        (page - 1) *
+        PER_PAGE;
+
+      return produtosFiltrados.slice(
+        start,
+        start + PER_PAGE
+      );
+    }, [
+      produtosFiltrados,
+      page,
+    ]);
+
+  // =========================================================
+  // SALVAR FISCAL
+  // =========================================================
 
   async function salvarFiscal() {
-    if (!produtoSelecionado?.id) {
-      alert("Selecione um produto");
+    if (
+      !produtoSelecionado?.id
+    ) {
+      alert(
+        "Selecione um produto"
+      );
+
+      return;
+    }
+
+    if (!form.ncm) {
+      alert(
+        "Selecione um tipo fiscal ou informe o NCM"
+      );
+
       return;
     }
 
     try {
       setLoading(true);
 
-      await api.put(`/produtos/${produtoSelecionado.id}`, {
-        nome: produtoSelecionado.nome,
-        preco: produtoSelecionado.preco,
-        categoria_id: produtoSelecionado.categoria_id || null,
-        ncm: form.ncm,
-        cfop: form.cfop,
-        csosn: form.csosn,
-        pis_cst: form.pis_cst,
-        cofins_cst: form.cofins_cst,
-        unidade: form.unidade || "UN",
-      });
+      await api.put(
+        `/produtos/${produtoSelecionado.id}`,
+        {
+          nome:
+            produtoSelecionado.nome,
+
+          preco:
+            produtoSelecionado.preco,
+
+          categoria_id:
+            produtoSelecionado.categoria_id ||
+            null,
+
+          ncm: form.ncm,
+
+          cfop: form.cfop,
+
+          csosn:
+            form.csosn,
+
+          pis_cst:
+            form.pis_cst,
+
+          cofins_cst:
+            form.cofins_cst,
+
+          cest:
+            form.cest || null,
+
+          unidade:
+            form.unidade || "UN",
+        }
+      );
 
       await carregarProdutos();
-      alert("Tributação atualizada!");
+
+      alert(
+        "Tributação atualizada!"
+      );
     } catch (e) {
-      alert(e?.response?.data?.error || "Erro ao salvar");
+      alert(
+        e?.response?.data?.error ||
+          "Erro ao salvar"
+      );
     } finally {
       setLoading(false);
     }
   }
 
-  function selectCampo(label, key, options) {
+  // =========================================================
+  // SELECT GENÉRICO
+  // =========================================================
+
+  function selectCampo(
+    label,
+    key,
+    options
+  ) {
     return (
       <div>
-        <div style={labelStyle}>{label}</div>
+        <div style={labelStyle}>
+          {label}
+        </div>
 
         <select
-          value={form[key]}
+          value={
+            form[key] || ""
+          }
           onChange={(e) => {
-            const value = e.target.value;
+            const value =
+              e.target.value;
 
-            setForm((f) => {
-              if (key === "ncm" && fiscaisPorNcm[value]) {
-                return {
-                  ...f,
-                  ncm: value,
-                  ...fiscaisPorNcm[value],
-                };
-              }
-
-              return {
-                ...f,
-                [key]: value,
-              };
-            });
+            setForm((f) => ({
+              ...f,
+              [key]: value,
+            }));
           }}
           style={inputStyle}
         >
-          <option value="">Selecione</option>
+          <option value="">
+            Selecione
+          </option>
 
           {options.map((op) => (
-            <option key={op.value} value={op.value}>
+            <option
+              key={op.value}
+              value={op.value}
+            >
               {op.label}
             </option>
           ))}
@@ -244,19 +428,44 @@ export default function Fiscal({ setTela }) {
     );
   }
 
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
     <div className="pdv-page">
       <header className="pdv-topbar">
         <div className="pdv-brand">
-          <div className="pdv-title">1005 PUB</div>
-          <div className="pdv-sub">Fiscal & Tributário</div>
+          <div className="pdv-title">
+            1005 PUB
+          </div>
+
+          <div className="pdv-sub">
+            Fiscal & Tributário
+          </div>
         </div>
 
         <div className="pdv-controls">
           <div className="pdv-toggle">
-            <button onClick={() => setTela("menu")}>← Menu</button>
-            <button className="active">Tributação</button>
-            <button onClick={carregarProdutos} disabled={loading}>
+            <button
+              onClick={() =>
+                setTela("menu")
+              }
+            >
+              ← Menu
+            </button>
+
+            <button className="active">
+              Tributação
+            </button>
+
+            <button
+              onClick={async () => {
+                await carregarPerfisFiscais();
+                await carregarProdutos();
+              }}
+              disabled={loading}
+            >
               Atualizar
             </button>
           </div>
@@ -265,153 +474,391 @@ export default function Fiscal({ setTela }) {
 
       <main
         style={{
-          width: "min(1850px,98vw)",
-          margin: "18px auto 26px",
+          width:
+            "min(1850px,98vw)",
+          margin:
+            "18px auto 26px",
           display: "grid",
           gap: 14,
         }}
       >
+        {/* ===================================================
+            TRIBUTAÇÃO
+        =================================================== */}
+
         <section className="panel">
           <div className="panel-head">
             <div>
-              <h2 style={{ margin: 0 }}>Tributação dos Produtos</h2>
+              <h2
+                style={{
+                  margin: 0,
+                }}
+              >
+                Tributação dos Produtos
+              </h2>
+
               <div
                 style={{
                   marginTop: 6,
-                  color: "var(--muted)",
+                  color:
+                    "var(--muted)",
                   fontSize: 13,
                 }}
               >
-                Ao escolher o NCM, os campos fiscais principais são preenchidos
-                automaticamente.
+                Escolha um tipo fiscal para preencher automaticamente os dados tributários do produto.
               </div>
             </div>
 
-            <span className="badge">{produtos.length} produto(s)</span>
+            <span className="badge">
+              {produtos.length}{" "}
+              produto(s)
+            </span>
           </div>
 
           {erro ? (
             <div className="empty">
-              <div className="empty-title">Erro</div>
-              <div className="empty-sub">{erro}</div>
+              <div className="empty-title">
+                Erro
+              </div>
+
+              <div className="empty-sub">
+                {erro}
+              </div>
             </div>
           ) : null}
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "2fr repeat(6, 1fr) auto",
+              gridTemplateColumns:
+                "1.7fr 1.4fr repeat(6, 1fr) auto",
               gap: 10,
               alignItems: "end",
             }}
           >
+            {/* PRODUTO */}
+
             <div>
-              <div style={labelStyle}>Produto</div>
+              <div style={labelStyle}>
+                Produto
+              </div>
 
               <select
                 value={produtoId}
-                onChange={(e) => onSelectProduto(e.target.value)}
+                onChange={(e) =>
+                  onSelectProduto(
+                    e.target.value
+                  )
+                }
                 style={inputStyle}
               >
-                <option value="">Selecione um produto</option>
+                <option value="">
+                  Selecione um produto
+                </option>
 
-                {produtos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome}
-                  </option>
-                ))}
+                {produtos.map(
+                  (p) => (
+                    <option
+                      key={p.id}
+                      value={p.id}
+                    >
+                      {p.nome}
+                    </option>
+                  )
+                )}
               </select>
             </div>
 
-            {selectCampo("NCM", "ncm", [
-              { value: "24031100", label: "24031100 - Narguilé" },
-              { value: "22030000", label: "22030000 - Cerveja" },
-              { value: "22021000", label: "22021000 - Refrigerante" },
-              { value: "22029900", label: "22029900 - Energético" },
-              { value: "22083020", label: "22083020 - Whisky" },
-              { value: "22089000", label: "22089000 - Drinks / Caipirinha" },
-               {
-    value: "17049020",
-    label: "17049020 - Bala / Chiclete",
-  }, {
-  value: "95044000",
-  label: "95044000 - Baralho",
-},
-{
-  value: "70133700",
-  label: "70133700 - Copo / Taça",
-},
-            ])}
+            {/* PERFIL FISCAL */}
 
-            {selectCampo("CFOP", "cfop", [
-              { value: "5102", label: "5102" },
-              { value: "5405", label: "5405" },
-              { value: "6102", label: "6102" },
-            ])}
+            <div>
+              <div style={labelStyle}>
+                Tipo fiscal
+              </div>
 
-            {selectCampo("CSOSN", "csosn", [
-              { value: "102", label: "102" },
-              { value: "400", label: "400" },
-              { value: "500", label: "500" },
-            ])}
+              <select
+                value={
+                  perfilFiscalId
+                }
+                onChange={(e) =>
+                  selecionarPerfilFiscal(
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
+              >
+                <option value="">
+                  Selecione
+                </option>
 
-            {selectCampo("PIS CST", "pis_cst", CST_OPTIONS)}
+                {perfisFiscais.map(
+                  (perfil) => (
+                    <option
+                      key={
+                        perfil.id
+                      }
+                      value={
+                        perfil.id
+                      }
+                    >
+                      {perfil.nome} -{" "}
+                      {perfil.ncm}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
 
-            {selectCampo("COFINS CST", "cofins_cst", CST_OPTIONS)}
+            {/* NCM */}
 
-            {selectCampo("Unidade", "unidade", [
-              { value: "UN", label: "UN" },
-              { value: "CX", label: "CX" },
-              { value: "KG", label: "KG" },
-              { value: "ML", label: "ML" },
-            ])}
+            <div>
+              <div style={labelStyle}>
+                NCM
+              </div>
+
+              <input
+                value={
+                  form.ncm
+                }
+                onChange={(e) =>
+                  setForm(
+                    (f) => ({
+                      ...f,
+                      ncm:
+                        e.target
+                          .value,
+                    })
+                  )
+                }
+                style={inputStyle}
+                placeholder="NCM"
+              />
+            </div>
+
+            {/* CFOP */}
+
+            {selectCampo(
+              "CFOP",
+              "cfop",
+              [
+                {
+                  value: "5102",
+                  label: "5102",
+                },
+                {
+                  value: "5405",
+                  label: "5405",
+                },
+                {
+                  value: "6102",
+                  label: "6102",
+                },
+              ]
+            )}
+
+            {/* CSOSN */}
+
+            {selectCampo(
+              "CSOSN",
+              "csosn",
+              [
+                {
+                  value: "102",
+                  label: "102",
+                },
+                {
+                  value: "400",
+                  label: "400",
+                },
+                {
+                  value: "500",
+                  label: "500",
+                },
+              ]
+            )}
+
+            {/* PIS */}
+
+            {selectCampo(
+              "PIS CST",
+              "pis_cst",
+              CST_OPTIONS
+            )}
+
+            {/* COFINS */}
+
+            {selectCampo(
+              "COFINS CST",
+              "cofins_cst",
+              CST_OPTIONS
+            )}
+
+            {/* UNIDADE */}
+
+            {selectCampo(
+              "Unidade",
+              "unidade",
+              [
+                {
+                  value: "UN",
+                  label: "UN",
+                },
+                {
+                  value: "CX",
+                  label: "CX",
+                },
+                {
+                  value: "KG",
+                  label: "KG",
+                },
+                {
+                  value: "G",
+                  label: "G",
+                },
+                {
+                  value: "L",
+                  label: "L",
+                },
+                {
+                  value: "ML",
+                  label: "ML",
+                },
+                {
+                  value: "PC",
+                  label: "PC",
+                },
+              ]
+            )}
+
+            {/* SALVAR */}
 
             <button
               className="btn-primary"
               type="button"
-              onClick={salvarFiscal}
-              disabled={loading || !produtoSelecionado}
-              style={{ height: 44 }}
+              onClick={
+                salvarFiscal
+              }
+              disabled={
+                loading ||
+                !produtoSelecionado
+              }
+              style={{
+                height: 44,
+              }}
             >
               Salvar
             </button>
           </div>
 
-          {produtoSelecionado ? (
-            <div className="empty" style={{ marginTop: 14 }}>
-              <div className="empty-title">{produtoSelecionado.nome}</div>
+          {/* CEST */}
 
-              <div className="empty-sub">
-                Preço: R$ {Number(produtoSelecionado.preco || 0).toFixed(2)}
+          <div
+            style={{
+              marginTop: 10,
+              maxWidth: 280,
+            }}
+          >
+            <div style={labelStyle}>
+              CEST
+            </div>
+
+            <input
+              value={
+                form.cest || ""
+              }
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  cest:
+                    e.target.value,
+                }))
+              }
+              placeholder="CEST (opcional)"
+              style={inputStyle}
+            />
+          </div>
+
+          {/* RESUMO */}
+
+          {produtoSelecionado ? (
+            <div
+              className="empty"
+              style={{
+                marginTop: 14,
+              }}
+            >
+              <div className="empty-title">
+                {
+                  produtoSelecionado.nome
+                }
               </div>
 
-              <div className="empty-sub" style={{ marginTop: 6 }}>
-                NCM: {form.ncm || "—"} • CFOP: {form.cfop || "—"} • CSOSN:{" "}
-                {form.csosn || "—"} • PIS: {form.pis_cst || "—"} • COFINS:{" "}
-                {form.cofins_cst || "—"}
+              <div className="empty-sub">
+                Preço: R${" "}
+                {Number(
+                  produtoSelecionado.preco ||
+                    0
+                ).toFixed(2)}
+              </div>
+
+              <div
+                className="empty-sub"
+                style={{
+                  marginTop: 6,
+                }}
+              >
+                NCM:{" "}
+                {form.ncm || "—"}{" "}
+                • CFOP:{" "}
+                {form.cfop ||
+                  "—"}{" "}
+                • CSOSN:{" "}
+                {form.csosn ||
+                  "—"}{" "}
+                • PIS:{" "}
+                {form.pis_cst ||
+                  "—"}{" "}
+                • COFINS:{" "}
+                {form.cofins_cst ||
+                  "—"}{" "}
+                • CEST:{" "}
+                {form.cest || "—"}
               </div>
             </div>
           ) : null}
         </section>
+
+        {/* ===================================================
+            PRODUTOS CADASTRADOS
+        =================================================== */}
 
         <section className="panel">
           <div
             className="panel-head"
             style={{
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              justifyContent:
+                "space-between",
+              alignItems:
+                "center",
               gap: 12,
               flexWrap: "wrap",
             }}
           >
             <div>
-              <h2 style={{ margin: 0 }}>Produtos cadastrados</h2>
+              <h2
+                style={{
+                  margin: 0,
+                }}
+              >
+                Produtos cadastrados
+              </h2>
 
               <div
                 style={{
                   marginTop: 6,
-                  color: "var(--muted)",
+                  color:
+                    "var(--muted)",
                   fontSize: 13,
                 }}
               >
@@ -422,87 +869,169 @@ export default function Fiscal({ setTela }) {
             <input
               value={busca}
               onChange={(e) => {
-                setBusca(e.target.value);
+                setBusca(
+                  e.target.value
+                );
+
                 setPage(1);
               }}
               placeholder="Buscar produto..."
               style={{
                 width: 320,
-                padding: "11px 12px",
+                padding:
+                  "11px 12px",
                 borderRadius: 12,
-                border: "1px solid rgba(255,255,255,.10)",
-                background: "rgba(10,10,16,.55)",
-                color: "var(--text)",
+                border:
+                  "1px solid rgba(255,255,255,.10)",
+                background:
+                  "rgba(10,10,16,.55)",
+                color:
+                  "var(--text)",
                 outline: "none",
               }}
             />
           </div>
 
-          <div style={{ overflow: "auto" }}>
+          <div
+            style={{
+              overflow: "auto",
+            }}
+          >
             <table
               style={{
                 width: "100%",
-                borderCollapse: "collapse",
+                borderCollapse:
+                  "collapse",
                 minWidth: 1100,
               }}
             >
               <thead>
                 <tr
                   style={{
-                    color: "var(--muted)",
+                    color:
+                      "var(--muted)",
                     fontSize: 12,
                   }}
                 >
-                  <th style={th}>Produto</th>
-                  <th style={th}>Preço</th>
-                  <th style={th}>NCM</th>
-                  <th style={th}>CFOP</th>
-                  <th style={th}>CSOSN</th>
-                  <th style={th}>PIS</th>
-                  <th style={th}>COFINS</th>
-                  <th style={th}>UN</th>
-                  <th style={th}>Ação</th>
+                  <th style={th}>
+                    Produto
+                  </th>
+
+                  <th style={th}>
+                    Preço
+                  </th>
+
+                  <th style={th}>
+                    NCM
+                  </th>
+
+                  <th style={th}>
+                    CFOP
+                  </th>
+
+                  <th style={th}>
+                    CSOSN
+                  </th>
+
+                  <th style={th}>
+                    PIS
+                  </th>
+
+                  <th style={th}>
+                    COFINS
+                  </th>
+
+                  <th style={th}>
+                    UN
+                  </th>
+
+                  <th style={th}>
+                    Ação
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {produtosPaginados.map((p) => (
-                  <tr
-                    key={p.id}
-                    style={{
-                      borderTop: "1px solid rgba(255,255,255,.08)",
-                    }}
-                  >
-                    <td style={td}>
-                      <strong>{p.nome}</strong>
-                    </td>
+                {produtosPaginados.map(
+                  (p) => (
+                    <tr
+                      key={p.id}
+                      style={{
+                        borderTop:
+                          "1px solid rgba(255,255,255,.08)",
+                      }}
+                    >
+                      <td style={td}>
+                        <strong>
+                          {p.nome}
+                        </strong>
+                      </td>
 
-                    <td style={td}>
-                      R$ {Number(p.preco || 0).toFixed(2)}
-                    </td>
+                      <td style={td}>
+                        R${" "}
+                        {Number(
+                          p.preco ||
+                            0
+                        ).toFixed(
+                          2
+                        )}
+                      </td>
 
-                    <td style={td}>{p.ncm || "—"}</td>
-                    <td style={td}>{p.cfop || "—"}</td>
-                    <td style={td}>{p.csosn || "—"}</td>
-                    <td style={td}>{p.pis_cst || "—"}</td>
-                    <td style={td}>{p.cofins_cst || "—"}</td>
-                    <td style={td}>{p.unidade || "—"}</td>
+                      <td style={td}>
+                        {p.ncm ||
+                          "—"}
+                      </td>
 
-                    <td style={td}>
-                      <button
-                        className="btn-secondary"
-                        type="button"
-                        onClick={() => selecionarProduto(p)}
-                      >
-                        Editar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      <td style={td}>
+                        {p.cfop ||
+                          "—"}
+                      </td>
 
-                {!loading && produtosPaginados.length === 0 ? (
+                      <td style={td}>
+                        {p.csosn ||
+                          "—"}
+                      </td>
+
+                      <td style={td}>
+                        {p.pis_cst ||
+                          "—"}
+                      </td>
+
+                      <td style={td}>
+                        {p.cofins_cst ||
+                          "—"}
+                      </td>
+
+                      <td style={td}>
+                        {p.unidade ||
+                          "—"}
+                      </td>
+
+                      <td style={td}>
+                        <button
+                          className="btn-secondary"
+                          type="button"
+                          onClick={() =>
+                            selecionarProduto(
+                              p
+                            )
+                          }
+                        >
+                          Editar
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                )}
+
+                {!loading &&
+                produtosPaginados.length ===
+                  0 ? (
                   <tr>
-                    <td style={td} colSpan={9}>
+                    <td
+                      style={td}
+                      colSpan={9}
+                    >
                       Nenhum produto encontrado.
                     </td>
                   </tr>
@@ -511,11 +1040,15 @@ export default function Fiscal({ setTela }) {
             </table>
           </div>
 
+          {/* PAGINAÇÃO */}
+
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              justifyContent:
+                "space-between",
+              alignItems:
+                "center",
               gap: 12,
               marginTop: 14,
               flexWrap: "wrap",
@@ -523,32 +1056,50 @@ export default function Fiscal({ setTela }) {
           >
             <div
               style={{
-                color: "var(--muted)",
+                color:
+                  "var(--muted)",
                 fontSize: 13,
               }}
             >
-              Página {page} de {totalPages}
+              Página {page} de{" "}
+              {totalPages}
             </div>
 
             <div
               style={{
                 display: "flex",
                 gap: 10,
-                alignItems: "center",
+                alignItems:
+                  "center",
               }}
             >
               <button
                 className="btn-secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
+                disabled={
+                  page <= 1
+                }
+                onClick={() =>
+                  setPage(
+                    (p) =>
+                      p - 1
+                  )
+                }
               >
                 ← Anterior
               </button>
 
               <button
                 className="btn-secondary"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
+                disabled={
+                  page >=
+                  totalPages
+                }
+                onClick={() =>
+                  setPage(
+                    (p) =>
+                      p + 1
+                  )
+                }
               >
                 Próxima →
               </button>
@@ -559,6 +1110,10 @@ export default function Fiscal({ setTela }) {
     </div>
   );
 }
+
+// =========================================================
+// ESTILOS
+// =========================================================
 
 const labelStyle = {
   fontSize: 12,
@@ -571,8 +1126,10 @@ const inputStyle = {
   width: "100%",
   padding: "11px 12px",
   borderRadius: 12,
-  border: "1px solid rgba(255,255,255,.10)",
-  background: "rgba(10,10,16,.55)",
+  border:
+    "1px solid rgba(255,255,255,.10)",
+  background:
+    "rgba(10,10,16,.55)",
   color: "var(--text)",
   outline: "none",
 };
