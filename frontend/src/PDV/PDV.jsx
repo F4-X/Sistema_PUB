@@ -58,12 +58,33 @@ export default function PDV({ setTela, onLogout }) {
   const [editandoProduto, setEditandoProduto] =
     useState(null);
 
+  // =========================================================
+  // PERFIS FISCAIS
+  // =========================================================
+
+  const [perfisFiscais, setPerfisFiscais] =
+    useState([]);
+
+  const [perfilFiscalId, setPerfilFiscalId] =
+    useState("");
+
+  // =========================================================
+  // DADOS FISCAIS INTERNOS
+  // Não aparecem mais manualmente no modal.
+  // São preenchidos pelo perfil fiscal selecionado.
+  // =========================================================
+
   const [ncm, setNcm] = useState("");
   const [cfop, setCfop] = useState("");
   const [csosn, setCsosn] = useState("");
   const [pis, setPis] = useState("");
   const [cofins, setCofins] = useState("");
   const [unidade, setUnidade] = useState("UN");
+  const [cest, setCest] = useState("");
+
+  // =========================================================
+  // BLUR
+  // =========================================================
 
   useEffect(() => {
     const onWindowBlur = () => {
@@ -84,14 +105,91 @@ export default function PDV({ setTela, onLogout }) {
       );
   }, []);
 
+  // =========================================================
+  // CARREGAR PERFIS FISCAIS
+  // =========================================================
+
+  async function carregarPerfisFiscais() {
+    try {
+      const { data } = await api.get(
+        "/perfis-fiscais"
+      );
+
+      setPerfisFiscais(
+        Array.isArray(data) ? data : []
+      );
+    } catch (e) {
+      console.log(
+        "Erro ao carregar perfis fiscais:",
+        e?.response?.data || e
+      );
+
+      setPerfisFiscais([]);
+    }
+  }
+
+  useEffect(() => {
+    carregarPerfisFiscais();
+  }, []);
+
+  // =========================================================
+  // LIMPAR FISCAL
+  // =========================================================
+
   function limparFiscal() {
+    setPerfilFiscalId("");
+
     setNcm("");
     setCfop("");
     setCsosn("");
     setPis("");
     setCofins("");
+    setCest("");
     setUnidade("UN");
   }
+
+  // =========================================================
+  // SELECIONAR PERFIL FISCAL
+  // =========================================================
+
+  function selecionarPerfilFiscal(id) {
+    setPerfilFiscalId(id);
+
+    const perfil =
+      perfisFiscais.find(
+        (p) =>
+          String(p.id) ===
+          String(id)
+      );
+
+    if (!perfil) {
+      setNcm("");
+      setCfop("");
+      setCsosn("");
+      setPis("");
+      setCofins("");
+      setCest("");
+      setUnidade("UN");
+
+      return;
+    }
+
+    setNcm(perfil.ncm || "");
+    setCfop(perfil.cfop || "");
+    setCsosn(perfil.csosn || "");
+    setPis(perfil.pis_cst || "");
+    setCofins(
+      perfil.cofins_cst || ""
+    );
+    setCest(perfil.cest || "");
+    setUnidade(
+      perfil.unidade || "UN"
+    );
+  }
+
+  // =========================================================
+  // ABRIR NOVO PRODUTO
+  // =========================================================
 
   function abrirNovoProduto() {
     setEditandoProduto(null);
@@ -104,6 +202,10 @@ export default function PDV({ setTela, onLogout }) {
 
     s.setOpenProd(true);
   }
+
+  // =========================================================
+  // ABRIR EDIÇÃO
+  // =========================================================
 
   function abrirEditarProduto(produto) {
     setEditandoProduto(produto);
@@ -124,13 +226,65 @@ export default function PDV({ setTela, onLogout }) {
     setCfop(produto.cfop || "");
     setCsosn(produto.csosn || "");
     setPis(produto.pis_cst || "");
-    setCofins(produto.cofins_cst || "");
+    setCofins(
+      produto.cofins_cst || ""
+    );
+    setCest(produto.cest || "");
     setUnidade(
       produto.unidade || "UN"
     );
 
+    const perfilEncontrado =
+      perfisFiscais.find(
+        (p) =>
+          String(p.ncm || "") ===
+            String(
+              produto.ncm || ""
+            ) &&
+          String(p.cfop || "") ===
+            String(
+              produto.cfop || ""
+            ) &&
+          String(p.csosn || "") ===
+            String(
+              produto.csosn || ""
+            ) &&
+          String(
+            p.pis_cst || ""
+          ) ===
+            String(
+              produto.pis_cst || ""
+            ) &&
+          String(
+            p.cofins_cst || ""
+          ) ===
+            String(
+              produto.cofins_cst ||
+                ""
+            ) &&
+          String(
+            p.unidade || "UN"
+          ) ===
+            String(
+              produto.unidade ||
+                "UN"
+            )
+      );
+
+    setPerfilFiscalId(
+      perfilEncontrado
+        ? String(
+            perfilEncontrado.id
+          )
+        : ""
+    );
+
     s.setOpenProd(true);
   }
+
+  // =========================================================
+  // SALVAR PRODUTO
+  // =========================================================
 
   async function salvarProduto() {
     const nome = String(
@@ -163,6 +317,10 @@ export default function PDV({ setTela, onLogout }) {
       cofins || ""
     ).replace(/\D/g, "");
 
+    const cestLimpo = String(
+      cest || ""
+    ).replace(/\D/g, "");
+
     const unidadeLimpa = String(
       unidade || ""
     )
@@ -171,9 +329,9 @@ export default function PDV({ setTela, onLogout }) {
 
     const erros = [];
 
-    // =========================
+    // =====================================================
     // DADOS BÁSICOS
-    // =========================
+    // =====================================================
 
     if (!nome) {
       erros.push(
@@ -183,7 +341,9 @@ export default function PDV({ setTela, onLogout }) {
 
     if (
       !preco ||
-      !Number.isFinite(Number(preco)) ||
+      !Number.isFinite(
+        Number(preco)
+      ) ||
       Number(preco) <= 0
     ) {
       erros.push(
@@ -191,9 +351,19 @@ export default function PDV({ setTela, onLogout }) {
       );
     }
 
-    // =========================
+    // =====================================================
+    // PERFIL FISCAL
+    // =====================================================
+
+    if (!perfilFiscalId) {
+      erros.push(
+        "Selecione um tipo fiscal"
+      );
+    }
+
+    // =====================================================
     // NCM
-    // =========================
+    // =====================================================
 
     if (!ncmLimpo) {
       erros.push(
@@ -207,9 +377,9 @@ export default function PDV({ setTela, onLogout }) {
       );
     }
 
-    // =========================
+    // =====================================================
     // CFOP
-    // =========================
+    // =====================================================
 
     if (!cfopLimpo) {
       erros.push(
@@ -223,9 +393,9 @@ export default function PDV({ setTela, onLogout }) {
       );
     }
 
-    // =========================
+    // =====================================================
     // CSOSN
-    // =========================
+    // =====================================================
 
     if (!csosnLimpo) {
       erros.push(
@@ -239,9 +409,9 @@ export default function PDV({ setTela, onLogout }) {
       );
     }
 
-    // =========================
+    // =====================================================
     // PIS CST
-    // =========================
+    // =====================================================
 
     if (!pisLimpo) {
       erros.push(
@@ -255,9 +425,9 @@ export default function PDV({ setTela, onLogout }) {
       );
     }
 
-    // =========================
+    // =====================================================
     // COFINS CST
-    // =========================
+    // =====================================================
 
     if (!cofinsLimpo) {
       erros.push(
@@ -271,9 +441,22 @@ export default function PDV({ setTela, onLogout }) {
       );
     }
 
-    // =========================
+    // =====================================================
+    // CEST
+    // =====================================================
+
+    if (
+      cestLimpo &&
+      cestLimpo.length !== 7
+    ) {
+      erros.push(
+        "CEST deve possuir 7 números"
+      );
+    }
+
+    // =====================================================
     // UNIDADE
-    // =========================
+    // =====================================================
 
     if (!unidadeLimpa) {
       erros.push(
@@ -304,9 +487,9 @@ export default function PDV({ setTela, onLogout }) {
       );
     }
 
-    // =========================
-    // BLOQUEIA O SALVAMENTO
-    // =========================
+    // =====================================================
+    // BLOQUEIA SALVAMENTO
+    // =====================================================
 
     if (erros.length) {
       alert(
@@ -322,43 +505,79 @@ export default function PDV({ setTela, onLogout }) {
       return;
     }
 
+    // =====================================================
+    // PAYLOAD
+    // =====================================================
+
     const payload = {
       nome,
+
       preco,
 
       categoria_id:
-        s.prodCategoriaId || null,
+        s.prodCategoriaId ||
+        null,
 
       ncm: ncmLimpo,
+
       cfop: cfopLimpo,
+
       csosn: csosnLimpo,
+
       pis_cst: pisLimpo,
-      cofins_cst: cofinsLimpo,
-      unidade: unidadeLimpa,
+
+      cofins_cst:
+        cofinsLimpo,
+
+      cest:
+        cestLimpo || null,
+
+      unidade:
+        unidadeLimpa,
     };
 
     try {
-      if (editandoProduto?.id) {
+      // ===================================================
+      // EDITAR
+      // ===================================================
+
+      if (
+        editandoProduto?.id
+      ) {
         await api.put(
           `/produtos/${editandoProduto.id}`,
           payload
         );
 
-        setEditandoProduto(null);
+        setEditandoProduto(
+          null
+        );
 
-        s.setOpenProd(false);
+        limparFiscal();
+
+        s.setOpenProd(
+          false
+        );
 
         location.reload();
 
         return;
       }
 
+      // ===================================================
+      // CRIAR
+      // ===================================================
+
       await api.post(
         "/produtos",
         payload
       );
 
-      setEditandoProduto(null);
+      setEditandoProduto(
+        null
+      );
+
+      limparFiscal();
 
       s.setOpenProd(false);
 
@@ -373,7 +592,13 @@ export default function PDV({ setTela, onLogout }) {
     }
   }
 
-  async function printReceipt(venda) {
+  // =========================================================
+  // IMPRIMIR RECIBO
+  // =========================================================
+
+  async function printReceipt(
+    venda
+  ) {
     try {
       blurActiveElement();
 
@@ -383,7 +608,10 @@ export default function PDV({ setTela, onLogout }) {
         venda;
 
       if (!vendaId) {
-        alert("Venda inválida");
+        alert(
+          "Venda inválida"
+        );
+
         return;
       }
 
@@ -393,7 +621,9 @@ export default function PDV({ setTela, onLogout }) {
         );
 
       const itens =
-        Array.isArray(data?.itens)
+        Array.isArray(
+          data?.itens
+        )
           ? data.itens
           : [];
 
@@ -409,35 +639,38 @@ export default function PDV({ setTela, onLogout }) {
 
         venda_id:
           data?.venda?.id ??
-          data?.venda?.venda_id ??
+          data?.venda
+            ?.venda_id ??
           vendaId,
 
-        itens: itens.map((i) => ({
-          ...i,
+        itens:
+          itens.map((i) => ({
+            ...i,
 
-          nome:
-            i?.nome ||
-            i?.produto_nome ||
-            (i?.produto_id
-              ? `Produto #${i.produto_id}`
-              : "Produto"),
+            nome:
+              i?.nome ||
+              i?.produto_nome ||
+              (i?.produto_id
+                ? `Produto #${i.produto_id}`
+                : "Produto"),
 
-          qtd: Number(
-            i?.qtd || 1
-          ),
+            qtd: Number(
+              i?.qtd || 1
+            ),
 
-          preco: Number(
-            i?.preco ??
-              i?.preco_unit ??
-              0
-          ),
-
-          preco_unit: Number(
-            i?.preco_unit ??
+            preco: Number(
               i?.preco ??
-              0
-          ),
-        })),
+                i?.preco_unit ??
+                0
+            ),
+
+            preco_unit:
+              Number(
+                i?.preco_unit ??
+                  i?.preco ??
+                  0
+              ),
+          })),
 
         pagamentos:
           pagamentos.map(
@@ -453,10 +686,13 @@ export default function PDV({ setTela, onLogout }) {
           ),
       };
 
-      s.setLastSale(saleObj);
+      s.setLastSale(
+        saleObj
+      );
 
       setTimeout(
-        () => window.print(),
+        () =>
+          window.print(),
         120
       );
     } catch (e) {
@@ -469,6 +705,10 @@ export default function PDV({ setTela, onLogout }) {
       console.log(e);
     }
   }
+
+  // =========================================================
+  // EMITIR NFC-E
+  // =========================================================
 
   async function emitFiscal(
     vendaId
@@ -496,7 +736,8 @@ export default function PDV({ setTela, onLogout }) {
     } catch (e) {
       console.log(
         "ERRO EMITIR NFC-e:",
-        e?.response?.data || e
+        e?.response?.data ||
+          e
       );
 
       throw e;
@@ -504,6 +745,10 @@ export default function PDV({ setTela, onLogout }) {
       blurActiveElement();
     }
   }
+
+  // =========================================================
+  // IMPRIMIR NFC-E
+  // =========================================================
 
   async function printFiscal(
     vendaId
@@ -541,7 +786,9 @@ export default function PDV({ setTela, onLogout }) {
         );
 
       const url =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+          blob
+        );
 
       const w =
         window.open(
@@ -573,6 +820,10 @@ export default function PDV({ setTela, onLogout }) {
     }
   }
 
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
     <div className="pdv-page">
       <div className="no-print">
@@ -580,11 +831,15 @@ export default function PDV({ setTela, onLogout }) {
           page={page}
           setPage={setPage}
           search={s.search}
-          setSearch={s.setSearch}
+          setSearch={
+            s.setSearch
+          }
           onBack={() =>
             setTela("menu")
           }
-          onLogout={onLogout}
+          onLogout={
+            onLogout
+          }
         />
 
         <Toast msg={s.msg} />
@@ -731,18 +986,35 @@ export default function PDV({ setTela, onLogout }) {
               open={
                 s.openProd
               }
+
               nome={
                 s.prodNome
               }
+
               preco={
                 s.prodPreco
               }
+
               categoriaId={
                 s.prodCategoriaId
               }
+
               categorias={
                 s.categorias
               }
+
+              perfisFiscais={
+                perfisFiscais
+              }
+
+              perfilFiscalId={
+                perfilFiscalId
+              }
+
+              setPerfilFiscalId={
+                selecionarPerfilFiscal
+              }
+
               onClose={() => {
                 blurActiveElement();
 
@@ -756,49 +1028,29 @@ export default function PDV({ setTela, onLogout }) {
                   false
                 );
               }}
+
               onSave={
                 salvarProduto
               }
+
               setNome={
                 s.setProdNome
               }
+
               setPreco={
                 s.setProdPreco
               }
+
               setCategoriaId={
                 s.setProdCategoriaId
               }
-              ncm={ncm}
-              cfop={cfop}
-              csosn={csosn}
-              pis={pis}
-              cofins={cofins}
-              unidade={
-                unidade
-              }
-              setNcm={
-                setNcm
-              }
-              setCfop={
-                setCfop
-              }
-              setCsosn={
-                setCsosn
-              }
-              setPis={
-                setPis
-              }
-              setCofins={
-                setCofins
-              }
-              setUnidade={
-                setUnidade
-              }
+
               titulo={
                 editandoProduto
                   ? "Editar Produto"
                   : "Cadastrar Produto"
               }
+
               textoBotao={
                 editandoProduto
                   ? "Salvar alterações"
@@ -810,45 +1062,59 @@ export default function PDV({ setTela, onLogout }) {
               open={
                 s.openPay
               }
+
               total={
                 s.totalFinal
               }
+
               dinheiro={
                 s.payDinheiro
               }
+
               pix={
                 s.payPix
               }
+
               debito={
                 s.payDebito
               }
+
               credito={
                 s.payCredito
               }
+
               setDinheiro={
                 s.setPayDinheiro
               }
+
               setPix={
                 s.setPayPix
               }
+
               setDebito={
                 s.setPayDebito
               }
+
               setCredito={
                 s.setPayCredito
               }
+
               descontoTipo={
                 s.descontoTipo
               }
+
               setDescontoTipo={
                 s.setDescontoTipo
               }
+
               descontoValor={
                 s.descontoValor
               }
+
               setDescontoValor={
                 s.setDescontoValor
               }
+
               onClose={() => {
                 if (
                   !s.payLoading
@@ -860,6 +1126,7 @@ export default function PDV({ setTela, onLogout }) {
                   );
                 }
               }}
+
               onConfirm={
                 async () => {
                   blurActiveElement();
@@ -869,6 +1136,7 @@ export default function PDV({ setTela, onLogout }) {
                   blurActiveElement();
                 }
               }
+
               loading={
                 s.payLoading
               }

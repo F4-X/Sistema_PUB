@@ -1,16 +1,17 @@
 import React from "react";
+import { api } from "./api";
 
 export function TopbarPDV({ page, setPage, search, setSearch, onLogout, onBack }) {
   const subtitle =
-  page === "pdv"
-    ? "PDV • Pesquisa"
-    : page === "hist"
-    ? "Histórico • Vendas"
-    : page === "caixa"
-    ? "Caixa • Sangria"
-    : page === "fechamento"
-    ? "Fechamento de Caixa"
-    : "";
+    page === "pdv"
+      ? "PDV • Pesquisa"
+      : page === "hist"
+      ? "Histórico • Vendas"
+      : page === "caixa"
+      ? "Caixa • Sangria"
+      : page === "fechamento"
+      ? "Fechamento de Caixa"
+      : "";
 
   return (
     <header className="pdv-topbar">
@@ -55,11 +56,11 @@ export function TopbarPDV({ page, setPage, search, setSearch, onLogout, onBack }
           </button>
 
           <button
-  className={page === "fechamento" ? "active" : ""}
-  onClick={() => setPage("fechamento")}
->
-  Fechamento
-</button>
+            className={page === "fechamento" ? "active" : ""}
+            onClick={() => setPage("fechamento")}
+          >
+            Fechamento
+          </button>
 
           <button onClick={onLogout}>Sair</button>
         </div>
@@ -70,17 +71,17 @@ export function TopbarPDV({ page, setPage, search, setSearch, onLogout, onBack }
 
 export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
   const subtitle =
-  page === "financeiro"
-    ? "Financeiro"
-    : page === "xmls"
-    ? "XMLs"
-    : page === "contas-pagar"
-    ? "Contas a Pagar"
-    : page === "fechamentos"
-? "Fechamentos"
-: page === "exportacoes"
-? "Exportações"
-: "Financeiro";
+    page === "financeiro"
+      ? "Financeiro"
+      : page === "xmls"
+      ? "XMLs"
+      : page === "contas-pagar"
+      ? "Contas a Pagar"
+      : page === "fechamentos"
+      ? "Fechamentos"
+      : page === "exportacoes"
+      ? "Exportações"
+      : "Financeiro";
 
   return (
     <header className="pdv-topbar">
@@ -114,19 +115,19 @@ export function TopbarFinanceiro({ page, setPage, onBack, onLogout }) {
             Contas a Pagar
           </button>
 
-<button
-  className={page === "fechamentos" ? "active" : ""}
-  onClick={() => setPage("fechamentos")}
->
-  Fechamentos
-</button>
+          <button
+            className={page === "fechamentos" ? "active" : ""}
+            onClick={() => setPage("fechamentos")}
+          >
+            Fechamentos
+          </button>
 
-<button
-  className={page === "exportacoes" ? "active" : ""}
-  onClick={() => setPage("exportacoes")}
->
-  Exportações
-</button>
+          <button
+            className={page === "exportacoes" ? "active" : ""}
+            onClick={() => setPage("exportacoes")}
+          >
+            Exportações
+          </button>
 
           <button onClick={onLogout}>Sair</button>
         </div>
@@ -142,10 +143,10 @@ export function TopbarFuncionarios({
   onLogout,
 }) {
   const user = JSON.parse(
-  sessionStorage.getItem("user") ||
-  localStorage.getItem("user") ||
-  "{}"
-);
+    sessionStorage.getItem("user") ||
+      localStorage.getItem("user") ||
+      "{}"
+  );
 
   const tipo = String(
     user?.tipo || ""
@@ -169,7 +170,6 @@ export function TopbarFuncionarios({
 
       <div className="pdv-controls">
         <div className="pdv-toggle">
-
           <button onClick={onBack}>
             ← Menu
           </button>
@@ -205,7 +205,6 @@ export function TopbarFuncionarios({
           <button onClick={onLogout}>
             Sair
           </button>
-
         </div>
       </div>
     </header>
@@ -233,18 +232,31 @@ export function Categorias({
     <>
       <div className="panel-head">
         <h2>Categorias</h2>
+
         <div className="panel-actions">
-          <button className="btn-mini" onClick={onOpenCat}>
+          <button
+            className="btn-mini"
+            onClick={onOpenCat}
+          >
             + Categoria
           </button>
-          <span className="badge">Clique para filtrar</span>
+
+          <span className="badge">
+            Clique para filtrar
+          </span>
         </div>
       </div>
 
       <div className="chips">
         <button
-          className={`chip ${!categoriaAtiva ? "active" : ""}`}
-          onClick={() => setCategoriaAtiva(null)}
+          className={`chip ${
+            !categoriaAtiva
+              ? "active"
+              : ""
+          }`}
+          onClick={() =>
+            setCategoriaAtiva(null)
+          }
         >
           Todas
         </button>
@@ -252,11 +264,23 @@ export function Categorias({
         {categorias.map((c) => (
           <button
             key={c.id}
-            className={`chip ${categoriaAtiva === c.id ? "active" : ""}`}
-            onClick={() => setCategoriaAtiva(c.id)}
+            className={`chip ${
+              categoriaAtiva === c.id
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              setCategoriaAtiva(c.id)
+            }
             onContextMenu={(e) => {
               e.preventDefault();
-              onCtx("categoria", c, e.clientX, e.clientY);
+
+              onCtx(
+                "categoria",
+                c,
+                e.clientX,
+                e.clientY
+              );
             }}
           >
             {c.nome}
@@ -282,21 +306,37 @@ export function Produtos({
   return (
     <>
       <div className="panel-head">
-        <h2>{mostrandoProdutos ? "Resultados" : "Produtos"}</h2>
+        <h2>
+          {mostrandoProdutos
+            ? "Resultados"
+            : "Produtos"}
+        </h2>
+
         <div className="panel-actions">
-          <button className="btn-mini" onClick={onOpenProd}>
+          <button
+            className="btn-mini"
+            onClick={onOpenProd}
+          >
             + Produto
           </button>
+
           <span className="badge">
-            {total ? `${total} no total` : `${produtos.length} item(ns)`}
+            {total
+              ? `${total} no total`
+              : `${produtos.length} item(ns)`}
           </span>
         </div>
       </div>
 
       {produtos.length === 0 ? (
         <div className="empty">
-          <div className="empty-title">Nenhum produto encontrado</div>
-          <div className="empty-sub">Tente outra pesquisa ou cadastre produtos.</div>
+          <div className="empty-title">
+            Nenhum produto encontrado
+          </div>
+
+          <div className="empty-sub">
+            Tente outra pesquisa ou cadastre produtos.
+          </div>
         </div>
       ) : (
         <>
@@ -308,29 +348,60 @@ export function Produtos({
                 onClick={() => onAdd(p)}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  onCtx("produto", p, e.clientX, e.clientY);
+
+                  onCtx(
+                    "produto",
+                    p,
+                    e.clientX,
+                    e.clientY
+                  );
                 }}
               >
-                <div className="product-name">{p.nome}</div>
+                <div className="product-name">
+                  {p.nome}
+                </div>
+
                 <div className="product-foot">
                   <div className="product-cat">
-                    {p.categoria_nome || "Sem categoria"}
-                    {!mostrandoProdutos && p.vendido_qtd != null ? ` • ${p.vendido_qtd}x` : ""}
+                    {p.categoria_nome ||
+                      "Sem categoria"}
+
+                    {!mostrandoProdutos &&
+                    p.vendido_qtd != null
+                      ? ` • ${p.vendido_qtd}x`
+                      : ""}
                   </div>
-                  <div className="product-price">R$ {Number(p.preco).toFixed(2)}</div>
+
+                  <div className="product-price">
+                    R${" "}
+                    {Number(
+                      p.preco
+                    ).toFixed(2)}
+                  </div>
                 </div>
               </button>
             ))}
           </div>
 
           <div className="pager">
-            <button className="btn-secondary" onClick={onPrev} disabled={page <= 1}>
+            <button
+              className="btn-secondary"
+              onClick={onPrev}
+              disabled={page <= 1}
+            >
               ← Anterior
             </button>
+
             <div className="pager-info">
-              Página <strong>{page}</strong> de <strong>{pages}</strong>
+              Página <strong>{page}</strong>{" "}
+              de <strong>{pages}</strong>
             </div>
-            <button className="btn-secondary" onClick={onNext} disabled={page >= pages}>
+
+            <button
+              className="btn-secondary"
+              onClick={onNext}
+              disabled={page >= pages}
+            >
               Próxima →
             </button>
           </div>
@@ -340,36 +411,80 @@ export function Produtos({
   );
 }
 
-export function Carrinho({ caixa, cart, total, onDec, onInc, onClear, onFinish }) {
+export function Carrinho({
+  caixa,
+  cart,
+  total,
+  onDec,
+  onInc,
+  onClear,
+  onFinish,
+}) {
   return (
     <aside className="panel panel-sticky">
       <div className="panel-head">
-        <h2>Comanda — Caixa {caixa}</h2>
-        <span className="badge">{cart.length} item(ns)</span>
+        <h2>
+          Comanda — Caixa {caixa}
+        </h2>
+
+        <span className="badge">
+          {cart.length} item(ns)
+        </span>
       </div>
 
       {cart.length === 0 ? (
         <div className="empty">
-          <div className="empty-title">Nenhum item ainda</div>
-          <div className="empty-sub">Clique em um produto para adicionar.</div>
+          <div className="empty-title">
+            Nenhum item ainda
+          </div>
+
+          <div className="empty-sub">
+            Clique em um produto para adicionar.
+          </div>
         </div>
       ) : (
         <div className="cart-list">
           {cart.map((i) => (
-            <div key={i.id} className="cart-row">
+            <div
+              key={i.id}
+              className="cart-row"
+            >
               <div className="cart-left">
-                <div className="cart-name">{i.nome}</div>
+                <div className="cart-name">
+                  {i.nome}
+                </div>
+
                 <div className="qty">
-                  <button className="qty-btn" onClick={() => onDec(i.id)}>
+                  <button
+                    className="qty-btn"
+                    onClick={() =>
+                      onDec(i.id)
+                    }
+                  >
                     −
                   </button>
-                  <span className="qty-n">{i.qtd}</span>
-                  <button className="qty-btn" onClick={() => onInc(i.id)}>
+
+                  <span className="qty-n">
+                    {i.qtd}
+                  </span>
+
+                  <button
+                    className="qty-btn"
+                    onClick={() =>
+                      onInc(i.id)
+                    }
+                  >
                     +
                   </button>
                 </div>
               </div>
-              <div className="cart-right">R$ {(i.preco * i.qtd).toFixed(2)}</div>
+
+              <div className="cart-right">
+                R${" "}
+                {(
+                  i.preco * i.qtd
+                ).toFixed(2)}
+              </div>
             </div>
           ))}
         </div>
@@ -377,14 +492,33 @@ export function Carrinho({ caixa, cart, total, onDec, onInc, onClear, onFinish }
 
       <div className="total-box">
         <span>Total</span>
-        <strong>R$ {Number(total || 0).toFixed(2)}</strong>
+
+        <strong>
+          R${" "}
+          {Number(
+            total || 0
+          ).toFixed(2)}
+        </strong>
       </div>
 
       <div className="actions">
-        <button className="btn-danger" onClick={onClear} disabled={cart.length === 0}>
+        <button
+          className="btn-danger"
+          onClick={onClear}
+          disabled={
+            cart.length === 0
+          }
+        >
           Limpar
         </button>
-        <button className="btn-primary" onClick={onFinish} disabled={cart.length === 0}>
+
+        <button
+          className="btn-primary"
+          onClick={onFinish}
+          disabled={
+            cart.length === 0
+          }
+        >
           Finalizar
         </button>
       </div>
@@ -392,27 +526,58 @@ export function Carrinho({ caixa, cart, total, onDec, onInc, onClear, onFinish }
   );
 }
 
-export function ContextMenu({ menu, onEditarProduto, onExcluirProduto, onExcluirCategoria }) {
+export function ContextMenu({
+  menu,
+  onEditarProduto,
+  onExcluirProduto,
+  onExcluirCategoria,
+}) {
   if (!menu) return null;
 
   return (
     <div
       className="ctx"
-      style={{ top: menu.y, left: menu.x }}
-      onClick={(e) => e.stopPropagation()}
+      style={{
+        top: menu.y,
+        left: menu.x,
+      }}
+      onClick={(e) =>
+        e.stopPropagation()
+      }
     >
-      {menu.type === "produto" ? (
+      {menu.type ===
+      "produto" ? (
         <>
-          <button onClick={() => onEditarProduto(menu.item)}>
+          <button
+            onClick={() =>
+              onEditarProduto(
+                menu.item
+              )
+            }
+          >
             ✏️ Editar produto
           </button>
 
-          <button className="danger" onClick={() => onExcluirProduto(menu.item)}>
+          <button
+            className="danger"
+            onClick={() =>
+              onExcluirProduto(
+                menu.item
+              )
+            }
+          >
             🗑️ Excluir produto
           </button>
         </>
       ) : (
-        <button className="danger" onClick={() => onExcluirCategoria(menu.item)}>
+        <button
+          className="danger"
+          onClick={() =>
+            onExcluirCategoria(
+              menu.item
+            )
+          }
+        >
           🗑️ Excluir categoria
         </button>
       )}
@@ -420,22 +585,52 @@ export function ContextMenu({ menu, onEditarProduto, onExcluirProduto, onExcluir
   );
 }
 
-export function ModalCategoria({ open, value, onChange, onClose, onSave }) {
+export function ModalCategoria({
+  open,
+  value,
+  onChange,
+  onClose,
+  onSave,
+}) {
   if (!open) return null;
+
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Cadastrar Categoria</h3>
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+    >
+      <div
+        className="modal"
+        onClick={(e) =>
+          e.stopPropagation()
+        }
+      >
+        <h3>
+          Cadastrar Categoria
+        </h3>
+
         <input
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) =>
+            onChange(
+              e.target.value
+            )
+          }
           placeholder="Nome da categoria"
         />
+
         <div className="modal-actions">
-          <button className="btn-secondary" onClick={onClose}>
+          <button
+            className="btn-secondary"
+            onClick={onClose}
+          >
             Cancelar
           </button>
-          <button className="btn-primary" onClick={onSave}>
+
+          <button
+            className="btn-primary"
+            onClick={onSave}
+          >
             Salvar
           </button>
         </div>
@@ -444,76 +639,518 @@ export function ModalCategoria({ open, value, onChange, onClose, onSave }) {
   );
 }
 
+// =========================================================
+// MODAL PRODUTO
+// =========================================================
+
 export function ModalProduto({
   open,
   nome,
   preco,
   categoriaId,
   categorias,
+
+  perfisFiscais,
+  perfilFiscalId,
+  setPerfilFiscalId,
+
   onClose,
   onSave,
+
   setNome,
   setPreco,
   setCategoriaId,
 
-  // NOVOS CAMPOS
-  ncm,
-  cfop,
-  csosn,
-  pis,
-  cofins,
-  unidade,
-
-  setNcm,
-  setCfop,
-  setCsosn,
-  setPis,
-  setCofins,
-  setUnidade,
-
   titulo = "Cadastrar Produto",
   textoBotao = "Salvar",
 }) {
+  const [mostrarNovoPerfil, setMostrarNovoPerfil] =
+    React.useState(false);
+
+  const [salvandoPerfil, setSalvandoPerfil] =
+    React.useState(false);
+
+  const [novoPerfil, setNovoPerfil] =
+    React.useState({
+      nome: "",
+      ncm: "",
+      cfop: "",
+      csosn: "",
+      pis_cst: "",
+      cofins_cst: "",
+      cest: "",
+      unidade: "UN",
+    });
+
   if (!open) return null;
 
+  function alterarNovoPerfil(
+    campo,
+    valor
+  ) {
+    setNovoPerfil((atual) => ({
+      ...atual,
+      [campo]: valor,
+    }));
+  }
+
+  function limparNovoPerfil() {
+    setNovoPerfil({
+      nome: "",
+      ncm: "",
+      cfop: "",
+      csosn: "",
+      pis_cst: "",
+      cofins_cst: "",
+      cest: "",
+      unidade: "UN",
+    });
+  }
+
+  async function criarPerfilFiscal() {
+    if (salvandoPerfil) {
+      return;
+    }
+
+    const payload = {
+      nome: String(
+        novoPerfil.nome || ""
+      ).trim(),
+
+      ncm: String(
+        novoPerfil.ncm || ""
+      ).replace(/\D/g, ""),
+
+      cfop: String(
+        novoPerfil.cfop || ""
+      ).replace(/\D/g, ""),
+
+      csosn: String(
+        novoPerfil.csosn || ""
+      ).replace(/\D/g, ""),
+
+      pis_cst: String(
+        novoPerfil.pis_cst ||
+          ""
+      ).replace(/\D/g, ""),
+
+      cofins_cst: String(
+        novoPerfil.cofins_cst ||
+          ""
+      ).replace(/\D/g, ""),
+
+      cest:
+        String(
+          novoPerfil.cest || ""
+        ).replace(/\D/g, "") ||
+        null,
+
+      unidade:
+        String(
+          novoPerfil.unidade ||
+            "UN"
+        )
+          .trim()
+          .toUpperCase(),
+    };
+
+    if (!payload.nome) {
+      alert(
+        "Informe o nome do tipo fiscal"
+      );
+      return;
+    }
+
+    if (
+      payload.ncm.length !== 8
+    ) {
+      alert(
+        "NCM deve possuir 8 números"
+      );
+      return;
+    }
+
+    if (
+      payload.cfop.length !== 4
+    ) {
+      alert(
+        "CFOP deve possuir 4 números"
+      );
+      return;
+    }
+
+    if (
+      payload.csosn.length !==
+      3
+    ) {
+      alert(
+        "CSOSN deve possuir 3 números"
+      );
+      return;
+    }
+
+    if (
+      payload.pis_cst.length !==
+      2
+    ) {
+      alert(
+        "PIS CST deve possuir 2 números"
+      );
+      return;
+    }
+
+    if (
+      payload.cofins_cst
+        .length !== 2
+    ) {
+      alert(
+        "COFINS CST deve possuir 2 números"
+      );
+      return;
+    }
+
+    if (
+      payload.cest &&
+      payload.cest.length !== 7
+    ) {
+      alert(
+        "CEST deve possuir 7 números"
+      );
+      return;
+    }
+
+    try {
+      setSalvandoPerfil(true);
+
+      const { data } =
+        await api.post(
+          "/perfis-fiscais",
+          payload
+        );
+
+      alert(
+        "Tipo fiscal criado com sucesso!"
+      );
+
+      limparNovoPerfil();
+
+      setMostrarNovoPerfil(
+        false
+      );
+
+      if (data?.id) {
+        window.location.reload();
+      }
+    } catch (e) {
+      alert(
+        e?.response?.data
+          ?.error ||
+          "Erro ao criar tipo fiscal"
+      );
+    } finally {
+      setSalvandoPerfil(
+        false
+      );
+    }
+  }
+
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+    >
+      <div
+        className="modal"
+        onClick={(e) =>
+          e.stopPropagation()
+        }
+      >
         <h3>{titulo}</h3>
 
-        <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do produto" />
-        <input value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="Preço" />
+        <input
+          value={nome}
+          onChange={(e) =>
+            setNome(
+              e.target.value
+            )
+          }
+          placeholder="Nome do produto"
+        />
 
-        <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
-          <option value="">Sem categoria</option>
+        <input
+          value={preco}
+          onChange={(e) =>
+            setPreco(
+              e.target.value
+            )
+          }
+          placeholder="Preço"
+          inputMode="decimal"
+        />
+
+        <select
+          value={categoriaId}
+          onChange={(e) =>
+            setCategoriaId(
+              e.target.value
+            )
+          }
+        >
+          <option value="">
+            Sem categoria
+          </option>
+
           {categorias.map((c) => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
+            <option
+              key={c.id}
+              value={c.id}
+            >
+              {c.nome}
+            </option>
           ))}
         </select>
 
-        <hr />
+        <div
+          style={{
+            display: "grid",
+            gap: 8,
+          }}
+        >
+          <select
+            value={
+              perfilFiscalId
+            }
+            onChange={(e) =>
+              setPerfilFiscalId(
+                e.target.value
+              )
+            }
+          >
+            <option value="">
+              Selecione o tipo fiscal
+            </option>
 
-        <h4>Fiscal</h4>
+            {(
+              perfisFiscais || []
+            ).map((p) => (
+              <option
+                key={p.id}
+                value={p.id}
+              >
+                {p.nome} -{" "}
+                {p.ncm}
+              </option>
+            ))}
+          </select>
 
-        <input value={ncm || ""} onChange={(e) => setNcm(e.target.value)} placeholder="NCM" />
-        <input value={cfop || ""} onChange={(e) => setCfop(e.target.value)} placeholder="CFOP" />
-        <input value={csosn || ""} onChange={(e) => setCsosn(e.target.value)} placeholder="CSOSN (ICMS)" />
-        <input value={pis || ""} onChange={(e) => setPis(e.target.value)} placeholder="PIS CST" />
-        <input value={cofins || ""} onChange={(e) => setCofins(e.target.value)} placeholder="COFINS CST" />
-        <input value={unidade || ""} onChange={(e) => setUnidade(e.target.value)} placeholder="Unidade (UN)" />
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() =>
+              setMostrarNovoPerfil(
+                (v) => !v
+              )
+            }
+          >
+            {mostrarNovoPerfil
+              ? "Cancelar novo tipo fiscal"
+              : "+ Criar novo tipo fiscal"}
+          </button>
+        </div>
+
+        {mostrarNovoPerfil && (
+          <div
+            style={{
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop:
+                "1px solid rgba(255,255,255,.10)",
+              display: "grid",
+              gap: 8,
+            }}
+          >
+            <h4
+              style={{
+                margin:
+                  "0 0 4px 0",
+              }}
+            >
+              Novo tipo fiscal
+            </h4>
+
+            <input
+              value={
+                novoPerfil.nome
+              }
+              onChange={(e) =>
+                alterarNovoPerfil(
+                  "nome",
+                  e.target.value
+                )
+              }
+              placeholder="Nome do tipo. Ex: Gin"
+            />
+
+            <input
+              value={
+                novoPerfil.ncm
+              }
+              onChange={(e) =>
+                alterarNovoPerfil(
+                  "ncm",
+                  e.target.value
+                )
+              }
+              placeholder="NCM"
+              inputMode="numeric"
+            />
+
+            <input
+              value={
+                novoPerfil.cfop
+              }
+              onChange={(e) =>
+                alterarNovoPerfil(
+                  "cfop",
+                  e.target.value
+                )
+              }
+              placeholder="CFOP"
+              inputMode="numeric"
+            />
+
+            <input
+              value={
+                novoPerfil.csosn
+              }
+              onChange={(e) =>
+                alterarNovoPerfil(
+                  "csosn",
+                  e.target.value
+                )
+              }
+              placeholder="CSOSN"
+              inputMode="numeric"
+            />
+
+            <input
+              value={
+                novoPerfil.pis_cst
+              }
+              onChange={(e) =>
+                alterarNovoPerfil(
+                  "pis_cst",
+                  e.target.value
+                )
+              }
+              placeholder="PIS CST"
+              inputMode="numeric"
+            />
+
+            <input
+              value={
+                novoPerfil.cofins_cst
+              }
+              onChange={(e) =>
+                alterarNovoPerfil(
+                  "cofins_cst",
+                  e.target.value
+                )
+              }
+              placeholder="COFINS CST"
+              inputMode="numeric"
+            />
+
+            <input
+              value={
+                novoPerfil.cest
+              }
+              onChange={(e) =>
+                alterarNovoPerfil(
+                  "cest",
+                  e.target.value
+                )
+              }
+              placeholder="CEST (opcional)"
+              inputMode="numeric"
+            />
+
+            <select
+              value={
+                novoPerfil.unidade
+              }
+              onChange={(e) =>
+                alterarNovoPerfil(
+                  "unidade",
+                  e.target.value
+                )
+              }
+            >
+              <option value="UN">
+                UN
+              </option>
+
+              <option value="CX">
+                CX
+              </option>
+
+              <option value="KG">
+                KG
+              </option>
+
+              <option value="G">
+                G
+              </option>
+
+              <option value="L">
+                L
+              </option>
+
+              <option value="ML">
+                ML
+              </option>
+
+              <option value="PC">
+                PC
+              </option>
+            </select>
+
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={
+                criarPerfilFiscal
+              }
+              disabled={
+                salvandoPerfil
+              }
+            >
+              {salvandoPerfil
+                ? "Criando..."
+                : "Salvar tipo fiscal"}
+            </button>
+          </div>
+        )}
 
         <div className="modal-actions">
-          <button className="btn-secondary" onClick={onClose}>
+          <button
+            className="btn-secondary"
+            onClick={onClose}
+          >
             Cancelar
           </button>
-          <button className="btn-primary" onClick={onSave}>
+
+          <button
+            className="btn-primary"
+            onClick={onSave}
+          >
             {textoBotao}
           </button>
         </div>
       </div>
     </div>
   );
-} 
+}
 
 export function ModalPagamento({
   open,
@@ -539,86 +1176,233 @@ export function ModalPagamento({
 }) {
   if (!open) return null;
 
-  const [showDesc, setShowDesc] = React.useState(false);
+  const [showDesc, setShowDesc] =
+    React.useState(false);
 
-  const [dinDraft, setDinDraft] = React.useState("");
-  const [pixDraft, setPixDraft] = React.useState("");
-  const [debDraft, setDebDraft] = React.useState("");
-  const [credDraft, setCredDraft] = React.useState("");
+  const [dinDraft, setDinDraft] =
+    React.useState("");
 
-  const n = (v) => Number(String(v || "").replace(",", ".")) || 0;
-  const clamp2 = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
+  const [pixDraft, setPixDraft] =
+    React.useState("");
 
-  const tf = clamp2(Number(total || 0));
+  const [debDraft, setDebDraft] =
+    React.useState("");
 
-  const din = clamp2(n(dinheiro));
-  const px = clamp2(n(pix));
-  const deb = clamp2(n(debito));
-  const cred = clamp2(n(credito));
-  const cardTotal = clamp2(deb + cred);
+  const [credDraft, setCredDraft] =
+    React.useState("");
 
-  const totalPago = clamp2(din + px + cardTotal);
-  const falta = clamp2(Math.max(0, tf - totalPago));
+  const n = (v) =>
+    Number(
+      String(v || "").replace(
+        ",",
+        "."
+      )
+    ) || 0;
 
-  const precisaEmDinPix = clamp2(Math.max(0, tf - cardTotal));
-  const troco = clamp2(Math.max(0, (din + px) - precisaEmDinPix));
+  const clamp2 = (v) =>
+    Math.round(
+      (Number(v) +
+        Number.EPSILON) *
+        100
+    ) / 100;
 
-  const maxMetodo = clamp2(Math.max(0, tf - totalPago));
-  const podeConfirmar = totalPago + 0.00001 >= tf && tf > 0;
+  const tf = clamp2(
+    Number(total || 0)
+  );
+
+  const din = clamp2(
+    n(dinheiro)
+  );
+
+  const px = clamp2(
+    n(pix)
+  );
+
+  const deb = clamp2(
+    n(debito)
+  );
+
+  const cred = clamp2(
+    n(credito)
+  );
+
+  const cardTotal =
+    clamp2(deb + cred);
+
+  const totalPago =
+    clamp2(
+      din +
+        px +
+        cardTotal
+    );
+
+  const falta = clamp2(
+    Math.max(
+      0,
+      tf - totalPago
+    )
+  );
+
+  const precisaEmDinPix =
+    clamp2(
+      Math.max(
+        0,
+        tf - cardTotal
+      )
+    );
+
+  const troco = clamp2(
+    Math.max(
+      0,
+      din +
+        px -
+        precisaEmDinPix
+    )
+  );
+
+  const maxMetodo =
+    clamp2(
+      Math.max(
+        0,
+        tf - totalPago
+      )
+    );
+
+  const podeConfirmar =
+    totalPago + 0.00001 >=
+      tf &&
+    tf > 0;
 
   const enviar = (tipo) => {
     if (tipo === "din") {
-      const v = clamp2(n(dinDraft));
+      const v = clamp2(
+        n(dinDraft)
+      );
+
       if (v <= 0) return;
-      setDinheiro(String(v));
+
+      setDinheiro(
+        String(v)
+      );
+
       setDinDraft("");
+
       return;
     }
 
     if (tipo === "pix") {
-      const v = clamp2(n(pixDraft));
+      const v = clamp2(
+        n(pixDraft)
+      );
+
       if (v <= 0) return;
+
       setPix(String(v));
+
       setPixDraft("");
+
       return;
     }
 
     if (tipo === "deb") {
-      let v = clamp2(n(debDraft));
+      let v = clamp2(
+        n(debDraft)
+      );
+
       if (v <= 0) return;
-      v = Math.min(v, maxMetodo);
+
+      v = Math.min(
+        v,
+        maxMetodo
+      );
+
       if (v <= 0) return;
-      setDebito(String(v));
+
+      setDebito(
+        String(v)
+      );
+
       setDebDraft("");
+
       return;
     }
 
     if (tipo === "cred") {
-      let v = clamp2(n(credDraft));
+      let v = clamp2(
+        n(credDraft)
+      );
+
       if (v <= 0) return;
-      v = Math.min(v, maxMetodo);
+
+      v = Math.min(
+        v,
+        maxMetodo
+      );
+
       if (v <= 0) return;
-      setCredito(String(v));
+
+      setCredito(
+        String(v)
+      );
+
       setCredDraft("");
     }
   };
 
   const remover = (tipo) => {
-    if (tipo === "din") setDinheiro("");
-    if (tipo === "pix") setPix("");
-    if (tipo === "deb") setDebito("");
-    if (tipo === "cred") setCredito("");
+    if (tipo === "din") {
+      setDinheiro("");
+    }
+
+    if (tipo === "pix") {
+      setPix("");
+    }
+
+    if (tipo === "deb") {
+      setDebito("");
+    }
+
+    if (tipo === "cred") {
+      setCredito("");
+    }
   };
 
-  const LinhaValor = ({ label, value, onRemove }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+  const LinhaValor = ({
+    label,
+    value,
+    onRemove,
+  }) => (
+    <div
+      style={{
+        display: "flex",
+        justifyContent:
+          "space-between",
+        alignItems: "center",
+        gap: 10,
+      }}
+    >
       <span>{label}</span>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <b>R$ {Number(value).toFixed(2)}</b>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <b>
+          R${" "}
+          {Number(
+            value
+          ).toFixed(2)}
+        </b>
+
         <button
           type="button"
           className="btn-secondary"
-          style={{ padding: "6px 10px" }}
+          style={{
+            padding: "6px 10px",
+          }}
           onClick={onRemove}
           title="Remover"
         >
@@ -629,118 +1413,373 @@ export function ModalPagamento({
   );
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ margin: 0 }}>Pagamento</h3>
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+    >
+      <div
+        className="modal"
+        onClick={(e) =>
+          e.stopPropagation()
+        }
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems:
+              "center",
+          }}
+        >
+          <h3
+            style={{
+              margin: 0,
+            }}
+          >
+            Pagamento
+          </h3>
+
           <div className="badge">
-            Total: <b style={{ marginLeft: 6 }}>R$ {tf.toFixed(2)}</b>
+            Total:{" "}
+            <b
+              style={{
+                marginLeft: 6,
+              }}
+            >
+              R${" "}
+              {tf.toFixed(2)}
+            </b>
           </div>
         </div>
 
-        <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
+        <div
+          style={{
+            marginTop: 14,
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "1fr 120px",
+              gap: 10,
+            }}
+          >
             <input
               value={dinDraft}
-              onChange={(e) => setDinDraft(e.target.value)}
+              onChange={(e) =>
+                setDinDraft(
+                  e.target.value
+                )
+              }
               placeholder="Dinheiro"
               inputMode="decimal"
-              onKeyDown={(e) => e.key === "Enter" && enviar("din")}
+              onKeyDown={(e) =>
+                e.key ===
+                  "Enter" &&
+                enviar("din")
+              }
             />
-            <button className="btn-secondary" type="button" onClick={() => enviar("din")}>
+
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() =>
+                enviar("din")
+              }
+            >
               Enviar
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "1fr 120px",
+              gap: 10,
+            }}
+          >
             <input
               value={pixDraft}
-              onChange={(e) => setPixDraft(e.target.value)}
+              onChange={(e) =>
+                setPixDraft(
+                  e.target.value
+                )
+              }
               placeholder="Pix"
               inputMode="decimal"
-              onKeyDown={(e) => e.key === "Enter" && enviar("pix")}
+              onKeyDown={(e) =>
+                e.key ===
+                  "Enter" &&
+                enviar("pix")
+              }
             />
-            <button className="btn-secondary" type="button" onClick={() => enviar("pix")}>
+
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() =>
+                enviar("pix")
+              }
+            >
               Enviar
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "1fr 120px",
+              gap: 10,
+            }}
+          >
             <input
               value={debDraft}
-              onChange={(e) => setDebDraft(e.target.value)}
-              placeholder={`Débito (máx: ${maxMetodo.toFixed(2)})`}
+              onChange={(e) =>
+                setDebDraft(
+                  e.target.value
+                )
+              }
+              placeholder={`Débito (máx: ${maxMetodo.toFixed(
+                2
+              )})`}
               inputMode="decimal"
-              onKeyDown={(e) => e.key === "Enter" && enviar("deb")}
+              onKeyDown={(e) =>
+                e.key ===
+                  "Enter" &&
+                enviar("deb")
+              }
             />
-            <button className="btn-secondary" type="button" onClick={() => enviar("deb")}>
+
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() =>
+                enviar("deb")
+              }
+            >
               Enviar
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "1fr 120px",
+              gap: 10,
+            }}
+          >
             <input
               value={credDraft}
-              onChange={(e) => setCredDraft(e.target.value)}
-              placeholder={`Crédito (máx: ${maxMetodo.toFixed(2)})`}
+              onChange={(e) =>
+                setCredDraft(
+                  e.target.value
+                )
+              }
+              placeholder={`Crédito (máx: ${maxMetodo.toFixed(
+                2
+              )})`}
               inputMode="decimal"
-              onKeyDown={(e) => e.key === "Enter" && enviar("cred")}
+              onKeyDown={(e) =>
+                e.key ===
+                  "Enter" &&
+                enviar("cred")
+              }
             />
-            <button className="btn-secondary" type="button" onClick={() => enviar("cred")}>
+
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() =>
+                enviar("cred")
+              }
+            >
               Enviar
             </button>
           </div>
 
-          {(din > 0 || px > 0 || deb > 0 || cred > 0) && (
+          {(din > 0 ||
+            px > 0 ||
+            deb > 0 ||
+            cred > 0) && (
             <div className="empty">
-              {din > 0 && <LinhaValor label="Dinheiro" value={din} onRemove={() => remover("din")} />}
+              {din > 0 && (
+                <LinhaValor
+                  label="Dinheiro"
+                  value={din}
+                  onRemove={() =>
+                    remover("din")
+                  }
+                />
+              )}
 
               {px > 0 && (
-                <div style={{ marginTop: 6 }}>
-                  <LinhaValor label="Pix" value={px} onRemove={() => remover("pix")} />
+                <div
+                  style={{
+                    marginTop: 6,
+                  }}
+                >
+                  <LinhaValor
+                    label="Pix"
+                    value={px}
+                    onRemove={() =>
+                      remover(
+                        "pix"
+                      )
+                    }
+                  />
                 </div>
               )}
 
               {deb > 0 && (
-                <div style={{ marginTop: 6 }}>
-                  <LinhaValor label="Débito" value={deb} onRemove={() => remover("deb")} />
+                <div
+                  style={{
+                    marginTop: 6,
+                  }}
+                >
+                  <LinhaValor
+                    label="Débito"
+                    value={deb}
+                    onRemove={() =>
+                      remover(
+                        "deb"
+                      )
+                    }
+                  />
                 </div>
               )}
 
               {cred > 0 && (
-                <div style={{ marginTop: 6 }}>
-                  <LinhaValor label="Crédito" value={cred} onRemove={() => remover("cred")} />
+                <div
+                  style={{
+                    marginTop: 6,
+                  }}
+                >
+                  <LinhaValor
+                    label="Crédito"
+                    value={cred}
+                    onRemove={() =>
+                      remover(
+                        "cred"
+                      )
+                    }
+                  />
                 </div>
               )}
 
-              <div style={{ borderTop: "1px dashed rgba(255,255,255,.14)", margin: "10px 0" }} />
+              <div
+                style={{
+                  borderTop:
+                    "1px dashed rgba(255,255,255,.14)",
+                  margin:
+                    "10px 0",
+                }}
+              />
 
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Falta pagar</span>
-                <b>R$ {falta.toFixed(2)}</b>
+              <div
+                style={{
+                  display:
+                    "flex",
+                  justifyContent:
+                    "space-between",
+                }}
+              >
+                <span>
+                  Falta pagar
+                </span>
+
+                <b>
+                  R${" "}
+                  {falta.toFixed(
+                    2
+                  )}
+                </b>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+
+              <div
+                style={{
+                  display:
+                    "flex",
+                  justifyContent:
+                    "space-between",
+                  marginTop: 6,
+                }}
+              >
                 <span>Troco</span>
-                <b>R$ {troco.toFixed(2)}</b>
+
+                <b>
+                  R${" "}
+                  {troco.toFixed(
+                    2
+                  )}
+                </b>
               </div>
             </div>
           )}
 
-          <button className="btn-secondary" type="button" onClick={() => setShowDesc((v) => !v)}>
-            {showDesc ? "Ocultar desconto" : "Desconto (opcional)"}
+          <button
+            className="btn-secondary"
+            type="button"
+            onClick={() =>
+              setShowDesc(
+                (v) => !v
+              )
+            }
+          >
+            {showDesc
+              ? "Ocultar desconto"
+              : "Desconto (opcional)"}
           </button>
 
           {showDesc && (
-            <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 10 }}>
-              <select value={descontoTipo} onChange={(e) => setDescontoTipo(e.target.value)}>
-                <option value="rs">Desconto (R$)</option>
-                <option value="pct">Desconto (%)</option>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "160px 1fr",
+                gap: 10,
+              }}
+            >
+              <select
+                value={
+                  descontoTipo
+                }
+                onChange={(e) =>
+                  setDescontoTipo(
+                    e.target.value
+                  )
+                }
+              >
+                <option value="rs">
+                  Desconto (R$)
+                </option>
+
+                <option value="pct">
+                  Desconto (%)
+                </option>
               </select>
 
               <input
-                value={descontoValor}
-                onChange={(e) => setDescontoValor(e.target.value)}
-                placeholder={descontoTipo === "pct" ? "Ex: 10" : "Ex: 5.00"}
+                value={
+                  descontoValor
+                }
+                onChange={(e) =>
+                  setDescontoValor(
+                    e.target.value
+                  )
+                }
+                placeholder={
+                  descontoTipo ===
+                  "pct"
+                    ? "Ex: 10"
+                    : "Ex: 5.00"
+                }
                 inputMode="decimal"
               />
             </div>
@@ -748,11 +1787,25 @@ export function ModalPagamento({
         </div>
 
         <div className="modal-actions">
-          <button className="btn-secondary" onClick={onClose} disabled={loading}>
+          <button
+            className="btn-secondary"
+            onClick={onClose}
+            disabled={loading}
+          >
             Cancelar
           </button>
-          <button className="btn-primary" onClick={onConfirm} disabled={!podeConfirmar || loading}>
-            {loading ? "Salvando..." : "Confirmar venda"}
+
+          <button
+            className="btn-primary"
+            onClick={onConfirm}
+            disabled={
+              !podeConfirmar ||
+              loading
+            }
+          >
+            {loading
+              ? "Salvando..."
+              : "Confirmar venda"}
           </button>
         </div>
       </div>
