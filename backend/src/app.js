@@ -15,34 +15,104 @@ const funcionariosRoutes = require("./routes/funcionarios");
 const marcadosRoutes = require("./routes/marcados");
 const contasPagarRoutes = require("./routes/contas_pagar");
 const operadoresRoutes = require("./routes/operadores");
+const bancosRoutes = require("./routes/bancos");
 
 const auth = require("./middleware/auth");
 
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use(
+  express.json({
+    limit: "10mb",
+  })
+);
 
 app.get("/health", (req, res) => {
-  res.json({ ok: true });
+  res.json({
+    ok: true,
+  });
 });
 
 app.use(authRoutes);
 
-app.use("/categorias", auth, categoriasRoutes);
-app.use("/produtos", auth, produtosRoutes);
-app.use("/perfis-fiscais", auth, perfisFiscaisRoutes);
-app.use("/vendas", auth, vendasRoutes);
-app.use("/financeiro", auth, financeiroRoutes);
-app.use("/financeiro/contas-pagar", auth, contasPagarRoutes);
-app.use("/fechamentos", auth, fechamentosRoutes);
-app.use("/caixa", auth, caixaRoutes);
-app.use("/funcionarios", auth, funcionariosRoutes);
-app.use("/marcados", auth, marcadosRoutes);
-app.use("/operadores", auth, operadoresRoutes);
+app.use(
+  "/categorias",
+  auth,
+  categoriasRoutes
+);
+
+app.use(
+  "/produtos",
+  auth,
+  produtosRoutes
+);
+
+app.use(
+  "/perfis-fiscais",
+  auth,
+  perfisFiscaisRoutes
+);
+
+app.use(
+  "/vendas",
+  auth,
+  vendasRoutes
+);
+
+app.use(
+  "/financeiro",
+  auth,
+  financeiroRoutes
+);
+
+app.use(
+  "/financeiro/contas-pagar",
+  auth,
+  contasPagarRoutes
+);
+
+app.use(
+  "/fechamentos",
+  auth,
+  fechamentosRoutes
+);
+
+app.use(
+  "/caixa",
+  auth,
+  caixaRoutes
+);
+
+app.use(
+  "/funcionarios",
+  auth,
+  funcionariosRoutes
+);
+
+app.use(
+  "/marcados",
+  auth,
+  marcadosRoutes
+);
+
+app.use(
+  "/operadores",
+  auth,
+  operadoresRoutes
+);
+
+app.use(
+  "/bancos",
+  auth,
+  bancosRoutes
+);
 
 async function initDatabase() {
   await initOnStart();
 }
 
-module.exports = { app, initDatabase };
+module.exports = {
+  app,
+  initDatabase,
+};

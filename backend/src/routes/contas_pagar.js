@@ -4,21 +4,37 @@ const PDFDocument = require("pdfkit");
 
 function normalizeMoney(v) {
   const s = String(v ?? "").trim();
-  if (!s) return null;
+
+  if (!s) {
+    return null;
+  }
 
   if (/^\d+$/.test(s)) {
     const n = Number(s) / 100;
-    return Number.isFinite(n) ? Number(n.toFixed(2)) : null;
+
+    return Number.isFinite(n)
+      ? Number(n.toFixed(2))
+      : null;
   }
 
-  const hasComma = s.includes(",");
-  const hasDot = s.includes(".");
+  const hasComma =
+    s.includes(",");
+
+  const hasDot =
+    s.includes(".");
+
   let normalized = s;
 
-  if (hasComma && hasDot) {
-    normalized = s.replace(/\./g, "").replace(",", ".");
+  if (
+    hasComma &&
+    hasDot
+  ) {
+    normalized = s
+      .replace(/\./g, "")
+      .replace(",", ".");
   } else if (hasComma) {
-    normalized = s.replace(",", ".");
+    normalized =
+      s.replace(",", ".");
   }
 
   const n = Number(normalized);
@@ -29,7 +45,9 @@ function normalizeMoney(v) {
 }
 
 function money(v) {
-  return Number(v || 0).toLocaleString("pt-BR", {
+  return Number(
+    v || 0
+  ).toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -40,15 +58,25 @@ function dateBR(v) {
 
   const d = new Date(v);
 
-  if (Number.isNaN(d.getTime())) {
+  if (
+    Number.isNaN(
+      d.getTime()
+    )
+  ) {
     return "";
   }
 
-  return d.toLocaleDateString("pt-BR");
+  return d.toLocaleDateString(
+    "pt-BR"
+  );
 }
 
-function dateTimeBR(v = new Date()) {
-  return new Date(v).toLocaleString("pt-BR");
+function dateTimeBR(
+  v = new Date()
+) {
+  return new Date(
+    v
+  ).toLocaleString("pt-BR");
 }
 
 function statusConta(row) {
@@ -61,11 +89,27 @@ function statusConta(row) {
   }
 
   if (row.vencimento) {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
+    const hoje =
+      new Date();
 
-    const venc = new Date(row.vencimento);
-    venc.setHours(0, 0, 0, 0);
+    hoje.setHours(
+      0,
+      0,
+      0,
+      0
+    );
+
+    const venc =
+      new Date(
+        row.vencimento
+      );
+
+    venc.setHours(
+      0,
+      0,
+      0,
+      0
+    );
 
     if (venc < hoje) {
       return "Vencido";
@@ -84,841 +128,1050 @@ function fitText(
   h,
   opt = {}
 ) {
-  doc.text(String(txt || ""), x, y, {
-    width: w,
-    height: h,
-    ellipsis: true,
-    ...opt,
-  });
+  doc.text(
+    String(txt || ""),
+    x,
+    y,
+    {
+      width: w,
+      height: h,
+      ellipsis: true,
+      ...opt,
+    }
+  );
 }
 
-/* =========================================================
-   RELATÓRIO PDF
-   Precisa ficar antes de /:id
-========================================================= */
+// =========================================================
+// RELATÓRIO
+// =========================================================
 
-router.get("/relatorio", async (req, res) => {
-  try {
-    const {
-      inicio,
-      fim,
-      status = "todos",
-    } = req.query;
+router.get(
+  "/relatorio",
+  async (req, res) => {
+    try {
+      const {
+        inicio,
+        fim,
+        status = "todos",
+      } = req.query;
 
-    const params = [];
+      const params = [];
 
-    let where = "WHERE 1=1";
+      let where =
+        "WHERE 1=1";
 
-    if (inicio) {
-  params.push(inicio);
+      if (inicio) {
+        params.push(inicio);
 
-  where += `
-    AND vencimento >= $${params.length}::date
-  `;
-}
-
-if (fim) {
-  params.push(fim);
-
-  where += `
-    AND vencimento <= $${params.length}::date
-  `;
-}
-
-    const r = await db.query(
-      `
-      SELECT *
-      FROM contas_pagar
-      ${where}
-      ORDER BY
-        vencimento ASC NULLS LAST,
-        id ASC
-      `,
-      params
-    );
-
-    let rows = r.rows.map((x) => ({
-      ...x,
-
-      valor:
-        x.valor == null
-          ? 0
-          : Number(x.valor),
-
-      multa:
-        x.multa == null
-          ? 0
-          : Number(x.multa),
-
-      status_calc: statusConta(x),
-    }));
-
-    const st = String(
-      status || "todos"
-    ).toLowerCase();
-
-    if (st === "aberto") {
-      rows = rows.filter(
-        (x) => x.status_calc === "Aberto"
-      );
-    }
-
-    if (st === "vencido") {
-      rows = rows.filter(
-        (x) => x.status_calc === "Vencido"
-      );
-    }
-
-    if (st === "pago") {
-      rows = rows.filter(
-        (x) => x.status_calc === "Pago"
-      );
-    }
-
-    const totalAberto = rows
-      .filter(
-        (x) => x.status_calc === "Aberto"
-      )
-      .reduce(
-        (s, x) =>
-          s + Number(x.valor || 0),
-        0
-      );
-
-    const totalVencido = rows
-      .filter(
-        (x) => x.status_calc === "Vencido"
-      )
-      .reduce(
-        (s, x) =>
-          s +
-          Number(x.valor || 0) +
-          Number(x.multa || 0),
-        0
-      );
-
-    const totalPago = rows
-      .filter(
-        (x) => x.status_calc === "Pago"
-      )
-      .reduce(
-        (s, x) =>
-          s + Number(x.valor || 0),
-        0
-      );
-
-    const totalGeral = rows.reduce(
-      (s, x) => {
-        const valor = Number(
-          x.valor || 0
-        );
-
-        const multa =
-          x.status_calc === "Vencido"
-            ? Number(x.multa || 0)
-            : 0;
-
-        return s + valor + multa;
-      },
-      0
-    );
-
-    const tituloStatus =
-      st === "aberto"
-        ? "EM ABERTO"
-        : st === "vencido"
-        ? "VENCIDOS"
-        : st === "pago"
-        ? "PAGAS"
-        : "TODAS";
-
-    const doc = new PDFDocument({
-      size: "A4",
-      layout: "landscape",
-      margin: 18,
-    });
-
-    res.setHeader(
-      "Content-Type",
-      "application/pdf"
-    );
-
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=relatorio_contas_${st}.pdf`
-    );
-
-    doc.pipe(res);
-
-    const pageW = doc.page.width;
-    const pageH = doc.page.height;
-    const margin = 18;
-
-    const cols = [
-      {
-        label: "Status",
-        x: 18,
-        w: 52,
-      },
-      {
-        label: "Descrição",
-        x: 70,
-        w: 130,
-      },
-      {
-        label: "Tipo de documento",
-        x: 200,
-        w: 82,
-      },
-      {
-        label: "Fornecedor",
-        x: 282,
-        w: 132,
-      },
-      {
-        label: "Vencimento/Caixa",
-        x: 414,
-        w: 82,
-      },
-      {
-        label: "Valor",
-        x: 496,
-        w: 58,
-      },
-      {
-        label: "Saldo",
-        x: 554,
-        w: 58,
-      },
-      {
-        label: "Entrada/Competência",
-        x: 612,
-        w: 96,
-      },
-      {
-        label: "Conta analítica",
-        x: 708,
-        w: 82,
-      },
-      {
-        label: "Número NF",
-        x: 790,
-        w: 55,
-      },
-    ];
-
-    function drawHeader() {
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(19)
-        .fillColor("#111");
-
-      doc.text(
-        "1005 PUB",
-        margin,
-        20
-      );
-
-      doc
-        .font("Helvetica")
-        .fontSize(8);
-
-      doc.text(
-        "Estabelecimento: 1005 PUB",
-        margin,
-        48
-      );
-
-      doc.text(
-        "Telefone: (42) 99801-1925",
-        margin,
-        59
-      );
-
-      doc.text(
-        "Usuário: admin",
-        margin,
-        70
-      );
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(13);
-
-      doc.text(
-        "Contas a Pagar",
-        0,
-        60,
-        {
-          align: "center",
-          width: pageW,
-        }
-      );
-
-      doc
-        .fontSize(15)
-        .fillColor("#1b7f3a");
-
-      doc.text(
-        tituloStatus,
-        pageW - 175,
-        58,
-        {
-          width: 120,
-          align: "center",
-        }
-      );
-
-      doc.fillColor("#111");
-
-      doc
-        .moveTo(margin, 92)
-        .lineTo(
-          pageW - margin,
-          92
-        )
-        .stroke();
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(7);
-
-      const y = 99;
-
-      for (const c of cols) {
-        doc
-          .rect(
-            c.x,
-            y,
-            c.w,
-            28
-          )
-          .stroke();
-
-        fitText(
-          doc,
-          c.label,
-          c.x + 3,
-          y + 7,
-          c.w - 6,
-          16,
-          {
-            align: "center",
-          }
-        );
+        where += `
+          AND vencimento >= $${params.length}::date
+        `;
       }
-    }
 
-    function drawFooter() {
-      const y = pageH - 45;
+      if (fim) {
+        params.push(fim);
 
-      doc
-        .moveTo(
-          margin,
-          y - 8
-        )
-        .lineTo(
-          pageW - margin,
-          y - 8
-        )
-        .stroke();
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(8)
-        .fillColor("#111");
-
-      doc.text(
-        `A pagar: R$ ${money(
-          totalAberto
-        )}`,
-        margin,
-        y
-      );
-
-      doc.text(
-        `Total: R$ ${money(
-          totalGeral
-        )}`,
-        245,
-        y
-      );
-
-      doc.text(
-        `Vencidas: R$ ${money(
-          totalVencido
-        )}`,
-        405,
-        y
-      );
-
-      doc.text(
-        `Pagas: R$ ${money(
-          totalPago
-        )}`,
-        590,
-        y
-      );
-
-      doc
-        .font("Helvetica")
-        .fontSize(7);
-
-      doc.text(
-        `Emitido dia ${dateTimeBR()}.`,
-        margin,
-        y + 17
-      );
-    }
-
-    function drawTableHeader(y) {
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(7)
-        .fillColor("#111");
-
-      for (const c of cols) {
-        doc
-          .rect(
-            c.x,
-            y,
-            c.w,
-            28
-          )
-          .stroke();
-
-        fitText(
-          doc,
-          c.label,
-          c.x + 3,
-          y + 7,
-          c.w - 6,
-          16,
-          {
-            align: "center",
-          }
-        );
+        where += `
+          AND vencimento <= $${params.length}::date
+        `;
       }
-    }
 
-    drawHeader();
+      const r =
+        await db.query(
+          `
+          SELECT *
+          FROM contas_pagar
+          ${where}
+          ORDER BY
+            vencimento ASC NULLS LAST,
+            id ASC
+          `,
+          params
+        );
 
-    let y = 127;
+      let rows =
+        r.rows.map((x) => ({
+          ...x,
 
-    const rowH = 38;
+          valor:
+            x.valor == null
+              ? 0
+              : Number(
+                  x.valor
+                ),
 
-    doc
-      .font("Helvetica")
-      .fontSize(7)
-      .fillColor("#111");
+          multa:
+            x.multa == null
+              ? 0
+              : Number(
+                  x.multa
+                ),
 
-    for (const item of rows) {
+          status_calc:
+            statusConta(x),
+        }));
+
+      const st =
+        String(
+          status ||
+            "todos"
+        ).toLowerCase();
+
+      if (st === "aberto") {
+        rows =
+          rows.filter(
+            (x) =>
+              x.status_calc ===
+              "Aberto"
+          );
+      }
+
       if (
-        y + rowH >
-        pageH - 65
+        st === "vencido"
       ) {
-        drawFooter();
-
-        doc.addPage();
-
-        drawHeader();
-
-        y = 127;
-
-        doc
-          .font("Helvetica")
-          .fontSize(7)
-          .fillColor("#111");
+        rows =
+          rows.filter(
+            (x) =>
+              x.status_calc ===
+              "Vencido"
+          );
       }
 
-      const descricao =
-        item.descricao ||
-        (
-          item.numero_nf
-            ? `XML - NF ${item.numero_nf}`
-            : "Conta sem descrição"
+      if (st === "pago") {
+        rows =
+          rows.filter(
+            (x) =>
+              x.status_calc ===
+              "Pago"
+          );
+      }
+
+      const totalAberto =
+        rows
+          .filter(
+            (x) =>
+              x.status_calc ===
+              "Aberto"
+          )
+          .reduce(
+            (s, x) =>
+              s +
+              Number(
+                x.valor ||
+                  0
+              ),
+            0
+          );
+
+      const totalVencido =
+        rows
+          .filter(
+            (x) =>
+              x.status_calc ===
+              "Vencido"
+          )
+          .reduce(
+            (s, x) =>
+              s +
+              Number(
+                x.valor ||
+                  0
+              ) +
+              Number(
+                x.multa ||
+                  0
+              ),
+            0
+          );
+
+      const totalPago =
+        rows
+          .filter(
+            (x) =>
+              x.status_calc ===
+              "Pago"
+          )
+          .reduce(
+            (s, x) =>
+              s +
+              Number(
+                x.valor ||
+                  0
+              ),
+            0
+          );
+
+      const totalGeral =
+        rows.reduce(
+          (s, x) => {
+            const valor =
+              Number(
+                x.valor || 0
+              );
+
+            const multa =
+              x.status_calc ===
+              "Vencido"
+                ? Number(
+                    x.multa ||
+                      0
+                  )
+                : 0;
+
+            return (
+              s +
+              valor +
+              multa
+            );
+          },
+          0
         );
 
-      const tipoDocumento =
-        item.numero_nf
-          ? "XML"
-          : "";
+      const tituloStatus =
+        st === "aberto"
+          ? "EM ABERTO"
+          : st ===
+            "vencido"
+          ? "VENCIDOS"
+          : st ===
+            "pago"
+          ? "PAGAS"
+          : "TODAS";
 
-      const fornecedor =
-        item.fornecedor || "";
+      const doc =
+        new PDFDocument({
+          size: "A4",
+          layout:
+            "landscape",
+          margin: 18,
+        });
 
-      const vencimento =
-        dateBR(item.vencimento);
-
-      const valor =
-        money(item.valor);
-
-      const saldo =
-        item.status_calc === "Pago"
-          ? "0,00"
-          : money(
-              Number(
-                item.valor || 0
-              ) +
-                (
-                  item.status_calc ===
-                  "Vencido"
-                    ? Number(
-                        item.multa || 0
-                      )
-                    : 0
-                )
-            );
-
-      const entrada = dateBR(
-        item.criado_em ||
-          item.pago_em
+      res.setHeader(
+        "Content-Type",
+        "application/pdf"
       );
 
-      const conta =
-        item.status_calc === "Pago"
-          ? "Fornecedores"
-          : item.fornecedor
-              ?.toLowerCase()
-              .includes("fgts")
-          ? "FGTS sobre folha"
-          : item.fornecedor
-              ?.toLowerCase()
-              .includes("receita")
-          ? "Impostos e taxas"
-          : "Fornecedores";
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=relatorio_contas_${st}.pdf`
+      );
 
-      const values = [
-        item.status_calc,
-        descricao,
-        tipoDocumento,
-        fornecedor,
-        vencimento,
-        valor,
-        saldo,
-        entrada,
-        conta,
-        item.numero_nf || "",
+      doc.pipe(res);
+
+      const pageW =
+        doc.page.width;
+
+      const pageH =
+        doc.page.height;
+
+      const margin = 18;
+
+      const cols = [
+        {
+          label:
+            "Status",
+          x: 18,
+          w: 52,
+        },
+        {
+          label:
+            "Descrição",
+          x: 70,
+          w: 130,
+        },
+        {
+          label:
+            "Tipo de documento",
+          x: 200,
+          w: 82,
+        },
+        {
+          label:
+            "Fornecedor",
+          x: 282,
+          w: 132,
+        },
+        {
+          label:
+            "Vencimento/Caixa",
+          x: 414,
+          w: 82,
+        },
+        {
+          label:
+            "Valor",
+          x: 496,
+          w: 58,
+        },
+        {
+          label:
+            "Saldo",
+          x: 554,
+          w: 58,
+        },
+        {
+          label:
+            "Entrada/Competência",
+          x: 612,
+          w: 96,
+        },
+        {
+          label:
+            "Conta analítica",
+          x: 708,
+          w: 82,
+        },
+        {
+          label:
+            "Número NF",
+          x: 790,
+          w: 55,
+        },
       ];
 
-      for (
-        let i = 0;
-        i < cols.length;
-        i++
-      ) {
-        const c = cols[i];
+      function drawHeader() {
+        doc
+          .font(
+            "Helvetica-Bold"
+          )
+          .fontSize(19)
+          .fillColor(
+            "#111"
+          );
+
+        doc.text(
+          "1005 PUB",
+          margin,
+          20
+        );
 
         doc
-          .rect(
-            c.x,
-            y,
-            c.w,
-            rowH
+          .font(
+            "Helvetica"
+          )
+          .fontSize(8);
+
+        doc.text(
+          "Estabelecimento: 1005 PUB",
+          margin,
+          48
+        );
+
+        doc.text(
+          "Telefone: (42) 99801-1925",
+          margin,
+          59
+        );
+
+        doc.text(
+          "Usuário: admin",
+          margin,
+          70
+        );
+
+        doc
+          .font(
+            "Helvetica-Bold"
+          )
+          .fontSize(13);
+
+        doc.text(
+          "Contas a Pagar",
+          0,
+          60,
+          {
+            align:
+              "center",
+            width:
+              pageW,
+          }
+        );
+
+        doc
+          .fontSize(15)
+          .fillColor(
+            "#1b7f3a"
+          );
+
+        doc.text(
+          tituloStatus,
+          pageW - 175,
+          58,
+          {
+            width: 120,
+            align:
+              "center",
+          }
+        );
+
+        doc.fillColor(
+          "#111"
+        );
+
+        doc
+          .moveTo(
+            margin,
+            92
+          )
+          .lineTo(
+            pageW -
+              margin,
+            92
           )
           .stroke();
 
-        const align =
-          i === 5 || i === 6
-            ? "right"
-            : "left";
+        doc
+          .font(
+            "Helvetica-Bold"
+          )
+          .fontSize(7);
 
-        fitText(
-          doc,
-          values[i],
-          c.x + 3,
-          y + 5,
-          c.w - 6,
-          rowH - 8,
-          {
-            align,
-          }
+        const y = 99;
+
+        for (
+          const c of cols
+        ) {
+          doc
+            .rect(
+              c.x,
+              y,
+              c.w,
+              28
+            )
+            .stroke();
+
+          fitText(
+            doc,
+            c.label,
+            c.x + 3,
+            y + 7,
+            c.w - 6,
+            16,
+            {
+              align:
+                "center",
+            }
+          );
+        }
+      }
+
+      function drawFooter() {
+        const y =
+          pageH - 45;
+
+        doc
+          .moveTo(
+            margin,
+            y - 8
+          )
+          .lineTo(
+            pageW -
+              margin,
+            y - 8
+          )
+          .stroke();
+
+        doc
+          .font(
+            "Helvetica-Bold"
+          )
+          .fontSize(8)
+          .fillColor(
+            "#111"
+          );
+
+        doc.text(
+          `A pagar: R$ ${money(
+            totalAberto
+          )}`,
+          margin,
+          y
+        );
+
+        doc.text(
+          `Total: R$ ${money(
+            totalGeral
+          )}`,
+          245,
+          y
+        );
+
+        doc.text(
+          `Vencidas: R$ ${money(
+            totalVencido
+          )}`,
+          405,
+          y
+        );
+
+        doc.text(
+          `Pagas: R$ ${money(
+            totalPago
+          )}`,
+          590,
+          y
+        );
+
+        doc
+          .font(
+            "Helvetica"
+          )
+          .fontSize(7);
+
+        doc.text(
+          `Emitido dia ${dateTimeBR()}.`,
+          margin,
+          y + 17
         );
       }
 
-      y += rowH;
-    }
+      drawHeader();
 
-    if (!rows.length) {
+      let y = 127;
+
+      const rowH = 38;
+
       doc
-        .font("Helvetica-Bold")
-        .fontSize(12);
+        .font(
+          "Helvetica"
+        )
+        .fontSize(7)
+        .fillColor(
+          "#111"
+        );
 
-      doc.text(
-        "Nenhuma conta encontrada no período selecionado.",
-        margin,
-        145
+      for (
+        const item of rows
+      ) {
+        if (
+          y + rowH >
+          pageH - 65
+        ) {
+          drawFooter();
+
+          doc.addPage();
+
+          drawHeader();
+
+          y = 127;
+
+          doc
+            .font(
+              "Helvetica"
+            )
+            .fontSize(7)
+            .fillColor(
+              "#111"
+            );
+        }
+
+        const descricao =
+          item.descricao ||
+          (item.numero_nf
+            ? `XML - NF ${item.numero_nf}`
+            : "Conta sem descrição");
+
+        const tipoDocumento =
+          item.numero_nf
+            ? "XML"
+            : "";
+
+        const fornecedor =
+          item.fornecedor ||
+          "";
+
+        const vencimento =
+          dateBR(
+            item.vencimento
+          );
+
+        const valor =
+          money(
+            item.valor
+          );
+
+        const saldo =
+          item.status_calc ===
+          "Pago"
+            ? "0,00"
+            : money(
+                Number(
+                  item.valor ||
+                    0
+                ) +
+                  (item.status_calc ===
+                  "Vencido"
+                    ? Number(
+                        item.multa ||
+                          0
+                      )
+                    : 0)
+              );
+
+        const entrada =
+          dateBR(
+            item.criado_em ||
+              item.pago_em
+          );
+
+        const conta =
+          item.status_calc ===
+          "Pago"
+            ? "Fornecedores"
+            : item.fornecedor
+                ?.toLowerCase()
+                .includes(
+                  "fgts"
+                )
+            ? "FGTS sobre folha"
+            : item.fornecedor
+                ?.toLowerCase()
+                .includes(
+                  "receita"
+                )
+            ? "Impostos e taxas"
+            : "Fornecedores";
+
+        const values = [
+          item.status_calc,
+          descricao,
+          tipoDocumento,
+          fornecedor,
+          vencimento,
+          valor,
+          saldo,
+          entrada,
+          conta,
+          item.numero_nf ||
+            "",
+        ];
+
+        for (
+          let i = 0;
+          i <
+          cols.length;
+          i++
+        ) {
+          const c =
+            cols[i];
+
+          doc
+            .rect(
+              c.x,
+              y,
+              c.w,
+              rowH
+            )
+            .stroke();
+
+          const align =
+            i === 5 ||
+            i === 6
+              ? "right"
+              : "left";
+
+          fitText(
+            doc,
+            values[i],
+            c.x + 3,
+            y + 5,
+            c.w - 6,
+            rowH - 8,
+            {
+              align,
+            }
+          );
+        }
+
+        y += rowH;
+      }
+
+      if (
+        !rows.length
+      ) {
+        doc
+          .font(
+            "Helvetica-Bold"
+          )
+          .fontSize(12);
+
+        doc.text(
+          "Nenhuma conta encontrada no período selecionado.",
+          margin,
+          145
+        );
+      }
+
+      drawFooter();
+
+      doc.end();
+    } catch (e) {
+      console.error(
+        "ERRO RELATORIO CONTAS:",
+        e
       );
-    }
 
-    drawFooter();
-
-    doc.end();
-  } catch (e) {
-    console.error(
-      "ERRO RELATORIO CONTAS:",
-      e
-    );
-
-    res
-      .status(500)
-      .json({
-        error:
-          e?.message ||
-          "Erro ao gerar relatório",
-      });
-  }
-});
-
-/* =========================================================
-   LISTAR
-========================================================= */
-
-router.get("/", async (req, res) => {
-  try {
-    const r = await db.query(`
-      SELECT *
-      FROM contas_pagar
-      ORDER BY
-        CASE
-          WHEN status = 'pago'
-          THEN 1
-          ELSE 0
-        END ASC,
-        vencimento ASC NULLS LAST,
-        id DESC
-    `);
-
-    res.json(
-      r.rows.map((x) => ({
-        ...x,
-
-        valor:
-          x.valor == null
-            ? null
-            : Number(x.valor),
-
-        multa:
-          x.multa == null
-            ? 0
-            : Number(x.multa),
-      }))
-    );
-  } catch (e) {
-    res
-      .status(500)
-      .json({
-        error:
-          e?.message ||
-          "Erro ao listar contas a pagar",
-      });
-  }
-});
-
-/* =========================================================
-   CRIAR
-========================================================= */
-
-router.post("/", async (req, res) => {
-  try {
-    const {
-      descricao,
-      fornecedor,
-      numero_nf,
-      chave,
-      valor,
-      multa,
-      vencimento,
-    } = req.body;
-
-    const valorNormalizado =
-      normalizeMoney(valor);
-
-    const multaNormalizada =
-      normalizeMoney(multa);
-
-    if (
-      valor != null &&
-      valor !== "" &&
-      valorNormalizado == null
-    ) {
-      return res
-        .status(400)
+      res
+        .status(500)
         .json({
-          error: "Valor inválido",
+          error:
+            e?.message ||
+            "Erro ao gerar relatório",
         });
     }
+  }
+);
 
-    if (
-      multa != null &&
-      multa !== "" &&
-      multaNormalizada == null
-    ) {
-      return res
-        .status(400)
+// =========================================================
+// LISTAR
+// =========================================================
+
+router.get(
+  "/",
+  async (req, res) => {
+    try {
+      const r =
+        await db.query(`
+          SELECT *
+          FROM contas_pagar
+          ORDER BY
+            CASE
+              WHEN status = 'pago'
+              THEN 1
+              ELSE 0
+            END ASC,
+            vencimento ASC NULLS LAST,
+            id DESC
+        `);
+
+      res.json(
+        r.rows.map(
+          (x) => ({
+            ...x,
+
+            valor:
+              x.valor ==
+              null
+                ? null
+                : Number(
+                    x.valor
+                  ),
+
+            multa:
+              x.multa ==
+              null
+                ? 0
+                : Number(
+                    x.multa
+                  ),
+          })
+        )
+      );
+    } catch (e) {
+      res
+        .status(500)
         .json({
-          error: "Multa inválida",
+          error:
+            e?.message ||
+            "Erro ao listar contas a pagar",
         });
     }
+  }
+);
 
-    const r = await db.query(
-      `
-      INSERT INTO contas_pagar
-      (
+// =========================================================
+// CRIAR
+// =========================================================
+
+router.post(
+  "/",
+  async (req, res) => {
+    try {
+      const {
         descricao,
         fornecedor,
         numero_nf,
         chave,
         valor,
         multa,
-        vencimento
-      )
-      VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7
-      )
-      RETURNING *
-      `,
-      [
-        descricao || null,
-        fornecedor || null,
-        numero_nf || null,
-        chave || null,
-        valorNormalizado,
-        multaNormalizada || 0,
-        vencimento || null,
-      ]
-    );
+        vencimento,
+      } = req.body;
 
-    res
-      .status(201)
-      .json({
-        ...r.rows[0],
+      const valorNormalizado =
+        normalizeMoney(
+          valor
+        );
 
-        valor:
-          r.rows[0]?.valor == null
-            ? null
-            : Number(
-                r.rows[0].valor
-              ),
+      const multaNormalizada =
+        normalizeMoney(
+          multa
+        );
 
-        multa:
-          r.rows[0]?.multa == null
-            ? 0
-            : Number(
-                r.rows[0].multa
-              ),
-      });
-  } catch (e) {
-    res
-      .status(500)
-      .json({
-        error:
-          e?.message ||
-          "Erro ao criar conta a pagar",
-      });
-  }
-});
-
-/* =========================================================
-   PAGAR
-========================================================= */
-
-/* =========================================================
-   PAGAR
-========================================================= */
-
-router.post("/:id/pagar", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { banco_pagamento } = req.body;
-
-    if (!banco_pagamento) {
-      return res.status(400).json({
-        error: "Selecione o banco do pagamento",
-      });
-    }
-
-    const conta = await db.query(
-      `
-      SELECT *
-      FROM contas_pagar
-      WHERE id = $1
-      `,
-      [id]
-    );
-
-    if (!conta.rows.length) {
-      return res.status(404).json({
-        error: "Conta não encontrada",
-      });
-    }
-
-    const item = conta.rows[0];
-
-    if (String(item.status).toLowerCase() === "pago") {
-      return res.status(400).json({
-        error: "Esta conta já está paga",
-      });
-    }
-
-    const valorOriginal = Number(item.valor || 0);
-    const multa = Number(item.multa || 0);
-
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    let valorFinal = valorOriginal;
-
-    if (item.vencimento) {
-      const venc = new Date(item.vencimento);
-      venc.setHours(0, 0, 0, 0);
-
-      if (venc < hoje) {
-        valorFinal += multa;
+      if (
+        valor != null &&
+        valor !== "" &&
+        valorNormalizado ==
+          null
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "Valor inválido",
+          });
       }
+
+      if (
+        multa != null &&
+        multa !== "" &&
+        multaNormalizada ==
+          null
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "Multa inválida",
+          });
+      }
+
+      const r =
+        await db.query(
+          `
+          INSERT INTO contas_pagar
+          (
+            descricao,
+            fornecedor,
+            numero_nf,
+            chave,
+            valor,
+            multa,
+            vencimento
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7
+          )
+          RETURNING *
+          `,
+          [
+            descricao ||
+              null,
+            fornecedor ||
+              null,
+            numero_nf ||
+              null,
+            chave || null,
+            valorNormalizado,
+            multaNormalizada ||
+              0,
+            vencimento ||
+              null,
+          ]
+        );
+
+      return res
+        .status(201)
+        .json({
+          ...r.rows[0],
+
+          valor:
+            r.rows[0]
+              ?.valor ==
+            null
+              ? null
+              : Number(
+                  r.rows[0]
+                    .valor
+                ),
+
+          multa:
+            r.rows[0]
+              ?.multa ==
+            null
+              ? 0
+              : Number(
+                  r.rows[0]
+                    .multa
+                ),
+        });
+    } catch (e) {
+      return res
+        .status(500)
+        .json({
+          error:
+            e?.message ||
+            "Erro ao criar conta a pagar",
+        });
     }
-
-    const r = await db.query(
-      `
-      UPDATE contas_pagar
-      SET
-        status='pago',
-        valor=$2,
-        pago_em=NOW(),
-        banco_pagamento=$3
-      WHERE id=$1
-      RETURNING *
-      `,
-      [
-        id,
-        valorFinal,
-        banco_pagamento,
-      ]
-    );
-
-    res.json({
-      ok: true,
-      item: {
-        ...r.rows[0],
-        valor: Number(r.rows[0].valor),
-        multa: Number(r.rows[0].multa || 0),
-      },
-    });
-
-  } catch (e) {
-    res.status(500).json({
-      error: e.message || "Erro ao pagar conta",
-    });
   }
-});
-/* =========================================================
-   EDITAR
-========================================================= */
+);
+
+// =========================================================
+// PAGAR
+// =========================================================
+
+router.post(
+  "/:id/pagar",
+  async (req, res) => {
+    try {
+      const { id } =
+        req.params;
+
+      const {
+        banco_pagamento,
+      } = req.body;
+
+      if (
+        !banco_pagamento
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "Selecione o banco do pagamento",
+          });
+      }
+
+      const conta =
+        await db.query(
+          `
+          SELECT *
+          FROM contas_pagar
+          WHERE id = $1
+          `,
+          [id]
+        );
+
+      if (
+        !conta.rows.length
+      ) {
+        return res
+          .status(404)
+          .json({
+            error:
+              "Conta não encontrada",
+          });
+      }
+
+      const item =
+        conta.rows[0];
+
+      if (
+        String(
+          item.status
+        ).toLowerCase() ===
+        "pago"
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "Esta conta já está paga",
+          });
+      }
+
+      const valorOriginal =
+        Number(
+          item.valor || 0
+        );
+
+      const multa =
+        Number(
+          item.multa || 0
+        );
+
+      const hoje =
+        new Date();
+
+      hoje.setHours(
+        0,
+        0,
+        0,
+        0
+      );
+
+      let valorFinal =
+        valorOriginal;
+
+      if (
+        item.vencimento
+      ) {
+        const venc =
+          new Date(
+            item.vencimento
+          );
+
+        venc.setHours(
+          0,
+          0,
+          0,
+          0
+        );
+
+        if (
+          venc < hoje
+        ) {
+          valorFinal +=
+            multa;
+        }
+      }
+
+      const r =
+        await db.query(
+          `
+          UPDATE contas_pagar
+          SET
+            status = 'pago',
+            valor = $2,
+            pago_em = NOW(),
+            banco_pagamento = $3
+          WHERE id = $1
+          RETURNING *
+          `,
+          [
+            id,
+            valorFinal,
+            banco_pagamento,
+          ]
+        );
+
+      return res.json({
+        ok: true,
+
+        item: {
+          ...r.rows[0],
+
+          valor: Number(
+            r.rows[0].valor
+          ),
+
+          multa: Number(
+            r.rows[0]
+              .multa || 0
+          ),
+        },
+      });
+    } catch (e) {
+      return res
+        .status(500)
+        .json({
+          error:
+            e.message ||
+            "Erro ao pagar conta",
+        });
+    }
+  }
+);
+
+// =========================================================
+// EDITAR
+// =========================================================
 
 router.put(
   "/:id",
@@ -935,18 +1188,24 @@ router.put(
         valor,
         multa,
         vencimento,
+        banco_pagamento,
       } = req.body;
 
       const valorNormalizado =
-        normalizeMoney(valor);
+        normalizeMoney(
+          valor
+        );
 
       const multaNormalizada =
-        normalizeMoney(multa);
+        normalizeMoney(
+          multa
+        );
 
       if (
         valor != null &&
         valor !== "" &&
-        valorNormalizado == null
+        valorNormalizado ==
+          null
       ) {
         return res
           .status(400)
@@ -959,7 +1218,8 @@ router.put(
       if (
         multa != null &&
         multa !== "" &&
-        multaNormalizada == null
+        multaNormalizada ==
+          null
       ) {
         return res
           .status(400)
@@ -980,23 +1240,34 @@ router.put(
             chave = $4,
             valor = $5,
             multa = $6,
-            vencimento = $7
-          WHERE id = $8
+            vencimento = $7,
+            banco_pagamento = $8
+          WHERE id = $9
           RETURNING *
           `,
           [
-            descricao || null,
-            fornecedor || null,
-            numero_nf || null,
-            chave || null,
+            descricao ||
+              null,
+            fornecedor ||
+              null,
+            numero_nf ||
+              null,
+            chave ||
+              null,
             valorNormalizado,
-            multaNormalizada || 0,
-            vencimento || null,
+            multaNormalizada ||
+              0,
+            vencimento ||
+              null,
+            banco_pagamento ||
+              null,
             id,
           ]
         );
 
-      if (!r.rows.length) {
+      if (
+        !r.rows.length
+      ) {
         return res
           .status(404)
           .json({
@@ -1005,25 +1276,29 @@ router.put(
           });
       }
 
-      res.json({
+      return res.json({
         ...r.rows[0],
 
         valor:
-          r.rows[0].valor == null
+          r.rows[0]
+            .valor == null
             ? null
             : Number(
-                r.rows[0].valor
+                r.rows[0]
+                  .valor
               ),
 
         multa:
-          r.rows[0].multa == null
+          r.rows[0]
+            .multa == null
             ? 0
             : Number(
-                r.rows[0].multa
+                r.rows[0]
+                  .multa
               ),
       });
     } catch (e) {
-      res
+      return res
         .status(500)
         .json({
           error:
@@ -1034,9 +1309,9 @@ router.put(
   }
 );
 
-/* =========================================================
-   EXCLUIR
-========================================================= */
+// =========================================================
+// EXCLUIR
+// =========================================================
 
 router.delete(
   "/:id",
@@ -1065,11 +1340,11 @@ router.delete(
           });
       }
 
-      res.json({
+      return res.json({
         ok: true,
       });
     } catch (e) {
-      res
+      return res
         .status(500)
         .json({
           error:

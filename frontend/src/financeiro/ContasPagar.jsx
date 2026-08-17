@@ -1,26 +1,47 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { api } from "../api";
 
 function money(v) {
   const n = Number(v || 0);
-  return n.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+
+  return n.toLocaleString(
+    "pt-BR",
+    {
+      style: "currency",
+      currency: "BRL",
+    }
+  );
 }
 
 function todayISO() {
   const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
+
+  const yyyy =
+    d.getFullYear();
+
+  const mm = String(
+    d.getMonth() + 1
+  ).padStart(2, "0");
+
+  const dd = String(
+    d.getDate()
+  ).padStart(2, "0");
+
   return `${yyyy}-${mm}-${dd}`;
 }
 
 function norm(s) {
   return String(s || "")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
     .toLowerCase()
     .trim();
 }
@@ -28,11 +49,22 @@ function norm(s) {
 function formatDateBR(v) {
   if (!v) return "—";
 
-  const s = String(v).trim();
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const s =
+    String(v).trim();
+
+  const m =
+    s.match(
+      /^(\d{4})-(\d{2})-(\d{2})/
+    );
 
   if (m) {
-    const [, yyyy, mm, dd] = m;
+    const [
+      ,
+      yyyy,
+      mm,
+      dd,
+    ] = m;
+
     return `${dd}/${mm}/${yyyy}`;
   }
 
@@ -40,117 +72,341 @@ function formatDateBR(v) {
 }
 
 function valueSearch(v) {
-  if (v == null || v === "") return "";
+  if (
+    v == null ||
+    v === ""
+  ) {
+    return "";
+  }
 
-  const n = Number(v || 0);
+  const n =
+    Number(v || 0);
 
-  const br = n.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const br =
+    n.toLocaleString(
+      "pt-BR",
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }
+    );
 
-  return `${br} ${String(n)} ${n.toFixed(2)} ${br
+  return `${br} ${String(
+    n
+  )} ${n.toFixed(
+    2
+  )} ${br
     .replace(/\./g, "")
     .replace(",", ".")}`;
 }
 
-function statusInfo(item) {
-  const st = String(item.status || "pendente").toLowerCase();
+function statusInfo(
+  item
+) {
+  const st =
+    String(
+      item.status ||
+        "pendente"
+    ).toLowerCase();
 
   if (st === "pago") {
-    return { text: "Pago", cls: "ok" };
+    return {
+      text: "Pago",
+      cls: "ok",
+    };
   }
 
-  const venc = String(item.vencimento || "").slice(0, 10);
+  const venc =
+    String(
+      item.vencimento ||
+        ""
+    ).slice(0, 10);
 
   if (venc) {
-    const hoje = todayISO();
+    const hoje =
+      todayISO();
 
     if (venc < hoje) {
-      return { text: "Vencido", cls: "vencido" };
+      return {
+        text: "Vencido",
+        cls: "vencido",
+      };
     }
   }
 
-  return { text: "Aberto", cls: "aberto" };
+  return {
+    text: "Aberto",
+    cls: "aberto",
+  };
 }
 
 export default function ContasPagar() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [items, setItems] =
+    useState([]);
 
-  const [erro, setErro] = useState("");
-  const [msg, setMsg] = useState("");
+  const [bancos, setBancos] =
+    useState([]);
 
-  const [busca, setBusca] = useState("");
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
-  const [statusFiltro, setStatusFiltro] = useState([
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [erro, setErro] =
+    useState("");
+
+  const [msg, setMsg] =
+    useState("");
+
+  const [busca, setBusca] =
+    useState("");
+
+  const [
+    statusFiltro,
+    setStatusFiltro,
+  ] = useState([
     "aberto",
   ]);
 
-  const [fornecedor, setFornecedor] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [numeroNF, setNumeroNF] = useState("");
-  const [chave, setChave] = useState("");
-  const [valor, setValor] = useState("");
-  const [multa, setMulta] = useState("");
-  const [vencimento, setVencimento] = useState(todayISO());
+  const [
+    fornecedor,
+    setFornecedor,
+  ] = useState("");
 
-  const [inicio, setInicio] = useState("");
-  const [fim, setFim] = useState("");
+  const [
+    descricao,
+    setDescricao,
+  ] = useState("");
 
-  const [page, setPage] = useState(1);
+  const [
+    numeroNF,
+    setNumeroNF,
+  ] = useState("");
+
+  const [chave, setChave] =
+    useState("");
+
+  const [valor, setValor] =
+    useState("");
+
+  const [multa, setMulta] =
+    useState("");
+
+  const [
+    vencimento,
+    setVencimento,
+  ] = useState(todayISO());
+
+  const [inicio, setInicio] =
+    useState("");
+
+  const [fim, setFim] =
+    useState("");
+
+  const [page, setPage] =
+    useState(1);
+
   const PER_PAGE = 6;
 
-const [editando, setEditando] = useState(null);
-const [pagando, setPagando] = useState(null);
-const [bancoPagamento, setBancoPagamento] = useState("");
-const [bancoOutro, setBancoOutro] = useState("");
-const [pagandoLoading, setPagandoLoading] = useState(false);
+  const [
+    editando,
+    setEditando,
+  ] = useState(null);
 
-const BANCOS = [
-  "1005 SICREDI",
-  "1005 PAGSEGURO",
-  "1005 STONE",
-  "Cofre",
-  "CANOINHAS",
-  "Thiago NUBANK",
-  "JOÃO PAGSEGURO",
-  "ITAÚ",
-  "STONE - PAULA",
-];
+  const [
+    pagando,
+    setPagando,
+  ] = useState(null);
 
-const [editForm, setEditForm] = useState({
-  descricao: "",
-  fornecedor: "",
-  numero_nf: "",
-  chave: "",
-  valor: "",
-  multa: "",
-  vencimento: "",
-});
+  const [
+    bancoPagamento,
+    setBancoPagamento,
+  ] = useState("");
+
+  const [
+    pagandoLoading,
+    setPagandoLoading,
+  ] = useState(false);
+
+  const [
+    modalNovoBanco,
+    setModalNovoBanco,
+  ] = useState(false);
+
+  const [
+    novoBanco,
+    setNovoBanco,
+  ] = useState("");
+
+  const [
+    salvandoBanco,
+    setSalvandoBanco,
+  ] = useState(false);
+
+  const [
+    editForm,
+    setEditForm,
+  ] = useState({
+    descricao: "",
+    fornecedor: "",
+    numero_nf: "",
+    chave: "",
+    valor: "",
+    multa: "",
+    vencimento: "",
+    banco_pagamento: "",
+  });
+
+  // =========================================================
+  // CARREGAR CONTAS
+  // =========================================================
 
   async function carregar() {
     try {
       setLoading(true);
       setErro("");
 
-      const r = await api.get("/financeiro/contas-pagar");
+      const r =
+        await api.get(
+          "/financeiro/contas-pagar"
+        );
 
-      setItems(Array.isArray(r.data) ? r.data : []);
+      setItems(
+        Array.isArray(
+          r.data
+        )
+          ? r.data
+          : []
+      );
     } catch (e) {
       setErro(
-        e?.response?.data?.error ||
+        e?.response?.data
+          ?.error ||
           "Erro ao carregar contas a pagar"
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false
+      );
+    }
+  }
+
+  // =========================================================
+  // CARREGAR BANCOS
+  // =========================================================
+
+  async function carregarBancos() {
+    try {
+      const r =
+        await api.get(
+          "/bancos"
+        );
+
+      setBancos(
+        Array.isArray(
+          r.data
+        )
+          ? r.data
+          : []
+      );
+    } catch (e) {
+      console.error(
+        "Erro ao carregar bancos:",
+        e
+      );
+
+      setBancos([]);
     }
   }
 
   useEffect(() => {
     carregar();
+    carregarBancos();
   }, []);
+
+  // =========================================================
+  // CRIAR BANCO
+  // =========================================================
+
+  async function criarBanco() {
+    const nome =
+      String(
+        novoBanco || ""
+      )
+        .trim()
+        .replace(
+          /\s+/g,
+          " "
+        );
+
+    if (!nome) {
+      alert(
+        "Informe o nome do banco"
+      );
+
+      return;
+    }
+
+    try {
+      setSalvandoBanco(
+        true
+      );
+
+      const { data } =
+        await api.post(
+          "/bancos",
+          {
+            nome,
+          }
+        );
+
+      await carregarBancos();
+
+      if (data?.nome) {
+        setBancoPagamento(
+          data.nome
+        );
+
+        if (editando) {
+          setEditForm(
+            (f) => ({
+              ...f,
+              banco_pagamento:
+                data.nome,
+            })
+          );
+        }
+      }
+
+      setNovoBanco("");
+      setModalNovoBanco(
+        false
+      );
+
+      setMsg(
+        `Banco ${data?.nome || nome} cadastrado com sucesso`
+      );
+    } catch (e) {
+      alert(
+        e?.response?.data
+          ?.error ||
+          "Erro ao cadastrar banco"
+      );
+    } finally {
+      setSalvandoBanco(
+        false
+      );
+    }
+  }
+
+  // =========================================================
+  // CRIAR CONTA
+  // =========================================================
 
   async function salvar(e) {
     e.preventDefault();
@@ -160,31 +416,57 @@ const [editForm, setEditForm] = useState({
       setErro("");
       setMsg("");
 
-      await api.post("/financeiro/contas-pagar", {
-  
-    fornecedor,
-    descricao,
-   numero_nf: numeroNF,
-   chave,
-    valor: String(valor).replace(",", "."),
-    multa: String(multa || 0).replace(",", "."),
-   vencimento,
-    });
-      
+      await api.post(
+        "/financeiro/contas-pagar",
+        {
+          fornecedor,
+          descricao,
+
+          numero_nf:
+            numeroNF,
+
+          chave,
+
+          valor:
+            String(
+              valor
+            ).replace(
+              ",",
+              "."
+            ),
+
+          multa:
+            String(
+              multa || 0
+            ).replace(
+              ",",
+              "."
+            ),
+
+          vencimento,
+        }
+      );
+
       setFornecedor("");
       setDescricao("");
       setNumeroNF("");
       setChave("");
       setValor("");
       setMulta("");
-      setVencimento(todayISO());
 
-      setMsg("Conta cadastrada com sucesso");
+      setVencimento(
+        todayISO()
+      );
+
+      setMsg(
+        "Conta cadastrada com sucesso"
+      );
 
       await carregar();
     } catch (e) {
       setErro(
-        e?.response?.data?.error ||
+        e?.response?.data
+          ?.error ||
           "Erro ao cadastrar conta"
       );
     } finally {
@@ -192,131 +474,300 @@ const [editForm, setEditForm] = useState({
     }
   }
 
-  function abrirPagamento(conta) {
+  // =========================================================
+  // PAGAMENTO
+  // =========================================================
+
+  function abrirPagamento(
+    conta
+  ) {
     setPagando(conta);
-    setBancoPagamento("");
-    setBancoOutro("");
+
+    setBancoPagamento(
+      ""
+    );
+
     setErro("");
     setMsg("");
   }
 
   function fecharPagamento() {
-    if (pagandoLoading) return;
+    if (
+      pagandoLoading
+    ) {
+      return;
+    }
+
     setPagando(null);
-    setBancoPagamento("");
-    setBancoOutro("");
+
+    setBancoPagamento(
+      ""
+    );
   }
 
   async function confirmarPagamento() {
-    if (!pagando?.id || pagandoLoading) return;
+    if (
+      !pagando?.id ||
+      pagandoLoading
+    ) {
+      return;
+    }
 
     const banco =
-      bancoPagamento === "Outro"
-        ? String(bancoOutro || "").trim()
-        : String(bancoPagamento || "").trim();
+      String(
+        bancoPagamento ||
+          ""
+      ).trim();
 
     if (!banco) {
-      setErro("Selecione ou informe o banco usado no pagamento");
+      setErro(
+        "Selecione o banco usado no pagamento"
+      );
+
       return;
     }
 
     try {
-      setPagandoLoading(true);
+      setPagandoLoading(
+        true
+      );
+
       setErro("");
       setMsg("");
 
       await api.post(
         `/financeiro/contas-pagar/${pagando.id}/pagar`,
-        { banco_pagamento: banco }
+        {
+          banco_pagamento:
+            banco,
+        }
       );
 
       setPagando(null);
-      setBancoPagamento("");
-      setBancoOutro("");
-      setMsg(`Conta marcada como paga pelo banco ${banco}`);
+
+      setBancoPagamento(
+        ""
+      );
+
+      setMsg(
+        `Conta marcada como paga pelo banco ${banco}`
+      );
 
       await carregar();
     } catch (e) {
       setErro(
-        e?.response?.data?.error ||
+        e?.response?.data
+          ?.error ||
           "Erro ao pagar conta"
       );
     } finally {
-      setPagandoLoading(false);
+      setPagandoLoading(
+        false
+      );
     }
   }
 
-function editar(conta) {
-  setEditando(conta);
+  // =========================================================
+  // EDITAR
+  // =========================================================
 
-  setEditForm({
-    descricao: conta.descricao || "",
-    fornecedor: conta.fornecedor || "",
-    numero_nf: conta.numero_nf || "",
-    chave: conta.chave || "",
-    valor: conta.valor == null ? "" : String(conta.valor).replace(".", ","),
-    multa: conta.multa == null ? "" : String(conta.multa).replace(".", ","),
-    vencimento: String(conta.vencimento || "").slice(0, 10),
-  });
-}
+  function editar(conta) {
+    setEditando(conta);
 
-async function salvarEdicao() {
-  if (!editando?.id) return;
+    setEditForm({
+      descricao:
+        conta.descricao ||
+        "",
 
-  try {
-    setErro("");
-    setMsg("");
+      fornecedor:
+        conta.fornecedor ||
+        "",
 
-    await api.put(`/financeiro/contas-pagar/${editando.id}`, {
-      descricao: editForm.descricao,
-      fornecedor: editForm.fornecedor,
-      numero_nf: editForm.numero_nf,
-      chave: editForm.chave,
-      valor: String(editForm.valor || "").replace(",", "."),
-      multa: String(editForm.multa || 0).replace(",", "."),
-      vencimento: editForm.vencimento,
+      numero_nf:
+        conta.numero_nf ||
+        "",
+
+      chave:
+        conta.chave ||
+        "",
+
+      valor:
+        conta.valor ==
+        null
+          ? ""
+          : String(
+              conta.valor
+            ).replace(
+              ".",
+              ","
+            ),
+
+      multa:
+        conta.multa ==
+        null
+          ? ""
+          : String(
+              conta.multa
+            ).replace(
+              ".",
+              ","
+            ),
+
+      vencimento:
+        String(
+          conta.vencimento ||
+            ""
+        ).slice(
+          0,
+          10
+        ),
+
+      banco_pagamento:
+        conta.banco_pagamento ||
+        "",
     });
-
-    setEditando(null);
-    setMsg("Conta atualizada com sucesso");
-    await carregar();
-  } catch (e) {
-    setErro(e?.response?.data?.error || "Erro ao editar conta");
   }
-}
 
-  async function excluir(id) {
-    if (!window.confirm("Excluir esta conta?")) return;
+  async function salvarEdicao() {
+    if (
+      !editando?.id
+    ) {
+      return;
+    }
 
     try {
       setErro("");
       setMsg("");
 
-      await api.delete(`/financeiro/contas-pagar/${id}`);
+      await api.put(
+        `/financeiro/contas-pagar/${editando.id}`,
+        {
+          descricao:
+            editForm.descricao,
 
-      setMsg("Conta excluída com sucesso");
+          fornecedor:
+            editForm.fornecedor,
+
+          numero_nf:
+            editForm.numero_nf,
+
+          chave:
+            editForm.chave,
+
+          valor:
+            String(
+              editForm.valor ||
+                ""
+            ).replace(
+              ",",
+              "."
+            ),
+
+          multa:
+            String(
+              editForm.multa ||
+                0
+            ).replace(
+              ",",
+              "."
+            ),
+
+          vencimento:
+            editForm.vencimento,
+
+          banco_pagamento:
+            editForm.banco_pagamento ||
+            null,
+        }
+      );
+
+      setEditando(null);
+
+      setMsg(
+        "Conta atualizada com sucesso"
+      );
 
       await carregar();
     } catch (e) {
       setErro(
-        e?.response?.data?.error ||
+        e?.response?.data
+          ?.error ||
+          "Erro ao editar conta"
+      );
+    }
+  }
+
+  // =========================================================
+  // EXCLUIR
+  // =========================================================
+
+  async function excluir(
+    id
+  ) {
+    if (
+      !window.confirm(
+        "Excluir esta conta?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setErro("");
+      setMsg("");
+
+      await api.delete(
+        `/financeiro/contas-pagar/${id}`
+      );
+
+      setMsg(
+        "Conta excluída com sucesso"
+      );
+
+      await carregar();
+    } catch (e) {
+      setErro(
+        e?.response?.data
+          ?.error ||
           "Erro ao excluir conta"
       );
     }
   }
 
-  function toggleStatusFiltro(valor) {
-    setStatusFiltro((atual) => {
-      const lista = Array.isArray(atual) ? atual : [];
+  function toggleStatusFiltro(
+    valor
+  ) {
+    setStatusFiltro(
+      (atual) => {
+        const lista =
+          Array.isArray(
+            atual
+          )
+            ? atual
+            : [];
 
-      if (lista.includes(valor)) {
-        const novo = lista.filter((x) => x !== valor);
+        if (
+          lista.includes(
+            valor
+          )
+        ) {
+          const novo =
+            lista.filter(
+              (x) =>
+                x !== valor
+            );
 
-        return novo.length ? novo : ["aberto"];
+          return novo.length
+            ? novo
+            : ["aberto"];
+        }
+
+        return [
+          ...lista,
+          valor,
+        ];
       }
-
-      return [...lista, valor];
-    });
+    );
   }
 
   function selecionarTodosStatus() {
@@ -328,127 +779,267 @@ async function salvarEdicao() {
   }
 
   function limparStatus() {
-    setStatusFiltro(["aberto"]);
+    setStatusFiltro([
+      "aberto",
+    ]);
   }
 
-  const filtrados = useMemo(() => {
-    const termo = norm(busca);
+  const filtrados =
+    useMemo(() => {
+      const termo =
+        norm(busca);
 
-    return items.filter((item) => {
-      const info = statusInfo(item);
-      const st = String(item.status || "pendente").toLowerCase();
-      const pago = st === "pago";
+      return items.filter(
+        (item) => {
+          const info =
+            statusInfo(
+              item
+            );
 
-      const dataBase = String(
-        item.vencimento || item.pago_em || ""
-      ).slice(0, 10);
+          const st =
+            String(
+              item.status ||
+                "pendente"
+            ).toLowerCase();
 
-      const okPeriodo =
-        (!inicio || dataBase >= inicio) &&
-        (!fim || dataBase <= fim);
+          const pago =
+            st === "pago";
 
-      const descricao =
-  item.descricao ||
-  (item.numero_nf
-    ? `XML - NF ${item.numero_nf}`
-    : "Conta sem descrição");
+          const dataBase =
+            String(
+              item.vencimento ||
+                item.pago_em ||
+                ""
+            ).slice(
+              0,
+              10
+            );
 
-      const vencBR = formatDateBR(item.vencimento);
-      const valorTxt = valueSearch(item.valor);
-      const saldoTxt = valueSearch(pago ? 0 : item.valor);
+          const okPeriodo =
+            (!inicio ||
+              dataBase >=
+                inicio) &&
+            (!fim ||
+              dataBase <=
+                fim);
 
-      const texto = norm(`
-        ${descricao || ""}
-        ${item.fornecedor || ""}
-        ${item.numero_nf || ""}
-        ${item.chave || ""}
-        ${item.vencimento || ""}
-        ${vencBR || ""}
-        ${item.valor || ""}
-        ${item.multa || ""}
-        ${item.valor_atual || ""}
-        ${valorTxt || ""}
-        ${saldoTxt || ""}
-        ${item.status || ""}
-        ${info.text || ""}
-      `);
+          const descricao =
+            item.descricao ||
+            (item.numero_nf
+              ? `XML - NF ${item.numero_nf}`
+              : "Conta sem descrição");
 
-      const okBusca = !termo || texto.includes(termo);
+          const vencBR =
+            formatDateBR(
+              item.vencimento
+            );
 
-      const filtros = Array.isArray(statusFiltro)
-        ? statusFiltro
-        : ["aberto"];
+          const valorTxt =
+            valueSearch(
+              item.valor
+            );
 
-      const okStatus =
-        (filtros.includes("aberto") &&
-          st !== "pago" &&
-          info.cls === "aberto") ||
-        (filtros.includes("vencido") &&
-          st !== "pago" &&
-          info.cls === "vencido") ||
-        (filtros.includes("pago") && st === "pago");
+          const saldoTxt =
+            valueSearch(
+              pago
+                ? 0
+                : item.valor
+            );
 
-      return okBusca && okStatus && okPeriodo;
-    });
-  }, [items, busca, statusFiltro, inicio, fim]);
+          const texto =
+            norm(`
+              ${descricao || ""}
+              ${item.fornecedor || ""}
+              ${item.numero_nf || ""}
+              ${item.chave || ""}
+              ${item.vencimento || ""}
+              ${vencBR || ""}
+              ${item.valor || ""}
+              ${item.multa || ""}
+              ${item.valor_atual || ""}
+              ${valorTxt || ""}
+              ${saldoTxt || ""}
+              ${item.status || ""}
+              ${item.banco_pagamento || ""}
+              ${info.text || ""}
+            `);
 
-  const totais = useMemo(() => {
-    let aberto = 0;
-    let pago = 0;
-    let vencido = 0;
+          const okBusca =
+            !termo ||
+            texto.includes(
+              termo
+            );
 
-    for (const item of items) {
-      const v = Number(item.valor_atual ?? item.valor ?? 0);
-      const st = String(item.status || "pendente").toLowerCase();
-      const info = statusInfo(item);
+          const filtros =
+            Array.isArray(
+              statusFiltro
+            )
+              ? statusFiltro
+              : ["aberto"];
 
-      if (st === "pago") {
-        pago += v;
-      } else if (info.cls === "vencido") {
-        vencido += v;
-      } else {
-        aberto += v;
+          const okStatus =
+            (filtros.includes(
+              "aberto"
+            ) &&
+              st !==
+                "pago" &&
+              info.cls ===
+                "aberto") ||
+            (filtros.includes(
+              "vencido"
+            ) &&
+              st !==
+                "pago" &&
+              info.cls ===
+                "vencido") ||
+            (filtros.includes(
+              "pago"
+            ) &&
+              st ===
+                "pago");
+
+          return (
+            okBusca &&
+            okStatus &&
+            okPeriodo
+          );
+        }
+      );
+    }, [
+      items,
+      busca,
+      statusFiltro,
+      inicio,
+      fim,
+    ]);
+
+  const totais =
+    useMemo(() => {
+      let aberto = 0;
+      let pago = 0;
+      let vencido = 0;
+
+      for (
+        const item of items
+      ) {
+        const v =
+          Number(
+            item.valor_atual ??
+              item.valor ??
+              0
+          );
+
+        const st =
+          String(
+            item.status ||
+              "pendente"
+          ).toLowerCase();
+
+        const info =
+          statusInfo(
+            item
+          );
+
+        if (
+          st === "pago"
+        ) {
+          pago += v;
+        } else if (
+          info.cls ===
+          "vencido"
+        ) {
+          vencido += v;
+        } else {
+          aberto += v;
+        }
       }
-    }
 
-    return {
-      aberto,
-      pago,
-      vencido,
-      total: aberto + pago + vencido,
-    };
-  }, [items]);
+      return {
+        aberto,
+        pago,
+        vencido,
 
-const totalSelecionado = useMemo(() => {
-  return filtrados.reduce(
-    (total, item) => total + Number(item.valor_atual ?? item.valor ?? 0),
-    0
-  );
-}, [filtrados]);
+        total:
+          aberto +
+          pago +
+          vencido,
+      };
+    }, [items]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filtrados.length / PER_PAGE)
-  );
+  const totalSelecionado =
+    useMemo(() => {
+      return filtrados.reduce(
+        (
+          total,
+          item
+        ) =>
+          total +
+          Number(
+            item.valor_atual ??
+              item.valor ??
+              0
+          ),
+        0
+      );
+    }, [filtrados]);
 
-  const paginados = useMemo(() => {
-    const start = (page - 1) * PER_PAGE;
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        filtrados.length /
+          PER_PAGE
+      )
+    );
 
-    return filtrados.slice(start, start + PER_PAGE);
-  }, [filtrados, page]);
+  const paginados =
+    useMemo(() => {
+      const start =
+        (page - 1) *
+        PER_PAGE;
+
+      return filtrados.slice(
+        start,
+        start +
+          PER_PAGE
+      );
+    }, [
+      filtrados,
+      page,
+    ]);
 
   useEffect(() => {
     setPage(1);
-  }, [busca, statusFiltro, inicio, fim]);
+  }, [
+    busca,
+    statusFiltro,
+    inicio,
+    fim,
+  ]);
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+    if (
+      page > totalPages
+    ) {
+      setPage(
+        totalPages
+      );
+    }
+  }, [
+    page,
+    totalPages,
+  ]);
 
   const todosStatusSelecionados =
-    statusFiltro.includes("aberto") &&
-    statusFiltro.includes("vencido") &&
-    statusFiltro.includes("pago");
+    statusFiltro.includes(
+      "aberto"
+    ) &&
+    statusFiltro.includes(
+      "vencido"
+    ) &&
+    statusFiltro.includes(
+      "pago"
+    );
 
   return (
     <div className="panel">
@@ -484,15 +1075,7 @@ const totalSelecionado = useMemo(() => {
 
         .cp-form{
           display:grid;
-          grid-template-columns:
-1.6fr
-1.6fr
-1fr
-1fr
-1fr
-1fr
-1fr
-auto;
+          grid-template-columns:1.6fr 1.6fr 1fr 1fr 1fr 1fr 1fr auto;
           gap:10px;
           align-items:end;
         }
@@ -668,43 +1251,51 @@ auto;
           flex-wrap:wrap;
         }
 
-.cp-modal-bg{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.72);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
+        .cp-modal-bg{
+          position:fixed;
+          inset:0;
+          background:rgba(0,0,0,.72);
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          z-index:9999;
+        }
 
-.cp-modal{
-  width:min(520px,92vw);
-  background:#11111d;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:18px;
-  padding:18px;
-  box-shadow:0 20px 60px rgba(0,0,0,.55);
-}
+        .cp-modal{
+          width:min(520px,92vw);
+          max-height:90vh;
+          overflow:auto;
+          background:#11111d;
+          border:1px solid rgba(255,255,255,.12);
+          border-radius:18px;
+          padding:18px;
+          box-shadow:0 20px 60px rgba(0,0,0,.55);
+        }
 
-.cp-modal h3{
-  margin:0 0 14px;
-  color:#fff;
-}
+        .cp-modal h3{
+          margin:0 0 14px;
+          color:#fff;
+        }
 
-.cp-modal-grid{
-  display:grid;
-  gap:10px;
-}
+        .cp-modal-grid{
+          display:grid;
+          gap:10px;
+        }
 
-.cp-modal-actions{
-  display:flex;
-  justify-content:flex-end;
-  gap:10px;
-  margin-top:18px;
-}
+        .cp-modal-actions{
+          display:flex;
+          justify-content:flex-end;
+          gap:10px;
+          margin-top:18px;
+        }
 
-        @media (max-width: 980px){
+        .cp-bank-row{
+          display:grid;
+          grid-template-columns:1fr auto;
+          gap:8px;
+        }
+
+        @media (max-width:980px){
           .cp-top{
             grid-template-columns:repeat(2,minmax(180px,1fr));
           }
@@ -718,7 +1309,7 @@ auto;
           }
         }
 
-        @media (max-width: 620px){
+        @media (max-width:620px){
           .cp-top{
             grid-template-columns:1fr;
           }
@@ -730,167 +1321,299 @@ auto;
           .cp-status-filter button{
             flex:1;
           }
+
+          .cp-bank-row{
+            grid-template-columns:1fr;
+          }
         }
       `}</style>
 
       <div className="panel-head">
-        <h2>Contas a Pagar</h2>
+        <h2>
+          Contas a Pagar
+        </h2>
 
         <span className="badge">
-          {filtrados.length} registro(s)
+          {filtrados.length}{" "}
+          registro(s)
         </span>
       </div>
 
       <div className="cp-wrap">
         <div className="cp-top">
           <div className="cp-card">
-            <div className="cp-k">Em aberto</div>
-            <div className="cp-v">{money(totais.aberto)}</div>
+            <div className="cp-k">
+              Em aberto
+            </div>
+
+            <div className="cp-v">
+              {money(
+                totais.aberto
+              )}
+            </div>
           </div>
 
           <div className="cp-card">
-            <div className="cp-k">Pagas</div>
-            <div className="cp-v">{money(totais.pago)}</div>
+            <div className="cp-k">
+              Pagas
+            </div>
+
+            <div className="cp-v">
+              {money(
+                totais.pago
+              )}
+            </div>
           </div>
 
           <div className="cp-card">
-            <div className="cp-k">Vencidas</div>
-            <div className="cp-v">{money(totais.vencido)}</div>
+            <div className="cp-k">
+              Vencidas
+            </div>
+
+            <div className="cp-v">
+              {money(
+                totais.vencido
+              )}
+            </div>
           </div>
 
           <div className="cp-card">
-            <div className="cp-k">Total</div>
-            <div className="cp-v">{money(totais.total)}</div>
+            <div className="cp-k">
+              Total
+            </div>
+
+            <div className="cp-v">
+              {money(
+                totais.total
+              )}
+            </div>
           </div>
         </div>
 
         <div className="cp-card">
-  <div className="cp-k">Selecionados</div>
-  <div className="cp-v">{money(totalSelecionado)}</div>
-</div>
+          <div className="cp-k">
+            Selecionados
+          </div>
 
-        <form onSubmit={salvar} className="cp-card">
+          <div className="cp-v">
+            {money(
+              totalSelecionado
+            )}
+          </div>
+        </div>
+
+        <form
+          onSubmit={salvar}
+          className="cp-card"
+        >
           <div className="cp-form">
-            
             <div>
-  <div className="cp-muted" style={{ marginBottom: 6 }}>
-    Descrição
-  </div>
+              <div
+                className="cp-muted"
+                style={{
+                  marginBottom: 6,
+                }}
+              >
+                Descrição
+              </div>
 
-  <input
-    className="cp-input"
-    value={descricao}
-    onChange={(e) => setDescricao(e.target.value)}
-    placeholder="Ex.: Conta de luz - 06/2026"
-  />
-</div>
-            
+              <input
+                className="cp-input"
+                value={
+                  descricao
+                }
+                onChange={(e) =>
+                  setDescricao(
+                    e.target.value
+                  )
+                }
+                placeholder="Ex.: Conta de luz - 06/2026"
+              />
+            </div>
+
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>
+              <div
+                className="cp-muted"
+                style={{
+                  marginBottom: 6,
+                }}
+              >
                 Fornecedor
               </div>
 
               <input
                 className="cp-input"
-                value={fornecedor}
-                onChange={(e) => setFornecedor(e.target.value)}
+                value={
+                  fornecedor
+                }
+                onChange={(e) =>
+                  setFornecedor(
+                    e.target.value
+                  )
+                }
                 placeholder="Ex.: Nova Aliança Distribuidora"
               />
             </div>
 
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>
+              <div
+                className="cp-muted"
+                style={{
+                  marginBottom: 6,
+                }}
+              >
                 Número NF
               </div>
 
               <input
                 className="cp-input"
-                value={numeroNF}
-                onChange={(e) => setNumeroNF(e.target.value)}
+                value={
+                  numeroNF
+                }
+                onChange={(e) =>
+                  setNumeroNF(
+                    e.target.value
+                  )
+                }
                 placeholder="Ex.: 120467"
               />
             </div>
 
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>
+              <div
+                className="cp-muted"
+                style={{
+                  marginBottom: 6,
+                }}
+              >
                 Chave / referência
               </div>
 
               <input
                 className="cp-input"
                 value={chave}
-                onChange={(e) => setChave(e.target.value)}
+                onChange={(e) =>
+                  setChave(
+                    e.target.value
+                  )
+                }
                 placeholder="Opcional"
               />
             </div>
 
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>
+              <div
+                className="cp-muted"
+                style={{
+                  marginBottom: 6,
+                }}
+              >
                 Valor
               </div>
 
               <input
                 className="cp-input"
                 value={valor}
-                onChange={(e) => setValor(e.target.value)}
+                onChange={(e) =>
+                  setValor(
+                    e.target.value
+                  )
+                }
                 placeholder="444,96"
               />
             </div>
 
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>
-                Multa por atraso (R$)
+              <div
+                className="cp-muted"
+                style={{
+                  marginBottom: 6,
+                }}
+              >
+                Multa por atraso
+                (R$)
               </div>
 
               <input
                 className="cp-input"
                 value={multa}
-                onChange={(e) => setMulta(e.target.value)}
+                onChange={(e) =>
+                  setMulta(
+                    e.target.value
+                  )
+                }
                 placeholder="0,00"
               />
             </div>
 
             <div>
-              <div className="cp-muted" style={{ marginBottom: 6 }}>
+              <div
+                className="cp-muted"
+                style={{
+                  marginBottom: 6,
+                }}
+              >
                 Vencimento
               </div>
 
               <input
                 className="cp-input"
                 type="date"
-                value={vencimento}
-                onChange={(e) => setVencimento(e.target.value)}
+                value={
+                  vencimento
+                }
+                onChange={(e) =>
+                  setVencimento(
+                    e.target.value
+                  )
+                }
               />
             </div>
 
             <button
               type="submit"
               className="btn-primary"
-              disabled={saving}
+              disabled={
+                saving
+              }
             >
-              {saving ? "Salvando..." : "Adicionar"}
+              {saving
+                ? "Salvando..."
+                : "Adicionar"}
             </button>
           </div>
         </form>
 
         <div className="fin-date">
           <div className="fin-datebox">
-            <span className="tag">Início</span>
+            <span className="tag">
+              Início
+            </span>
 
             <input
               type="date"
               value={inicio}
-              onChange={(e) => setInicio(e.target.value)}
+              onChange={(e) =>
+                setInicio(
+                  e.target.value
+                )
+              }
             />
           </div>
 
           <div className="fin-datebox">
-            <span className="tag">Fim</span>
+            <span className="tag">
+              Fim
+            </span>
 
             <input
               type="date"
               value={fim}
-              onChange={(e) => setFim(e.target.value)}
+              onChange={(e) =>
+                setFim(
+                  e.target.value
+                )
+              }
             />
           </div>
         </div>
@@ -900,8 +1623,12 @@ auto;
             <input
               className="cp-input"
               value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Pesquisar qualquer campo: fornecedor, NF, chave, data, valor, status..."
+              onChange={(e) =>
+                setBusca(
+                  e.target.value
+                )
+              }
+              placeholder="Pesquisar qualquer campo: fornecedor, NF, chave, data, valor, banco, status..."
             />
 
             <div className="cp-status-area">
@@ -913,39 +1640,69 @@ auto;
                 <button
                   type="button"
                   className={
-                    statusFiltro.includes("aberto")
+                    statusFiltro.includes(
+                      "aberto"
+                    )
                       ? "active"
                       : ""
                   }
-                  onClick={() => toggleStatusFiltro("aberto")}
+                  onClick={() =>
+                    toggleStatusFiltro(
+                      "aberto"
+                    )
+                  }
                 >
-                  {statusFiltro.includes("aberto") ? "✓ " : ""}
+                  {statusFiltro.includes(
+                    "aberto"
+                  )
+                    ? "✓ "
+                    : ""}
                   Em aberto
                 </button>
 
                 <button
                   type="button"
                   className={
-                    statusFiltro.includes("vencido")
+                    statusFiltro.includes(
+                      "vencido"
+                    )
                       ? "active"
                       : ""
                   }
-                  onClick={() => toggleStatusFiltro("vencido")}
+                  onClick={() =>
+                    toggleStatusFiltro(
+                      "vencido"
+                    )
+                  }
                 >
-                  {statusFiltro.includes("vencido") ? "✓ " : ""}
+                  {statusFiltro.includes(
+                    "vencido"
+                  )
+                    ? "✓ "
+                    : ""}
                   Vencidos
                 </button>
 
                 <button
                   type="button"
                   className={
-                    statusFiltro.includes("pago")
+                    statusFiltro.includes(
+                      "pago"
+                    )
                       ? "active"
                       : ""
                   }
-                  onClick={() => toggleStatusFiltro("pago")}
+                  onClick={() =>
+                    toggleStatusFiltro(
+                      "pago"
+                    )
+                  }
                 >
-                  {statusFiltro.includes("pago") ? "✓ " : ""}
+                  {statusFiltro.includes(
+                    "pago"
+                  )
+                    ? "✓ "
+                    : ""}
                   Pagos
                 </button>
 
@@ -956,7 +1713,9 @@ auto;
                       ? "active"
                       : "soft"
                   }
-                  onClick={selecionarTodosStatus}
+                  onClick={
+                    selecionarTodosStatus
+                  }
                 >
                   Todos
                 </button>
@@ -964,7 +1723,9 @@ auto;
                 <button
                   type="button"
                   className="soft"
-                  onClick={limparStatus}
+                  onClick={
+                    limparStatus
+                  }
                 >
                   Limpar
                 </button>
@@ -973,25 +1734,69 @@ auto;
           </div>
         </div>
 
-        {erro ? <div className="cp-err">{erro}</div> : null}
-        {msg ? <div className="cp-ok">{msg}</div> : null}
+        {erro ? (
+          <div className="cp-err">
+            {erro}
+          </div>
+        ) : null}
+
+        {msg ? (
+          <div className="cp-ok">
+            {msg}
+          </div>
+        ) : null}
 
         <div className="cp-table-wrap">
           <table className="cp-table">
             <thead>
               <tr>
-                <th>Fornecedor</th>
-                <th>Descrição</th>
-                <th>Vencimento</th>
-                <th>Valor</th>
-                <th>Multa</th>
-                <th>Saldo</th>
-                <th>Status</th>
-                <th>Número NF</th>
-                <th>Referência</th>
-                <th>Banco</th>
-                <th>Pago em</th>
-                <th>Ações</th>
+                <th>
+                  Fornecedor
+                </th>
+
+                <th>
+                  Descrição
+                </th>
+
+                <th>
+                  Vencimento
+                </th>
+
+                <th>
+                  Valor
+                </th>
+
+                <th>
+                  Multa
+                </th>
+
+                <th>
+                  Saldo
+                </th>
+
+                <th>
+                  Status
+                </th>
+
+                <th>
+                  Número NF
+                </th>
+
+                <th>
+                  Referência
+                </th>
+
+                <th>
+                  Banco
+                </th>
+
+                <th>
+                  Pago em
+                </th>
+
+                <th>
+                  Ações
+                </th>
               </tr>
             </thead>
 
@@ -999,21 +1804,28 @@ auto;
               {loading ? (
                 <tr>
                   <td
-                    colSpan={12}
+                    colSpan={
+                      12
+                    }
                     style={{
-                      textAlign: "center",
+                      textAlign:
+                        "center",
                       padding: 20,
                     }}
                   >
                     Carregando...
                   </td>
                 </tr>
-              ) : paginados.length === 0 ? (
+              ) : paginados.length ===
+                0 ? (
                 <tr>
                   <td
-                    colSpan={12}
+                    colSpan={
+                      12
+                    }
                     style={{
-                      textAlign: "center",
+                      textAlign:
+                        "center",
                       padding: 20,
                     }}
                   >
@@ -1021,95 +1833,186 @@ auto;
                   </td>
                 </tr>
               ) : (
-                paginados.map((c) => {
-                  const info = statusInfo(c);
-                  const pago =
-                    String(c.status || "").toLowerCase() === "pago";
+                paginados.map(
+                  (c) => {
+                    const info =
+                      statusInfo(
+                        c
+                      );
 
-                  const descricao = c.descricao
-  || (c.numero_nf ? `XML - NF ${c.numero_nf}` : "Conta sem descrição");
+                    const pago =
+                      String(
+                        c.status ||
+                          ""
+                      ).toLowerCase() ===
+                      "pago";
 
-                  return (
-                  
-                    <tr key={c.id}>
+                    const desc =
+                      c.descricao ||
+                      (c.numero_nf
+                        ? `XML - NF ${c.numero_nf}`
+                        : "Conta sem descrição");
 
-                      <td>{c.fornecedor || "—"}</td>
-
-                      <td>
-                        <strong>{descricao}</strong>
-                        {info.cls === "vencido" && Number(c.multa || 0) > 0 ? (
-                          <div className="cp-muted" style={{ marginTop: 4 }}>
-                            Total com multa: {money(c.valor_atual ?? c.valor)}
-                          </div>
-                        ) : null}
-                      </td>
-
-                      <td>{formatDateBR(c.vencimento)}</td>
-
-                      <td>{money(c.valor)}</td>
-
-                      <td>{money(c.multa)}</td>
-
-                      <td>{pago ? money(0) : money(c.valor_atual ?? c.valor)}</td>
-
-                      <td>
-                        <span className={`cp-tag ${info.cls}`}>
-                          {info.text}
-                        </span>
-                      </td>
-
-                      <td>{c.numero_nf || "—"}</td>
-
-                      <td
-                        style={{
-                          maxWidth: 220,
-                          wordBreak: "break-word",
-                        }}
+                    return (
+                      <tr
+                        key={
+                          c.id
+                        }
                       >
-                        {c.chave || "—"}
-                      </td>
+                        <td>
+                          {c.fornecedor ||
+                            "—"}
+                        </td>
 
-                      <td>{pago ? c.banco_pagamento || "—" : "—"}</td>
+                        <td>
+                          <strong>
+                            {
+                              desc
+                            }
+                          </strong>
 
-                      <td>{pago ? formatDateBR(c.pago_em) : "—"}</td>
+                          {info.cls ===
+                            "vencido" &&
+                          Number(
+                            c.multa ||
+                              0
+                          ) >
+                            0 ? (
+                            <div
+                              className="cp-muted"
+                              style={{
+                                marginTop: 4,
+                              }}
+                            >
+                              Total com
+                              multa:{" "}
+                              {money(
+                                c.valor_atual ??
+                                  c.valor
+                              )}
+                            </div>
+                          ) : null}
+                        </td>
 
-                      <td>
-                        <div className="cp-actions">
+                        <td>
+                          {formatDateBR(
+                            c.vencimento
+                          )}
+                        </td>
 
-  <button
-    type="button"
-    className="cp-mini"
-    style={{
-      background: "#8a5a16",
-      color: "#fff",
-    }}
-    onClick={() => editar(c)}
-  >
-    Editar
-  </button>
+                        <td>
+                          {money(
+                            c.valor
+                          )}
+                        </td>
 
-  {!pago && (
-    <button
-      type="button"
-      className="cp-mini cp-pay"
-      onClick={() => abrirPagamento(c)}
-    >
-      Pagar
-    </button>
-  )}
+                        <td>
+                          {money(
+                            c.multa
+                          )}
+                        </td>
 
-  <button
-    type="button"
-    className="cp-mini cp-del"
-    onClick={() => excluir(c.id)}
-  >
-    Excluir
-  </button>
-</div>
-                      </td>
-                    </tr>
-                  );
-                })
+                        <td>
+                          {pago
+                            ? money(
+                                0
+                              )
+                            : money(
+                                c.valor_atual ??
+                                  c.valor
+                              )}
+                        </td>
+
+                        <td>
+                          <span
+                            className={`cp-tag ${info.cls}`}
+                          >
+                            {
+                              info.text
+                            }
+                          </span>
+                        </td>
+
+                        <td>
+                          {c.numero_nf ||
+                            "—"}
+                        </td>
+
+                        <td
+                          style={{
+                            maxWidth: 220,
+                            wordBreak:
+                              "break-word",
+                          }}
+                        >
+                          {c.chave ||
+                            "—"}
+                        </td>
+
+                        <td>
+                          {c.banco_pagamento ||
+                            "—"}
+                        </td>
+
+                        <td>
+                          {pago
+                            ? formatDateBR(
+                                c.pago_em
+                              )
+                            : "—"}
+                        </td>
+
+                        <td>
+                          <div className="cp-actions">
+                            <button
+                              type="button"
+                              className="cp-mini"
+                              style={{
+                                background:
+                                  "#8a5a16",
+                                color:
+                                  "#fff",
+                              }}
+                              onClick={() =>
+                                editar(
+                                  c
+                                )
+                              }
+                            >
+                              Editar
+                            </button>
+
+                            {!pago && (
+                              <button
+                                type="button"
+                                className="cp-mini cp-pay"
+                                onClick={() =>
+                                  abrirPagamento(
+                                    c
+                                  )
+                                }
+                              >
+                                Pagar
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              className="cp-mini cp-del"
+                              onClick={() =>
+                                excluir(
+                                  c.id
+                                )
+                              }
+                            >
+                              Excluir
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+                )
               )}
             </tbody>
           </table>
@@ -1119,238 +2022,554 @@ auto;
           <button
             className="btn-secondary"
             onClick={() =>
-              setPage((p) => Math.max(1, p - 1))
+              setPage(
+                (p) =>
+                  Math.max(
+                    1,
+                    p - 1
+                  )
+              )
             }
-            disabled={page <= 1}
+            disabled={
+              page <= 1
+            }
           >
             ← Anterior
           </button>
 
           <div>
-            Página <strong>{page}</strong> de{" "}
-            <strong>{totalPages}</strong>
+            Página{" "}
+            <strong>
+              {page}
+            </strong>{" "}
+            de{" "}
+            <strong>
+              {totalPages}
+            </strong>
           </div>
 
           <button
             className="btn-secondary"
             onClick={() =>
-              setPage((p) => Math.min(totalPages, p + 1))
+              setPage(
+                (p) =>
+                  Math.min(
+                    totalPages,
+                    p + 1
+                  )
+              )
             }
-            disabled={page >= totalPages}
+            disabled={
+              page >=
+              totalPages
+            }
           >
             Próxima →
           </button>
         </div>
       </div>
 
-{pagando && (
-  <div
-    className="cp-modal-bg"
-    onClick={fecharPagamento}
-  >
-    <div
-      className="cp-modal"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <h3>Pagar Conta</h3>
+      {/* =====================================================
+          PAGAMENTO
+      ===================================================== */}
 
-      <div className="cp-modal-grid">
-        <div className="cp-card" style={{ padding: 12 }}>
-          <div className="cp-muted">Conta</div>
-          <div style={{ marginTop: 5, fontWeight: 800 }}>
-            {pagando.descricao || pagando.fornecedor || "Conta sem descrição"}
-          </div>
-          <div style={{ marginTop: 6, fontSize: 20, fontWeight: 900 }}>
-            {money(pagando.valor_atual ?? pagando.valor)}
-          </div>
-        </div>
-
-        <div>
-          <div className="cp-muted" style={{ marginBottom: 6 }}>
-            Banco usado no pagamento
-          </div>
-
-          <select
-            className="cp-select"
-            value={bancoPagamento}
-            onChange={(e) => {
-              setBancoPagamento(e.target.value);
-              if (e.target.value !== "Outro") setBancoOutro("");
-            }}
-            autoFocus
+      {pagando && (
+        <div
+          className="cp-modal-bg"
+          onClick={
+            fecharPagamento
+          }
+        >
+          <div
+            className="cp-modal"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
-            <option value="">Selecione o banco</option>
-            {BANCOS.map((banco) => (
-              <option key={banco} value={banco}>
-                {banco}
-              </option>
-            ))}
-          </select>
-        </div>
+            <h3>
+              Pagar Conta
+            </h3>
 
-        {bancoPagamento === "Outro" ? (
-          <div>
-            <div className="cp-muted" style={{ marginBottom: 6 }}>
-              Nome do banco
+            <div className="cp-modal-grid">
+              <div
+                className="cp-card"
+                style={{
+                  padding: 12,
+                }}
+              >
+                <div className="cp-muted">
+                  Conta
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 5,
+                    fontWeight: 800,
+                  }}
+                >
+                  {pagando.descricao ||
+                    pagando.fornecedor ||
+                    "Conta sem descrição"}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 20,
+                    fontWeight: 900,
+                  }}
+                >
+                  {money(
+                    pagando.valor_atual ??
+                      pagando.valor
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div
+                  className="cp-muted"
+                  style={{
+                    marginBottom: 6,
+                  }}
+                >
+                  Banco usado no pagamento
+                </div>
+
+                <div className="cp-bank-row">
+                  <select
+                    className="cp-select"
+                    value={
+                      bancoPagamento
+                    }
+                    onChange={(e) =>
+                      setBancoPagamento(
+                        e.target
+                          .value
+                      )
+                    }
+                    autoFocus
+                  >
+                    <option value="">
+                      Selecione o banco
+                    </option>
+
+                    {bancos.map(
+                      (banco) => (
+                        <option
+                          key={
+                            banco.id
+                          }
+                          value={
+                            banco.nome
+                          }
+                        >
+                          {
+                            banco.nome
+                          }
+                        </option>
+                      )
+                    )}
+                  </select>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() =>
+                      setModalNovoBanco(
+                        true
+                      )
+                    }
+                  >
+                    + Novo banco
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <input
-              className="cp-input"
-              value={bancoOutro}
-              onChange={(e) => setBancoOutro(e.target.value)}
-              placeholder="Digite o nome do banco"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") confirmarPagamento();
-              }}
-            />
+            <div className="cp-modal-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={
+                  fecharPagamento
+                }
+                disabled={
+                  pagandoLoading
+                }
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={
+                  confirmarPagamento
+                }
+                disabled={
+                  pagandoLoading ||
+                  !bancoPagamento
+                }
+              >
+                {pagandoLoading
+                  ? "Pagando..."
+                  : "Confirmar Pagamento"}
+              </button>
+            </div>
           </div>
-        ) : null}
-      </div>
+        </div>
+      )}
 
-      <div className="cp-modal-actions">
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={fecharPagamento}
-          disabled={pagandoLoading}
-        >
-          Cancelar
-        </button>
+      {/* =====================================================
+          EDITAR CONTA
+      ===================================================== */}
 
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={confirmarPagamento}
-          disabled={
-            pagandoLoading ||
-            !bancoPagamento ||
-            (bancoPagamento === "Outro" && !bancoOutro.trim())
+      {editando && (
+        <div
+          className="cp-modal-bg"
+          onClick={() =>
+            setEditando(
+              null
+            )
           }
         >
-          {pagandoLoading ? "Pagando..." : "Confirmar Pagamento"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+          <div
+            className="cp-modal"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+            <h3>
+              Editar Conta
+            </h3>
 
-{editando && (
-  <div
-    className="cp-modal-bg"
-    onClick={() => setEditando(null)}
-  >
-    <div
-      className="cp-modal"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <h3>Editar Conta</h3>
+            <div className="cp-modal-grid">
+              <input
+                className="cp-input"
+                placeholder="Descrição"
+                value={
+                  editForm.descricao
+                }
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    descricao:
+                      e.target
+                        .value,
+                  })
+                }
+              />
 
-      <div className="cp-modal-grid">
+              <input
+                className="cp-input"
+                placeholder="Fornecedor"
+                value={
+                  editForm.fornecedor
+                }
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    fornecedor:
+                      e.target
+                        .value,
+                  })
+                }
+              />
 
-        <input
-          className="cp-input"
-          placeholder="Descrição"
-          value={editForm.descricao}
-          onChange={(e) =>
-            setEditForm({
-              ...editForm,
-              descricao: e.target.value,
-            })
-          }
-        />
+              <input
+                className="cp-input"
+                placeholder="Número NF"
+                value={
+                  editForm.numero_nf
+                }
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    numero_nf:
+                      e.target
+                        .value,
+                  })
+                }
+              />
 
-        <input
-          className="cp-input"
-          placeholder="Fornecedor"
-          value={editForm.fornecedor}
-          onChange={(e) =>
-            setEditForm({
-              ...editForm,
-              fornecedor: e.target.value,
-            })
-          }
-        />
+              <input
+                className="cp-input"
+                placeholder="Referência"
+                value={
+                  editForm.chave
+                }
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    chave:
+                      e.target
+                        .value,
+                  })
+                }
+              />
 
-        <input
-          className="cp-input"
-          placeholder="Número NF"
-          value={editForm.numero_nf}
-          onChange={(e) =>
-            setEditForm({
-              ...editForm,
-              numero_nf: e.target.value,
-            })
-          }
-        />
+              <input
+                className="cp-input"
+                placeholder="Valor"
+                value={
+                  editForm.valor
+                }
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    valor:
+                      e.target
+                        .value,
+                  })
+                }
+              />
 
-        <input
-          className="cp-input"
-          placeholder="Referência"
-          value={editForm.chave}
-          onChange={(e) =>
-            setEditForm({
-              ...editForm,
-              chave: e.target.value,
-            })
-          }
-        />
+              <input
+                className="cp-input"
+                placeholder="Multa por atraso (R$)"
+                value={
+                  editForm.multa
+                }
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    multa:
+                      e.target
+                        .value,
+                  })
+                }
+              />
 
-        <input
-          className="cp-input"
-          placeholder="Valor"
-          value={editForm.valor}
-          onChange={(e) =>
-            setEditForm({
-              ...editForm,
-              valor: e.target.value,
-            })
-          }
-        />
+              <input
+                className="cp-input"
+                type="date"
+                value={
+                  editForm.vencimento
+                }
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    vencimento:
+                      e.target
+                        .value,
+                  })
+                }
+              />
 
-        <input
-          className="cp-input"
-          placeholder="Multa por atraso (R$)"
-          value={editForm.multa}
-          onChange={(e) =>
-            setEditForm({
-              ...editForm,
-              multa: e.target.value,
-            })
-          }
-        />
+              <div>
+                <div
+                  className="cp-muted"
+                  style={{
+                    marginBottom: 6,
+                  }}
+                >
+                  Banco do pagamento
+                </div>
 
-        <input
-          className="cp-input"
-          type="date"
-          value={editForm.vencimento}
-          onChange={(e) =>
-            setEditForm({
-              ...editForm,
-              vencimento: e.target.value,
-            })
-          }
-        />
-      </div>
+                <div className="cp-bank-row">
+                  <select
+                    className="cp-select"
+                    value={
+                      editForm.banco_pagamento
+                    }
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        banco_pagamento:
+                          e.target
+                            .value,
+                      })
+                    }
+                  >
+                    <option value="">
+                      Sem banco
+                    </option>
 
-      <div className="cp-modal-actions">
-        <button
-          className="btn-secondary"
-          onClick={() => setEditando(null)}
+                    {editForm.banco_pagamento &&
+                    !bancos.some(
+                      (b) =>
+                        b.nome ===
+                        editForm.banco_pagamento
+                    ) ? (
+                      <option
+                        value={
+                          editForm.banco_pagamento
+                        }
+                      >
+                        {
+                          editForm.banco_pagamento
+                        }
+                      </option>
+                    ) : null}
+
+                    {bancos.map(
+                      (banco) => (
+                        <option
+                          key={
+                            banco.id
+                          }
+                          value={
+                            banco.nome
+                          }
+                        >
+                          {
+                            banco.nome
+                          }
+                        </option>
+                      )
+                    )}
+                  </select>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() =>
+                      setModalNovoBanco(
+                        true
+                      )
+                    }
+                  >
+                    + Novo banco
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="cp-modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() =>
+                  setEditando(
+                    null
+                  )
+                }
+              >
+                Cancelar
+              </button>
+
+              <button
+                className="btn-primary"
+                onClick={
+                  salvarEdicao
+                }
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          NOVO BANCO
+      ===================================================== */}
+
+      {modalNovoBanco && (
+        <div
+          className="cp-modal-bg"
+          onClick={() => {
+            if (
+              !salvandoBanco
+            ) {
+              setModalNovoBanco(
+                false
+              );
+
+              setNovoBanco(
+                ""
+              );
+            }
+          }}
+          style={{
+            zIndex: 10000,
+          }}
         >
-          Cancelar
-        </button>
+          <div
+            className="cp-modal"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+            <h3>
+              Cadastrar Banco
+            </h3>
 
-        <button
-          className="btn-primary"
-          onClick={salvarEdicao}
-        >
-          Salvar
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="cp-modal-grid">
+              <div>
+                <div
+                  className="cp-muted"
+                  style={{
+                    marginBottom: 6,
+                  }}
+                >
+                  Nome do banco
+                </div>
 
+                <input
+                  className="cp-input"
+                  value={
+                    novoBanco
+                  }
+                  onChange={(e) =>
+                    setNovoBanco(
+                      e.target
+                        .value
+                    )
+                  }
+                  placeholder="Ex.: IFOOD"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (
+                      e.key ===
+                      "Enter"
+                    ) {
+                      criarBanco();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="cp-modal-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={
+                  salvandoBanco
+                }
+                onClick={() => {
+                  setModalNovoBanco(
+                    false
+                  );
+
+                  setNovoBanco(
+                    ""
+                  );
+                }}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={
+                  salvandoBanco ||
+                  !novoBanco.trim()
+                }
+                onClick={
+                  criarBanco
+                }
+              >
+                {salvandoBanco
+                  ? "Salvando..."
+                  : "Cadastrar banco"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
